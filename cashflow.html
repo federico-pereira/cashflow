@@ -158,9 +158,13 @@ const BOARD=["payday","market","doodad","event","charity","doodad","market","pay
 const BOARD_COORDS=(()=>{const n=7,c=[];for(let col=1;col<=n;col++)c.push([1,col]);for(let row=2;row<=n;row++)c.push([row,n]);for(let col=n-1;col>=1;col--)c.push([n,col]);for(let row=n-1;row>=2;row--)c.push([row,1]);return c;})();
 const COLORS=["var(--p0)","var(--p1)","var(--p2)","var(--p3)","var(--p4)","var(--p5)"];
 const fmt=n=>"$"+Math.round(n).toLocaleString();
-let state={phase:"setup",numPlayers:2,names:["",""],profs:[0,0],players:[],turn:0,pending:null,log:[],viewTab:0,qty:{},listings:[],listingSeq:1,panel:null,marketTab:"stock",selectedStock:null,
+let state={phase:"setup",numPlayers:2,names:["",""],profs:[0,0],players:[],turn:0,pending:null,log:[],viewTab:0,qty:{},finance:{},flashQty:1,loanTakeAmt:1000,loanPayAmt:1000,listings:[],listingSeq:1,panel:null,marketTab:"stock",selectedStock:null,
   online:false,isHost:false,room:null,myIdx:null,myName:"",joinName:"",joinRoom:"",joinError:"",ready:[false,false]};
 const FIXED_ROOM="HOME";
+// UI-local defaults (qty/finance toggles) must exist for EVERY player's browser, not just the
+// host's — a guest never runs startGame() locally, it only receives synced game state, so these
+// can't be seeded there. Seed them once, up front, for every known market instrument.
+MARKET.forEach(m=>{ state.qty[m.id]=1; state.finance[m.id]=false; });
 try{ const sr=localStorage.getItem("cf_room"), sn=localStorage.getItem("cf_name"); if(sr) state.joinRoom=sr; if(sn) state.joinName=sn; }catch(e){}
 
 // ---- Online sync (peer-to-peer via PeerJS/WebRTC — no account needed) ----
