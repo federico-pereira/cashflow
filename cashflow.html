@@ -158,7 +158,7 @@ const BOARD=["payday","market","doodad","event","charity","doodad","market","pay
 const BOARD_COORDS=(()=>{const n=7,c=[];for(let col=1;col<=n;col++)c.push([1,col]);for(let row=2;row<=n;row++)c.push([row,n]);for(let col=n-1;col>=1;col--)c.push([n,col]);for(let row=n-1;row>=2;row--)c.push([row,1]);return c;})();
 const COLORS=["var(--p0)","var(--p1)","var(--p2)","var(--p3)","var(--p4)","var(--p5)"];
 const fmt=n=>"$"+Math.round(n).toLocaleString();
-let state={phase:"setup",numPlayers:2,names:["",""],profs:[0,0],players:[],turn:0,pending:null,log:[],viewTab:0,qty:{},finance:{},flashQty:1,loanTakeAmt:1000,loanPayAmt:1000,listings:[],listingSeq:1,panel:null,marketTab:"stock",selectedStock:null,
+let state={phase:"setup",numPlayers:2,names:["",""],profs:[0,0],players:[],turn:0,pending:null,hasRolled:false,log:[],viewTab:0,qty:{},finance:{},flashQty:1,loanTakeAmt:1000,loanPayAmt:1000,listings:[],listingSeq:1,panel:null,marketTab:"stock",selectedStock:null,
   online:false,isHost:false,room:null,myIdx:null,myName:"",joinName:"",joinRoom:"",joinError:"",ready:[false,false]};
 const FIXED_ROOM="HOME";
 // UI-local defaults (qty/finance toggles) must exist for EVERY player's browser, not just the
@@ -178,7 +178,7 @@ function applyMarketSnapshot(arr){
 }
 function sharedSnapshot(){
   return {phase:state.phase==="join"?"setup":state.phase,numPlayers:state.numPlayers,names:state.names,profs:state.profs,ready:state.ready,
-    players:state.players,turn:state.turn,pending:state.pending,log:state.log,listings:state.listings,listingSeq:state.listingSeq,
+    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,
     market:snapshotMarket(),updatedAt:Date.now()};
 }
 function applyShared(data){
@@ -191,6 +191,7 @@ function applyShared(data){
   if(data.players) state.players=data.players;
   if(typeof data.turn==="number") state.turn=data.turn;
   state.pending=data.pending||null;
+  state.hasRolled=!!data.hasRolled;
   state.log=data.log||state.log;
   state.listings=data.listings||state.listings;
   if(data.listingSeq) state.listingSeq=data.listingSeq;
@@ -419,7 +420,7 @@ function startGame(){
     const pr=PROFESSIONS[Math.floor(Math.random()*PROFESSIONS.length)];
     return {...pr,profession:pr.name,name:nm.trim()||("Player "+(i+1)),cash:pr.savings,kids:0,holdings:{},bankLoanBal:0,bankLoanPmt:0,pos:0,escaped:false,color:COLORS[i]};
   });
-  state.phase="playing"; state.turn=0; state.pending=null; state.log=[]; state.viewTab=0;
+  state.phase="playing"; state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
   log("Game started. "+state.players[0].name+" goes first. Market is open.");
   if(state.online) pushState();
   render();
@@ -518,10 +519,10 @@ function buyFlashDeal(){
   state.pending=null; syncRender();
 }
 function passFlash(){if(state.online&&state.myIdx!==state.turn)return;log(state.pending.p.name+" passed on the flash deal.");state.pending=null;syncRender();}
+function actingIdx(){ return state.online?state.myIdx:state.turn; }
 function buyListing(id){
-  if(state.online&&state.myIdx!==state.turn) return;
-  const p=state.players[state.turn], l=state.listings.find(x=>x.id===id);
-  if(!l||l.kind!=="ask"){return;}
+  const p=state.players[actingIdx()], l=state.listings.find(x=>x.id===id);
+  if(!p||!l||l.kind!=="ask"){return;}
   const m=MARKET.find(x=>x.id===l.instId);
   const buyQty=l.qty, cost=buyQty*l.price;
   const finance=!!state.finance[l.id];
@@ -532,13 +533,11 @@ function buyListing(id){
   log(p.name+" grabbed "+buyQty+"x "+m.name+" off the floor @ "+fmt(l.price)+(finance?" — "+fmt(due)+" down (10%), "+fmt(cost-due)+" financed.":"."));
   checkWin(p);
   state.listings=state.listings.filter(x=>x.qty>0);
-  if(state.online) pushState();
-  render();
+  syncRender();
 }
 function sellListing(id){
-  if(state.online&&state.myIdx!==state.turn) return;
-  const p=state.players[state.turn], l=state.listings.find(x=>x.id===id);
-  if(!l||l.kind!=="bid"){return;}
+  const p=state.players[actingIdx()], l=state.listings.find(x=>x.id===id);
+  if(!p||!l||l.kind!=="bid"){return;}
   const m=MARKET.find(x=>x.id===l.instId);
   const sellQty=Math.min(l.qty,p.holdings[l.instId]||0);
   if(sellQty<=0){log(p.name+" has none of "+m.name+" to sell into that request.");}
@@ -547,8 +546,7 @@ function sellListing(id){
     log(p.name+" sold "+sellQty+"x "+m.name+" into a buy request @ "+fmt(l.price)+".");
   }
   state.listings=state.listings.filter(x=>x.qty>0);
-  if(state.online) pushState();
-  render();
+  syncRender();
 }
 function setTab(i){state.viewTab=i;render();}
 function togglePanel(name){state.panel=state.panel===name?null:name; render();}
@@ -582,8 +580,8 @@ function sparklineSVG(history,w,h){
 }
 function setQty(id,v){state.qty[id]=Math.max(1,parseInt(v)||1);}
 function buyUnit(id){
-  if(state.online&&state.myIdx!==state.turn) return;
-  const p=state.players[state.turn], m=MARKET.find(x=>x.id===id), qty=state.qty[id]||1;
+  const p=state.players[actingIdx()]; if(!p) return;
+  const m=MARKET.find(x=>x.id===id), qty=state.qty[id]||1;
   const finance=m.type==="realestate"&&state.finance[id];
   const cost=m.price*qty;
   const due=finance?Math.round(cost*0.1):cost;
@@ -592,16 +590,14 @@ function buyUnit(id){
   p.holdings[id]=(p.holdings[id]||0)+qty;
   log(p.name+" bought "+qty+"x "+m.name+" @ "+fmt(m.price)+(finance?" — "+fmt(due)+" down (10%), "+fmt(cost-due)+" financed.":" ("+fmt(cost)+")."));
   checkWin(p);
-  if(state.online) pushState();
-  render();
+  syncRender();
 }
 function sellUnit(id){
-  if(state.online&&state.myIdx!==state.turn) return;
-  const p=state.players[state.turn], m=MARKET.find(x=>x.id===id), qty=state.qty[id]||1, held=p.holdings[id]||0;
+  const p=state.players[actingIdx()]; if(!p) return;
+  const m=MARKET.find(x=>x.id===id), qty=state.qty[id]||1, held=p.holdings[id]||0;
   if(held<qty){log(p.name+" only owns "+held+"x "+m.name+".");}
   else{const proceeds=m.price*qty; p.cash+=proceeds; p.holdings[id]-=qty; log(p.name+" sold "+qty+"x "+m.name+" @ "+fmt(m.price)+" ("+fmt(proceeds)+").");}
-  if(state.online) pushState();
-  render();
+  syncRender();
 }
 function takeLoan(idx){
   if(state.online&&state.myIdx!==idx) return;
@@ -687,14 +683,13 @@ function boardHTML(){
   </div>`;
 }
 function realEstateListingsHTML(){
-  const p=state.players[state.turn];
-  const myTurn=!state.online||state.myIdx===state.turn;
+  const p=state.players[actingIdx()];
   if(state.listings.length===0) return `<p class="muted">No live listings right now — new ones appear each turn.</p>`;
   const cards=state.listings.map(l=>{
     const m=MARKET.find(x=>x.id===l.instId);
     const isAsk=l.kind==="ask";
     const held=p.holdings[l.instId]||0;
-    const canAct=myTurn&&(isAsk?true:held>0);
+    const canAct=isAsk?true:held>0;
     const vsMkt=Math.round((l.price-m.price)/m.price*100);
     const capRate=m.rent?(m.rent*12/l.price*100).toFixed(1)+"%":"–";
     const appr=((m.price-m.basePrice0)/m.basePrice0*100).toFixed(1);
@@ -712,7 +707,7 @@ function realEstateListingsHTML(){
         <span class="${apprCls}">Apprec. ${appr}%</span>
       </div>
       <div class="mactions">
-        ${isAsk?`<label style="font-size:11px;white-space:nowrap;"><input type="checkbox" ${state.finance[l.id]?"checked":""} ${myTurn?"":"disabled"} onchange="state.finance['${l.id}']=this.checked;render();"> Finance (10% down)</label>`:""}
+        ${isAsk?`<label style="font-size:11px;white-space:nowrap;"><input type="checkbox" ${state.finance[l.id]?"checked":""} onchange="state.finance['${l.id}']=this.checked;render();"> Finance (10% down)</label>`:""}
         <button class="${isAsk?'primary':'sell'}" style="margin-left:auto;" ${canAct?"":"disabled"} onclick="${isAsk?"buyListing":"sellListing"}('${l.id}')">${isAsk?"Buy now":"Sell into it"}</button>
       </div>
       <div class="mheld" style="margin-top:4px;">Held: ${held}</div>
@@ -721,8 +716,7 @@ function realEstateListingsHTML(){
   return `<div class="mgrid">${cards}</div>`;
 }
 function marketHTML(){
-  const p=state.players[state.turn];
-  const myTurn=!state.online||state.myIdx===state.turn;
+  const p=state.players[actingIdx()];
   const stockRows=MARKET.filter(m=>m.type==="stock").map(m=>{
     const chg=m.prevPrice?Math.round((m.price-m.prevPrice)/m.prevPrice*100):0;
     const cls=chg>0?"up":chg<0?"down":"flat"; const arrow=chg>0?"▲":chg<0?"▼":"–";
@@ -735,8 +729,8 @@ function marketHTML(){
       <td class="num">${fmt(m.low52)}–${fmt(m.high52)}</td>
       <td class="num">${pe}</td><td class="num">${yld}</td>
       <td class="num">${held}</td>
-      <td onclick="event.stopPropagation()"><input class="qty" type="number" min="1" value="${state.qty[m.id]}" onchange="setQty('${m.id}',this.value)" ${myTurn?"":"disabled"}></td>
-      <td onclick="event.stopPropagation()"><div class="row" style="flex-wrap:nowrap;"><button class="primary" onclick="buyUnit('${m.id}')" ${myTurn?"":"disabled"}>Buy</button> <button class="sell" onclick="sellUnit('${m.id}')" ${held&&myTurn?"":"disabled"}>Sell</button></div></td>
+      <td onclick="event.stopPropagation()"><input class="qty" type="number" min="1" value="${state.qty[m.id]}" onchange="setQty('${m.id}',this.value)"></td>
+      <td onclick="event.stopPropagation()"><div class="row" style="flex-wrap:nowrap;"><button class="primary" onclick="buyUnit('${m.id}')">Buy</button> <button class="sell" onclick="sellUnit('${m.id}')" ${held?"":"disabled"}>Sell</button></div></td>
     </tr>`;
     if(!expanded) return row;
     const hist=m.history||[m.price];
@@ -766,7 +760,6 @@ function marketHTML(){
     <button class="${state.marketTab==='stock'?'active':''}" onclick="setMarketTab('stock')">📈 Stocks</button>
     <button class="${state.marketTab==='realestate'?'active':''}" onclick="setMarketTab('realestate')">🏠 Real Estate</button>
   </div>
-  ${!myTurn?`<p class="muted" style="font-size:12px;">Trading is open on ${p.name}'s turn only — it's not your turn right now.</p>`:""}
   ${state.marketTab==='stock'
     ?`${stockTable}<small>Click a row to expand its 15-week history and details. Always-open trades at the live market price. A purchase you can't fully cover automatically takes a bank loan (min. $1,000) for the shortfall.</small>`
     :`${realEstateListingsHTML()}<small>Real estate trades only through these live offers from other buyers/sellers — they're limited in size and time, so grab one before it's gone. Financed listings need only 10% down; the rest becomes a bank loan.</small>`}
@@ -938,8 +931,10 @@ function gameHTML(over){
   <div class="board-wrap">
     <div class="card">
       <div class="between">
-        <div><b>Turn:</b> <span style="color:${p.color}">●</span> ${p.name}${state.online&&!myTurn?` <small class="muted">(waiting for ${p.name})</small>`:""}</div>
-        ${!over&&!state.pending&&myTurn?`<button class="primary" onclick="rollDice()">🎲 Roll Dice</button>`:""}
+        <div><b>Turn:</b> <span style="color:${p.color}">●</span> ${p.name}${state.online&&!myTurn?` <small class="muted">(waiting for ${p.name} to roll/end turn — you can still trade)</small>`:""}</div>
+        ${!over&&!state.pending&&myTurn?(state.hasRolled
+          ?`<button class="primary" onclick="endTurn()">✅ End Turn</button>`
+          :`<button class="primary" onclick="rollDice()">🎲 Roll Dice</button>`):""}
       </div>
       ${boardHTML()}
       <div class="log">${state.log.map(l=>"• "+l).join("<br>")}</div>
