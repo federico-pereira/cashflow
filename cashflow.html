@@ -425,12 +425,19 @@ function startGame(){
   render();
 }
 function activePlayers(){return state.players.filter(p=>!p.escaped);}
+function syncRender(){ if(state.online) pushState(); render(); }
 function nextTurn(){
   updateMarket();
   tickListings();
-  if(activePlayers().length===0){state.phase="over"; if(state.online)pushState(); render(); return;}
+  state.hasRolled=false;
+  if(activePlayers().length===0){state.phase="over"; syncRender(); return;}
   do{ state.turn=(state.turn+1)%state.players.length; }while(state.players[state.turn].escaped);
-  state.pending=null; if(state.online)pushState(); render();
+  state.pending=null; syncRender();
+}
+function endTurn(){
+  if(state.online&&state.myIdx!==state.turn) return;
+  if(state.pending||!state.hasRolled) return;
+  nextTurn();
 }
 function checkWin(p){
   if(!p.escaped && passiveIncome(p)>=totalExpenses(p)){
@@ -440,35 +447,38 @@ function checkWin(p){
 }
 function rollDice(){
   if(state.online&&state.myIdx!==state.turn) return;
+  if(state.hasRolled||state.pending) return;
   const p=state.players[state.turn];
   const roll=1+Math.floor(Math.random()*6);
   p.pos=(p.pos+roll)%BOARD.length;
   const sp=BOARD[p.pos];
   log(p.name+" rolled a "+roll+" -> landed on "+sp+".");
+  state.hasRolled=true;
   resolveSpace(p,sp);
-  if(state.online) pushState();
-  render();
+  syncRender();
 }
+// Landing on a space resolves its effect but no longer auto-advances the turn — the market
+// stays open to everyone at all times, and the current player ends their own turn explicitly
+// (via the End Turn button) once they're done rolling/trading, so nobody gets cut off mid-turn.
 function resolveSpace(p,sp){
   if(sp==="payday"){
     const inc=p.salary-p.taxes-totalExpenses(p)+passiveIncome(p);
     p.cash+=inc;
     log(p.name+" collects payday: "+fmt(inc)+" net cashflow.");
-    checkWin(p); nextTurn();
+    checkWin(p);
   }else if(sp==="doodad"){
     const d=DOODADS[Math.floor(Math.random()*DOODADS.length)];
     payCash(p,d.cost);
     log(p.name+" hit a doodad: "+d.name+" ("+fmt(d.cost)+").");
-    nextTurn();
   }else if(sp==="downsized"){
     const loss=totalExpenses(p);
     payCash(p,loss);
     log(p.name+" got downsized! Paid "+fmt(loss)+" in expenses, no payday this round.");
-    checkWin(p); nextTurn();
+    checkWin(p);
   }else if(sp==="baby"){
     if(p.kids<3){p.kids++; log(p.name+" had a baby! Monthly expenses up "+fmt(p.childExp)+".");}
     else log(p.name+" landed on Baby but already has 3 kids.");
-    checkWin(p); nextTurn();
+    checkWin(p);
   }else if(sp==="charity"){
     state.pending={kind:"charity",p};
   }else if(sp==="market"){
@@ -492,10 +502,10 @@ function charityPay(){
   const amt=Math.round((p.salary)*0.1);
   payCash(p,amt);
   log(p.name+" donated "+fmt(amt)+" to charity.");
-  state.pending=null; checkWin(p); nextTurn();
+  state.pending=null; checkWin(p); syncRender();
 }
-function charitySkip(){if(state.online&&state.myIdx!==state.turn)return;log(state.pending.p.name+" skipped charity.");state.pending=null;nextTurn();}
-function continueEvent(){if(state.online&&state.myIdx!==state.turn)return;state.pending=null; nextTurn();}
+function charitySkip(){if(state.online&&state.myIdx!==state.turn)return;log(state.pending.p.name+" skipped charity.");state.pending=null;syncRender();}
+function continueEvent(){if(state.online&&state.myIdx!==state.turn)return;state.pending=null; syncRender();}
 function setFlashQty(v){state.flashQty=Math.max(1,Math.min(state.pending.qtyMax,parseInt(v)||1));}
 function buyFlashDeal(){
   if(state.online&&state.myIdx!==state.turn) return;
@@ -505,9 +515,9 @@ function buyFlashDeal(){
   p.holdings[pd.id]=(p.holdings[pd.id]||0)+qty;
   log(p.name+" grabbed a flash deal: "+qty+"x "+m.name+" @ "+fmt(pd.dealPrice)+" ("+pd.discountPct+"% below market).");
   checkWin(p);
-  state.pending=null; nextTurn();
+  state.pending=null; syncRender();
 }
-function passFlash(){if(state.online&&state.myIdx!==state.turn)return;log(state.pending.p.name+" passed on the flash deal.");state.pending=null;nextTurn();}
+function passFlash(){if(state.online&&state.myIdx!==state.turn)return;log(state.pending.p.name+" passed on the flash deal.");state.pending=null;syncRender();}
 function buyListing(id){
   if(state.online&&state.myIdx!==state.turn) return;
   const p=state.players[state.turn], l=state.listings.find(x=>x.id===id);
