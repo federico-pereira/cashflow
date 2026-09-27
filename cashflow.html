@@ -158,7 +158,7 @@ const BOARD=["payday","market","doodad","event","charity","doodad","market","pay
 const BOARD_COORDS=(()=>{const n=7,c=[];for(let col=1;col<=n;col++)c.push([1,col]);for(let row=2;row<=n;row++)c.push([row,n]);for(let col=n-1;col>=1;col--)c.push([n,col]);for(let row=n-1;row>=2;row--)c.push([row,1]);return c;})();
 const COLORS=["var(--p0)","var(--p1)","var(--p2)","var(--p3)","var(--p4)","var(--p5)"];
 const fmt=n=>"$"+Math.round(n).toLocaleString();
-let state={phase:"join",numPlayers:2,names:["",""],profs:[0,0],players:[],turn:0,pending:null,log:[],viewTab:0,qty:{},listings:[],listingSeq:1,panel:null,marketTab:"stock",selectedStock:null,
+let state={phase:"setup",numPlayers:2,names:["",""],profs:[0,0],players:[],turn:0,pending:null,log:[],viewTab:0,qty:{},listings:[],listingSeq:1,panel:null,marketTab:"stock",selectedStock:null,
   online:false,isHost:false,room:null,myIdx:null,myName:"",joinName:"",joinRoom:"",joinError:"",ready:[false,false]};
 const FIXED_ROOM="HOME";
 try{ const sr=localStorage.getItem("cf_room"), sn=localStorage.getItem("cf_name"); if(sr) state.joinRoom=sr; if(sn) state.joinName=sn; }catch(e){}
@@ -612,11 +612,10 @@ function payLoan(idx){
 
 function render(){
   const el=document.getElementById('app');
-  const inGame=state.phase==="playing"||state.phase==="over";
-  if(inGame&&(!state.players||!state.players.length||!state.players[state.turn])){
-    // Defensive: never crash on an incomplete/out-of-sync state — drop back to the lobby instead.
-    state.phase="setup";
-  }
+  const validGamePhase=(state.phase==="playing"||state.phase==="over")&&state.players&&state.players.length&&state.players[state.turn];
+  // Defensive: any phase other than "setup" needs real player data — anything else (an unrecognized
+  // phase, or missing/incomplete player data) falls back to the lobby instead of crashing.
+  if(state.phase!=="setup"&&!validGamePhase) state.phase="setup";
   if(state.phase==="setup"){ el.classList.remove("fit-screen"); el.innerHTML=setupHTML(); }
   else { el.classList.add("fit-screen"); el.innerHTML=gameHTML(state.phase==="over"); }
 }
