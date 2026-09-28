@@ -28,14 +28,33 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 input,select{font-family:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);}
 html,body{height:100%;}
 .wrap{max-width:720px;margin:0 auto;padding:16px;}
-.wrap.fit-screen{height:100vh;max-height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.wrap.fit-screen{max-width:1040px;height:100vh;max-height:100vh;display:flex;flex-direction:column;overflow:hidden;}
 .wrap.fit-screen h1{flex:none;font-size:19px;}
 .wrap.fit-screen .win{flex:none;}
 .wrap.fit-screen .board-wrap{flex:1;min-height:0;display:flex;flex-direction:column;}
 .wrap.fit-screen .board-wrap>.card{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:8px;overflow:hidden;}
 .wrap.fit-screen .board-wrap>.card>.between{flex:none;}
-.wrap.fit-screen .gameboard{flex:1;min-height:0;height:auto;max-height:100%;width:auto;max-width:100%;margin:4px auto 8px;}
-.wrap.fit-screen .log{flex:none;max-height:64px;}
+/* Fixed-height turn bar: whether it shows Roll, Roll 1/Roll 2, End Turn or nothing (while a popup is
+   open), the board below keeps exactly the same space and never jumps. */
+.turn-bar{height:38px;flex-wrap:nowrap;overflow:hidden;}
+.turn-bar .turn-who{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.turn-bar button{white-space:nowrap;}
+@media (max-width:560px){.turn-bar .roll-note{display:none;}}
+/* Board + log side by side. .board-area is a size container, so the board is the largest square that fits
+   and the log panel has exactly the board's height: new log lines scroll inside it, never resizing the board.
+   On narrow screens the log drops below the board at a fixed height. */
+.board-area{flex:1;min-height:0;container-type:size;margin:6px 0 4px;}
+.board-row{--bs:min(100cqh,100cqw - 260px,640px);height:100%;display:flex;gap:10px;justify-content:center;align-items:flex-start;}
+.board-row .gameboard{width:var(--bs);height:var(--bs);max-width:none;margin:0;flex:none;}
+.log-panel{flex:1 1 0;min-width:200px;max-width:320px;height:var(--bs);display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow:hidden;}
+.log-panel .log-head{flex:none;font-weight:bold;font-size:13px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--panel);}
+.log-panel .log{flex:1;min-height:0;max-height:none;margin:0;border:0;padding:6px 10px 8px;overflow-y:auto;}
+.log-panel .log div{padding:3px 0;border-bottom:1px dashed var(--line);line-height:1.35;}
+.log-panel .log div:first-child{color:var(--ink);}
+@container (max-width:620px){
+  .board-row{--bs:min(100cqw,100cqh - 104px);flex-direction:column;align-items:center;gap:6px;}
+  .log-panel{flex:none;width:100%;max-width:none;height:98px;}
+}
 .wrap.fit-screen .players-overview{flex:none;max-height:26vh;overflow-y:auto;}
 .board-wrap{position:relative;}
 .side-toggle{position:fixed;top:50%;transform:translateY(-50%);z-index:60;padding:14px 8px;font-size:13px;font-weight:bold;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.2);}
@@ -46,13 +65,14 @@ html,body{height:100%;}
 .panel-backdrop.right{justify-content:flex-end;}
 .side-panel{background:var(--panel);width:auto;max-width:420px;max-height:92vh;overflow:hidden;padding:0;box-shadow:0 10px 40px rgba(0,0,0,.35);margin:0 10px;border-radius:14px;display:flex;flex-direction:column;}
 .side-panel.wide{width:min(94vw,860px);max-width:min(94vw,860px);}
+.side-panel.xwide{width:min(96vw,1120px);max-width:min(96vw,1120px);}
 .panel-backdrop.left .side-panel{border-radius:0 14px 14px 0;margin-left:0;}
 .panel-backdrop.right .side-panel{border-radius:14px 0 0 14px;margin-right:0;}
 .panel-body{flex:1;min-height:0;overflow-y:auto;padding:14px 16px 16px;}
 .mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;}
 .mgrid .mcard{margin-bottom:0;padding:9px 10px;}
 .mtable-wrap{overflow-x:auto;}
-.mtable-wrap table{min-width:600px;font-size:12.5px;}
+.mtable-wrap table{min-width:680px;font-size:12.5px;}
 .mtable-wrap thead th{position:sticky;top:0;background:var(--panel);z-index:1;}
 .panel-head{display:flex;justify-content:space-between;align-items:center;background:var(--panel);padding:14px 16px 10px;border-bottom:1px solid var(--line);flex:none;}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px;}
@@ -60,12 +80,48 @@ html,body{height:100%;}
 .between{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
 small,.muted{color:var(--muted);font-size:12.5px;}
 .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;color:#fff;}
-.gameboard{display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(7,1fr);gap:4px;aspect-ratio:1/1;max-width:520px;margin:4px auto 10px;}
-.cell{border:1px solid var(--line);border-radius:6px;background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;font-size:15px;}
-.cell .tokens{position:absolute;bottom:2px;display:flex;gap:2px;flex-wrap:wrap;justify-content:center;width:92%;}
-.board-center{grid-row:2/7;grid-column:2/7;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:var(--bg);border-radius:10px;border:1px dashed var(--line);}
+.gameboard{display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(7,1fr);gap:5px;aspect-ratio:1/1;max-width:560px;margin:4px auto 10px;padding:6px;border-radius:16px;background:linear-gradient(135deg,rgba(31,122,92,.16),rgba(184,134,11,.16));border:1px solid var(--line);}
+.cell{--sq:#888;border:1px solid color-mix(in srgb,var(--sq) 35%,var(--line));border-top:4px solid var(--sq);border-radius:8px;background:color-mix(in srgb,var(--sq) 11%,var(--panel));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;overflow:hidden;min-width:0;min-height:0;transition:box-shadow .2s;}
+.cell .sq-emoji{font-size:clamp(12px,2.5vmin,20px);line-height:1;}
+.cell .sq-label{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:clamp(6px,1.2vmin,9.5px);font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--sq);line-height:1;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cell.here{box-shadow:0 0 0 2px var(--turncol),0 0 14px var(--turncol);z-index:1;}
+.cell .tokens{display:flex;gap:1px;flex-wrap:wrap;justify-content:center;max-width:100%;}
+.cell .sq-label.long{letter-spacing:0;font-size:clamp(5.5px,1.02vmin,8px);}
+.ptok{flex:none;width:clamp(12px,2.3vmin,18px);height:clamp(12px,2.3vmin,18px);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font:700 clamp(7px,1.3vmin,10px)/1 system-ui,-apple-system,'Segoe UI',sans-serif;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);vertical-align:middle;}
+.ptok.active{animation:tokpulse 1.6s ease-in-out infinite;}
+@keyframes tokpulse{0%,100%{transform:scale(1);}50%{transform:scale(1.18);}}
+@media (prefers-reduced-motion:reduce){.ptok.active{animation:none;}}
+.board-center{grid-row:2/7;grid-column:2/7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(4px,1.2vmin,10px);text-align:center;background:var(--panel);border-radius:12px;border:1px dashed color-mix(in srgb,var(--accent2) 50%,var(--line));padding:clamp(6px,1.6vmin,14px);min-height:0;overflow:hidden;}
+.bc-title{font-weight:bold;font-size:clamp(12px,2.6vmin,20px);letter-spacing:.06em;color:var(--accent);}
+.bc-title small{display:block;font-size:.55em;letter-spacing:.2em;text-transform:uppercase;color:var(--accent2);}
+.bc-turn{font-size:clamp(8px,1.5vmin,12px);padding:3px 10px;border-radius:999px;background:color-mix(in srgb,var(--pc) 14%,var(--bg));border:1px solid var(--pc);display:inline-flex;align-items:center;gap:5px;}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:clamp(2px,.6vmin,5px) clamp(6px,1.4vmin,12px);text-align:left;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:clamp(6.5px,1.25vmin,10.5px);line-height:1.25;width:100%;}
+.legend .lg{display:flex;gap:4px;align-items:flex-start;color:var(--muted);}
+.legend .lg b{color:var(--sq);}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;}
+.pcard{--pc:#888;border:1px solid var(--line);border-left:5px solid var(--pc);border-radius:10px;padding:8px 10px;background:var(--bg);}
+.pcard.turn{background:color-mix(in srgb,var(--pc) 9%,var(--bg));box-shadow:0 0 0 1.5px var(--pc);}
+.pcard .ptop{display:flex;align-items:center;gap:8px;}
+.pcard .ptop .ptok{width:26px;height:26px;font-size:12px;}
+.pcard .pname{font-weight:bold;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pcard .pmeta{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pcard .ppct{margin-left:auto;font-weight:bold;font-size:16px;font-variant-numeric:tabular-nums;}
+.pcard .bar{height:8px;}
+.pchips{display:flex;gap:4px;flex-wrap:nowrap;overflow:hidden;height:19px;}
+.chip{white-space:nowrap;}
+.chip{font-size:10.5px;padding:1px 7px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--muted);}
+.chip.good{color:var(--good);border-color:var(--good);}
+.badge{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:10px;font-weight:bold;padding:1px 6px;border-radius:999px;background:var(--pc);color:#fff;vertical-align:middle;}
+.badge.soft{background:var(--panel);color:var(--ink);border:1px solid var(--line);}
+.hold-head{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;cursor:pointer;}
+.hold-head .mini-spark{width:60px;}
+.hold-card:hover{border-color:var(--accent2);}
+.hold-card.open{border-color:var(--accent2);background:var(--panel);}
 .tok{width:12px;height:12px;border-radius:50%;display:inline-block;margin:1px;border:1px solid #0003;}
-.modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:100;border-radius:12px;}
+/* Event/charity/flash-deal popup: no dimming layer — only the card itself catches clicks, so Finance and
+   Market stay usable; it sits below the side tabs (60) and panels (80). */
+.modal-backdrop{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;z-index:50;pointer-events:none;}
+.modal-backdrop>*{pointer-events:auto;box-shadow:0 12px 40px rgba(0,0,0,.35);}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
 .tabs button{padding:5px 10px;font-size:13px;}
 .tabs button.active{background:var(--accent);color:#fff;border-color:var(--accent);}
@@ -78,7 +134,9 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
 .win{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;text-align:center;padding:14px;border-radius:12px;}
 .evt{background:linear-gradient(135deg,#6a3fa0,#3b6fb5);color:#fff;text-align:center;padding:14px;border-radius:12px;}
 .up{color:var(--good);font-weight:bold;} .down{color:var(--bad);font-weight:bold;} .flat{color:var(--muted);}
-.qty{width:48px;}
+.qty{width:56px;font-weight:bold;color:var(--ink);background:var(--panel);border:1.5px solid color-mix(in srgb,var(--ink) 35%,var(--line));text-align:center;}
+.qty:focus{outline:2px solid var(--accent2);outline-offset:1px;}
+.qty-cost{font-size:10.5px;color:var(--muted);text-align:center;margin-top:2px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 .sheet-sec{display:flex;align-items:center;gap:8px;background:var(--ink);color:var(--bg);border-radius:999px;padding:4px 12px;margin:10px 0 4px;font-weight:bold;font-size:13px;}
 .sheet-sec .num{background:var(--bg);color:var(--ink);border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex:none;}
 .sheet-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}
@@ -87,7 +145,15 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
 .sheet-table td.num{text-align:right;font-variant-numeric:tabular-nums;width:38%;white-space:nowrap;}
 .sheet-table tr.total td{border-top:2px solid var(--ink);border-bottom:none;font-weight:bold;padding-top:6px;}
 .balcols{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-@media (max-width:640px){.balcols{grid-template-columns:1fr;}}
+.balcols.with-trends{grid-template-columns:1fr 1fr minmax(230px,1fr);}
+@media (max-width:900px){.balcols.with-trends{grid-template-columns:1fr 1fr;}.balcols.with-trends>.trends{grid-column:1/-1;}}
+@media (max-width:640px){.balcols,.balcols.with-trends{grid-template-columns:1fr;}}
+.hold-card{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px;font-size:12px;}
+.hold-card .between{gap:4px;}
+.hold-card .chart{margin-top:4px;}
+.hold-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin:2px 0 8px;}
+.hold-legend i{display:inline-block;width:14px;height:0;border-top:2px dashed var(--accent2);vertical-align:middle;margin-right:4px;}
+.hold-legend b{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent2);vertical-align:middle;margin-right:4px;}
 .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin:8px 0;}
 .summary div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px;min-width:0;}
 .summary small{font-size:11px;}
@@ -105,6 +171,68 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
 .mstats span{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:3px 7px;font-size:11px;color:var(--muted);white-space:nowrap;}
 .mactions{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap;}
 .mheld{margin-left:auto;font-size:11.5px;color:var(--muted);}
+.chart{display:block;width:100%;height:auto;margin-top:6px;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-variant-numeric:tabular-nums;}
+.chart .hit{fill:transparent;cursor:crosshair;}
+.chart .hit:hover+.dot{r:4.5;}
+.chart-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 8px 4px;margin-top:8px;}
+.mini-spark{display:block;width:72px;height:24px;}
+.confirm-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;}
+.confirm-card{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-top:5px solid var(--accent2);border-radius:14px;box-shadow:0 14px 44px rgba(0,0,0,.4);width:100%;max-width:400px;padding:16px 18px;}
+.confirm-card .confirm-head{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent2);font-weight:bold;margin-bottom:4px;}
+.confirm-card table td{padding:5px 4px;font-size:13px;}
+.confirm-card td.num{white-space:nowrap;}
+.confirm-card tr.big td{font-size:15px;font-weight:bold;border-bottom:2px solid var(--line);}
+.confirm-warn{background:rgba(179,38,30,.1);border:1px solid rgba(179,38,30,.35);color:var(--bad);border-radius:8px;padding:7px 10px;font-size:12.5px;margin-top:10px;}
+.sheet-table tr.sub td{font-size:11.5px;color:var(--muted);padding-left:18px;}
+.sheet-table tr.liab{cursor:pointer;}
+.sheet-table tr.liab:hover td{background:var(--bg);}
+.sheet-table tr.sel td{background:rgba(184,134,11,.14);font-weight:bold;}
+.fin-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.fin-cash{text-align:right;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:4px 12px;}
+.fin-cash small{display:block;font-size:10.5px;}
+.fin-cash b{font-size:18px;font-variant-numeric:tabular-nums;}
+.fin-overview{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+@media (max-width:900px){.fin-overview{grid-template-columns:1fr;}}
+.fo-card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0;}
+.fo-title{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.fo-big{font-size:21px;font-weight:bold;font-variant-numeric:tabular-nums;margin-bottom:6px;}
+.fo-big small{font-size:11.5px;font-weight:normal;color:var(--muted);}
+.fo-note{font-size:12px;color:var(--muted);margin-top:4px;}
+.fo-note b{color:var(--ink);}
+.sbar-row{display:grid;grid-template-columns:58px 1fr 62px;align-items:center;gap:6px;font-size:11.5px;margin:4px 0;}
+.sbar-row b{text-align:right;font-variant-numeric:tabular-nums;}
+.sbar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--line);}
+.sbar span{height:100%;}
+.sbar span+span{box-shadow:inset 1px 0 0 rgba(255,255,255,.55);}
+.fo-legend{display:flex;flex-wrap:wrap;gap:2px 9px;font-size:10.5px;color:var(--muted);margin-top:6px;}
+.fdot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:baseline;}
+.escape-bar{position:relative;height:16px;border-radius:8px;background:var(--line);overflow:visible;margin:4px 22px 6px 0;}
+.escape-bar>div{height:100%;border-radius:8px;}
+.escape-bar>span{position:absolute;right:-22px;top:-3px;font-size:15px;}
+.sheet-sec .sec-total{margin-left:auto;font-variant-numeric:tabular-nums;}
+.pay-hint{font-size:10.5px;color:var(--accent2);opacity:0;transition:opacity .15s;}
+.sheet-table tr.liab:hover .pay-hint,.sheet-table tr.sel .pay-hint{opacity:1;}
+.bank-box{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);}
+.bank-col{display:flex;flex-direction:column;gap:5px;}
+.bank-col.grow{flex:1;min-width:260px;}
+.bank-col select{flex:1;min-width:180px;}
+.confirm-card.denied{border-top-color:var(--bad);}
+.confirm-card.denied .confirm-head{color:var(--bad);}
+.evt small.evt-note{color:rgba(255,255,255,.88);font-size:12px;}
+.evt a.evt-link{color:#ffd76a;font-weight:bold;}
+.evt .evt-mv{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);font-size:13px;}
+.evt-stepper{display:flex;justify-content:center;align-items:center;gap:6px;margin:8px 0;}
+.evt-stepper button{background:#fff;color:#1f2430;border-color:#fff;font-weight:bold;min-width:34px;}
+.evt-stepper .evt-max{min-width:0;font-size:12px;background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.7);}
+.evt-qty{width:76px;text-align:center;font-size:16px;font-weight:bold;background:#fff;color:#1f2430;border:2px solid #fff;border-radius:8px;padding:5px 6px;}
+.evt-qty:focus{outline:3px solid #ffd76a;outline-offset:1px;}
+.flash-preview{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:6px 10px;margin:4px 0 10px;text-align:left;font-size:12.5px;}
+.fp-row{display:flex;justify-content:space-between;gap:10px;padding:2px 0;font-variant-numeric:tabular-nums;}
+.fp-row.fp-total{font-size:14px;border-bottom:1px solid rgba(255,255,255,.35);padding-bottom:4px;margin-bottom:2px;}
+.fp-row.fp-warn b{color:#ffd76a;}
+.fp-row.fp-bad b{color:#ffb3ad;}
+.fp-note{font-size:11.5px;color:#ffd0cc;margin-top:3px;}
+.confirm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
 </style>
 </head>
 <body>
@@ -140,45 +268,112 @@ const MARKET=[
  {id:"MXD",name:"Mixed-Use Building",type:"realestate",price:180000,vol:0.11,div:0,rent:1650},
  {id:"CBN",name:"Mountain Cabin",type:"realestate",price:60000,vol:0.13,div:0,rent:450},
 ];
-MARKET.forEach(m=>{m.designPrice=m.price;});
+MARKET.forEach(m=>{m.designPrice=m.price; m.designRent=m.rent||0; m.designDiv=m.div||0;});
+// Market events move both the price and its anchor (the level the weekly random walk drifts toward),
+// so a crash is a new normal, not a guaranteed rebound — buying the dip is a gamble, not free money.
+function shiftOne(m,f){ m.price=Math.max(1,Math.round(m.price*f)); m.anchor=(m.anchor||m.basePrice0)*f; }
+function shiftMarket(type,f){MARKET.forEach(m=>{if(m.type===type) shiftOne(m,f);});}
+// Market-specific events hit one instrument (or a few). Rent and dividend changes are persistent
+// and synced with the market snapshot.
+function shiftIds(ids,f){ids.forEach(id=>shiftOne(MARKET.find(m=>m.id===id),f));}
+function scaleRent(ids,f){MARKET.forEach(m=>{if(m.type==="realestate"&&(!ids||ids.includes(m.id))) m.rent=Math.max(0,Math.round(m.rent*f/5)*5);});}
+function addDiv(id,d){const m=MARKET.find(x=>x.id===id); m.div=Math.max(0,Math.round((m.div+d)*100)/100);}
+function moveMortgageRate(d){state.mortgageRate=Math.round(Math.max(MORTGAGE_RATE_MIN,Math.min(MORTGAGE_RATE_MAX,mortgageRate()+d))*10)/10;}
+// Every event rolls its own size, so no two crashes (or bonuses, or rate moves) are the same. run()
+// applies the effect and returns the description with the actual numbers.
+function rnd(a,b){return a+Math.random()*(b-a);}
+function rndStep(a,b,step){return Math.round(rnd(a,b)/step)*step;}
+const pctOf=f=>Math.round(Math.abs(f-1)*100)+"%";
+const nameOf=id=>MARKET.find(m=>m.id===id).name;
+// Price move on one or more instruments, optionally with a rent change (property) or dividend change (stock).
+function specific(ids,lo,hi,extra){
+  return ()=>{
+    const f=rnd(lo,hi); shiftIds(ids,f);
+    const who=ids.map(nameOf).join(" and ");
+    let txt=who+(ids.length>1?" values ":" ")+(f>=1?"rise ":"fall ")+pctOf(f);
+    if(extra&&extra.rent){const r=rnd(extra.rent[0],extra.rent[1]); scaleRent(ids,r); txt+=", rents "+(r>=1?"+":"−")+pctOf(r);}
+    if(extra&&extra.div){const d=rndStep(extra.div[0],extra.div[1],0.25); addDiv(ids[0],d); txt+=", dividend "+(d>=0?"+":"−")+"$"+Math.abs(d).toFixed(2)+"/share";}
+    return txt+".";
+  };
+}
+function rateEvent(dLo,dHi,bankF){
+  return pl=>{
+    const d=rndStep(dLo,dHi,0.1); moveMortgageRate(d);
+    let txt="";
+    if(bankF){const f=rnd(bankF[0],bankF[1]); pl.forEach(x=>{if(x.bankLoanBal>0)x.bankLoanPmt=Math.round(x.bankLoanPmt*f);}); txt="Bank loan payments "+(f>=1?"rise ":"ease ")+pctOf(f)+"; ";}
+    return txt+"mortgage rates "+(d>=0?"up ":"down ")+Math.abs(d).toFixed(1)+" points (now "+mortgageRate().toFixed(1)+"%).";
+  };
+}
 const EVENTS=[
- {name:"Stock Market Crash",type:"global",desc:"All stocks drop sharply.",run:(pl,p)=>{MARKET.forEach(m=>{if(m.type==="stock")m.price=Math.max(1,Math.round(m.price*0.6));});}},
- {name:"Stock Market Rally",type:"global",desc:"All stocks surge upward.",run:(pl,p)=>{MARKET.forEach(m=>{if(m.type==="stock")m.price=Math.round(m.price*1.4);});}},
- {name:"Real Estate Boom",type:"global",desc:"Property values jump for everyone.",run:(pl,p)=>{MARKET.forEach(m=>{if(m.type==="realestate")m.price=Math.round(m.price*1.25);});}},
- {name:"Housing Crash",type:"global",desc:"Property values fall for everyone.",run:(pl,p)=>{MARKET.forEach(m=>{if(m.type==="realestate")m.price=Math.max(1,Math.round(m.price*0.75));});}},
- {name:"Interest Rate Hike",type:"global",desc:"All outstanding bank loan payments rise 20%.",run:(pl,p)=>{pl.forEach(x=>{if(x.bankLoanBal>0)x.bankLoanPmt=Math.round(x.bankLoanPmt*1.2);});}},
- {name:"Interest Rate Cut",type:"global",desc:"All outstanding bank loan payments ease 15%.",run:(pl,p)=>{pl.forEach(x=>{if(x.bankLoanBal>0)x.bankLoanPmt=Math.round(x.bankLoanPmt*0.85);});}},
- {name:"Tax Refund",type:"personal",desc:"You receive a surprise tax refund of $500.",run:(pl,p)=>{p.cash+=500;}},
- {name:"Year-End Bonus",type:"personal",desc:"Your employer pays you a $300 bonus.",run:(pl,p)=>{p.cash+=300;}},
- {name:"Inheritance",type:"personal",desc:"A distant relative leaves you $2,000.",run:(pl,p)=>{p.cash+=2000;}},
- {name:"Lawsuit",type:"personal",desc:"You're sued and must pay $1,000 in damages.",run:(pl,p)=>{payCash(p,1000);}},
- {name:"Identity Theft",type:"personal",desc:"$500 is stolen from your account.",run:(pl,p)=>{payCash(p,500);}},
+ // ---- Market-wide ----
+ {name:"Stock Market Crash",type:"global",run:()=>{const f=rnd(0.5,0.8); shiftMarket("stock",f); return "All stocks drop "+pctOf(f)+".";}},
+ {name:"Stock Market Rally",type:"global",run:()=>{const f=rnd(1.15,1.45); shiftMarket("stock",f); return "All stocks surge "+pctOf(f)+".";}},
+ {name:"Real Estate Boom",type:"global",run:()=>{const f=rnd(1.1,1.3); shiftMarket("realestate",f); return "Property values rise "+pctOf(f)+" for everyone.";}},
+ {name:"Housing Crash",type:"global",run:()=>{const f=rnd(0.7,0.9); shiftMarket("realestate",f); return "Property values fall "+pctOf(f)+" for everyone.";}},
+ {name:"Interest Rate Hike",type:"global",run:rateEvent(0.5,1.5,[1.1,1.25])},
+ {name:"Interest Rate Cut",type:"global",run:rateEvent(-1.5,-0.5,[0.8,0.92])},
+ {name:"Mortgage Rates Jump",type:"global",run:rateEvent(0.8,2)},
+ {name:"Mortgage Rates Drop",type:"global",run:rateEvent(-2,-0.8)},
+ // ---- Personal ----
+ {name:"Tax Refund",type:"personal",run:(pl,p)=>{const a=rndStep(200,900,50); p.cash+=a; return "You receive a surprise tax refund of "+fmt(a)+".";}},
+ {name:"Year-End Bonus",type:"personal",run:(pl,p)=>{const a=rndStep(0.05,0.3,0.01)*p.salary; p.cash+=Math.round(a); return "Your employer pays you a "+fmt(a)+" bonus.";}},
+ {name:"Inheritance",type:"personal",run:(pl,p)=>{const a=rndStep(1000,5000,250); p.cash+=a; return "A distant relative leaves you "+fmt(a)+".";}},
+ {name:"Lawsuit",type:"personal",run:(pl,p)=>{const a=rndStep(500,2500,100); payCash(p,a); return "You're sued and must pay "+fmt(a)+" in damages.";}},
+ {name:"Identity Theft",type:"personal",run:(pl,p)=>{const a=rndStep(200,1200,50); payCash(p,a); return fmt(a)+" is stolen from your account.";}},
+ // ---- Stock-specific ----
+ {name:"Tech Breakthrough",type:"market",run:specific(["TEC"],1.2,1.5)},
+ {name:"Chip Shortage",type:"market",run:specific(["TEC"],0.65,0.85)},
+ {name:"Drug Trial Succeeds",type:"market",run:specific(["BIO"],1.35,1.8)},
+ {name:"Drug Trial Fails",type:"market",run:specific(["BIO"],0.4,0.7)},
+ {name:"Gold Hits a Record",type:"market",run:specific(["GLD"],1.15,1.35)},
+ {name:"Oil Price Spike",type:"market",run:specific(["NRG"],1.15,1.35,{div:[0.5,1.5]})},
+ {name:"Oil Glut",type:"market",run:specific(["NRG"],0.75,0.9,{div:[-1.5,-0.5]})},
+ {name:"Retail Slump",type:"market",run:specific(["RTL"],0.6,0.85)},
+ {name:"Hospital Contract",type:"market",run:specific(["MED"],1.15,1.4)},
+ {name:"Drought",type:"market",run:specific(["AGR"],0.7,0.9)},
+ {name:"Utility Dividend Raise",type:"market",run:specific(["UTL"],1.03,1.1,{div:[0.5,1.5]})},
+ // ---- Real-estate-specific ----
+ {name:"Tourism Boom",type:"market",run:specific(["BCH"],1.1,1.3,{rent:[1.05,1.2]})},
+ {name:"Hurricane Season",type:"market",run:specific(["BCH"],0.65,0.85)},
+ {name:"Warehouse Demand",type:"market",run:specific(["IND"],1.1,1.3,{rent:[1.05,1.15]})},
+ {name:"Condo Oversupply",type:"market",run:specific(["CND"],0.75,0.9,{rent:[0.85,0.95]})},
+ {name:"Land Rezoned",type:"market",run:specific(["LND"],1.3,1.8)},
+ {name:"New Highway",type:"market",run:specific(["HSE","CBN"],1.05,1.2)},
+ {name:"Rental Demand Surge",type:"market",run:()=>{const f=rnd(1.05,1.15); scaleRent(null,f); return "More people are renting — all property rents rise "+pctOf(f)+".";}},
+ {name:"Rent Control Law",type:"market",run:()=>{const f=rnd(0.85,0.95); scaleRent(null,f); return "A new law caps rents — all property rents fall "+pctOf(f)+".";}},
 ];
+// Event draws: a third personal, a third market-wide, a third instrument-specific, so the many
+// specific events don't crowd out the rest.
+function pickEvent(){
+  const r=Math.random(), type=r<1/3?"personal":r<2/3?"global":"market";
+  const pool=EVENTS.filter(e=>e.type===type);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
 const BOARD=["payday","market","doodad","event","charity","doodad","market","payday","downsized","event","doodad","baby","market","payday","doodad","event","charity","market","payday","doodad","downsized","event","baby","market"];
 const BOARD_COORDS=(()=>{const n=7,c=[];for(let col=1;col<=n;col++)c.push([1,col]);for(let row=2;row<=n;row++)c.push([row,n]);for(let col=n-1;col>=1;col--)c.push([n,col]);for(let row=n-1;row>=2;row--)c.push([row,1]);return c;})();
 const COLORS=["var(--p0)","var(--p1)","var(--p2)","var(--p3)","var(--p4)","var(--p5)"];
-const fmt=n=>"$"+Math.round(n).toLocaleString();
-let state={phase:"setup",numPlayers:2,names:["",""],profs:[0,0],players:[],turn:0,pending:null,hasRolled:false,log:[],viewTab:0,qty:{},finance:{},flashQty:1,loanTakeAmt:1000,loanPayAmt:1000,listings:[],listingSeq:1,panel:null,marketTab:"stock",selectedStock:null,
+const fmt=n=>"$"+Math.round(n).toLocaleString("en-US");
+let state={phase:"setup",numPlayers:2,names:["",""],profs:[0,0],players:[],turn:0,pending:null,hasRolled:false,log:[],viewTab:0,qty:{},flashQty:1,loanTakeAmt:1000,loanPayAmt:1000,listings:[],listingSeq:1,panel:null,marketTab:"stock",selectedStock:null,selectedHolding:null,confirm:null,debtSel:null,
   online:false,isHost:false,room:null,myIdx:null,myName:"",joinName:"",joinRoom:"",joinError:"",ready:[false,false]};
 const FIXED_ROOM="HOME";
-// UI-local defaults (qty/finance toggles) must exist for EVERY player's browser, not just the
+// UI-local defaults (qty inputs) must exist for EVERY player's browser, not just the
 // host's — a guest never runs startGame() locally, it only receives synced game state, so these
 // can't be seeded there. Seed them once, up front, for every known market instrument.
-MARKET.forEach(m=>{ state.qty[m.id]=1; state.finance[m.id]=false; });
+MARKET.forEach(m=>{ state.qty[m.id]=1; });
 try{ const sr=localStorage.getItem("cf_room"), sn=localStorage.getItem("cf_name"); if(sr) state.joinRoom=sr; if(sn) state.joinName=sn; }catch(e){}
 
 // ---- Online sync (peer-to-peer via PeerJS/WebRTC — no account needed) ----
 let peer=null, hostConns={}, hostConn=null, connectTimer=null;
 function snapshotMarket(){
-  return MARKET.map(m=>({id:m.id,price:m.price,prevPrice:m.prevPrice,history:m.history,high52:m.high52,low52:m.low52,basePrice0:m.basePrice0}));
+  return MARKET.map(m=>({id:m.id,price:m.price,prevPrice:m.prevPrice,history:m.history,high52:m.high52,low52:m.low52,basePrice0:m.basePrice0,anchor:m.anchor,rent:m.rent,div:m.div}));
 }
 function applyMarketSnapshot(arr){
   if(!arr) return;
-  arr.forEach(s=>{const m=MARKET.find(x=>x.id===s.id); if(m){m.price=s.price;m.prevPrice=s.prevPrice;m.history=s.history;m.high52=s.high52;m.low52=s.low52;m.basePrice0=s.basePrice0;}});
+  arr.forEach(s=>{const m=MARKET.find(x=>x.id===s.id); if(m){m.price=s.price;m.prevPrice=s.prevPrice;m.history=s.history;m.high52=s.high52;m.low52=s.low52;m.basePrice0=s.basePrice0;m.anchor=s.anchor;if(s.rent!=null)m.rent=s.rent;if(s.div!=null)m.div=s.div;}});
 }
 function sharedSnapshot(){
   return {phase:state.phase==="join"?"setup":state.phase,numPlayers:state.numPlayers,names:state.names,profs:state.profs,ready:state.ready,
-    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,
+    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,
     market:snapshotMarket(),updatedAt:Date.now()};
 }
 function applyShared(data){
@@ -195,6 +390,8 @@ function applyShared(data){
   state.log=data.log||state.log;
   state.listings=data.listings||state.listings;
   if(data.listingSeq) state.listingSeq=data.listingSeq;
+  if(typeof data.week==="number") state.week=data.week;
+  if(typeof data.mortgageRate==="number") state.mortgageRate=data.mortgageRate;
   applyMarketSnapshot(data.market);
 }
 function toggleReady(){
@@ -339,8 +536,41 @@ async function joinRoomFlow(){
   });
 }
 
-function totalExpenses(p){return p.otherExp+p.mortgagePmt+p.carPmt+p.ccPmt+p.retailPmt+p.kids*p.childExp+p.bankLoanPmt;}
-function passiveIncome(p){return MARKET.reduce((s,m)=>{const u=p.holdings[m.id]||0; return s+u*((m.rent||0)+(m.div||0));},0);}
+// Total monthly expenses as on the real game sheet (taxes included) — used for payday, Downsized and the escape check.
+function totalExpenses(p){return p.taxes+p.otherExp+p.mortgagePmt+p.carPmt+p.ccPmt+p.retailPmt+p.kids*p.childExp+p.bankLoanPmt;}
+// ---- Property cash flow ----
+// A property mortgage costs balance × the shared mortgage rate (annual %, moved by events) ÷ 12 each
+// month, and a property's cash flow is its rent minus that payment. Paying a mortgage down therefore
+// lowers its payment — the game shows the numbers but never spells that out.
+const MORTGAGE_RATE0=7, MORTGAGE_RATE_MIN=2, MORTGAGE_RATE_MAX=12;
+// Each game starts at a random mortgage rate between 5.5% and 7.5%.
+function startMortgageRate(){return Math.round(rnd(5.5,7.5)*10)/10;}
+// Every property offer comes with its own terms, like the real game's deal cards:
+//  - down payment: bell curve around 10% (0–30%). Low or zero down = bigger mortgage, so the cash flow
+//    is small or negative from day one.
+//  - running costs (property tax, insurance, repairs): bell curve around 26% of rent (10–42%). Some
+//    buildings are cheap to run, some are money pits.
+function pickDownPct(){return Math.round(Math.max(0,Math.min(30,10+8*randn())));}
+function pickCostPct(){return Math.round(Math.max(10,Math.min(42,26+8*randn())));}
+function costsFor(m,qty,costPct){return Math.round((m.rent||0)*qty*(costPct==null?25:costPct)/100);}
+// Running costs on what a player owns: p.reCostPct[id] is the unit-weighted average of the costs
+// they bought into; it follows the current rent, so rent events move costs too.
+function propCosts(p,m){return costsFor(m,p.holdings[m.id]||0,(p.reCostPct||{})[m.id]);}
+function mortgageRate(){return state.mortgageRate||MORTGAGE_RATE0;}
+function mortgagePmtFor(bal){return Math.round(bal*mortgageRate()/100/12);}
+function propMortgagePmt(p,id){return mortgagePmtFor(((p.reMortgage||{})[id])||0);}
+function propNet(p,m){const q=p.holdings[m.id]||0; return q*(m.rent||0)-propCosts(p,m)-propMortgagePmt(p,m.id);}
+// Passive income: dividends from stocks + each property's rent minus its mortgage payment.
+function passiveIncome(p){return MARKET.reduce((s,m)=>s+(m.type==="realestate"?propNet(p,m):(p.holdings[m.id]||0)*(m.div||0)),0);}
+// Change in monthly passive income from buying qty units at `price` (for the bank's lending check).
+function incomeDeltaBuy(m,qty,price,downPct,costPct){
+  if(m.type!=="realestate") return qty*(m.div||0);
+  const cost=price*qty; return qty*(m.rent||0)-costsFor(m,qty,costPct)-mortgagePmtFor(cost-reDown(cost,downPct));
+}
+function incomeDeltaSell(p,m,qty){
+  if(m.type!=="realestate") return -qty*(m.div||0);
+  return -(qty*(m.rent||0)-costsFor(m,qty,(p.reCostPct||{})[m.id])-mortgagePmtFor(mortgageShare(p,m.id,qty)));
+}
 function payCash(p,amt){
   p.cash-=amt;
   if(p.cash<0){
@@ -362,36 +592,56 @@ function setPlayers(n){
   if(state.online){ if(state.myIdx!=null&&state.myIdx<n) state.names[state.myIdx]=state.myName; pushState(); }
   render();
 }
+// Standard normal sample (Box–Muller), clamped to ±3σ so one week can't produce absurd moves.
+function randn(){
+  let u=0,v=0;
+  while(u===0) u=Math.random();
+  while(v===0) v=Math.random();
+  const z=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+  return Math.max(-3,Math.min(3,z));
+}
+// One week of price movement: a log-normal step (normally distributed % return) with σ = vol/√3,
+// the same average swing size as the old uniform ±vol, so small moves are common and big ones rare.
+// A gentle pull toward the anchor price keeps prices wandering without drifting to $1 or the moon.
+function priceStep(price,vol,anchor){
+  const sigma=vol/Math.sqrt(3);
+  const pull=0.05*Math.log(anchor/price);
+  return price*Math.exp(pull-sigma*sigma/2+sigma*randn());
+}
 function genHistory(endPrice,vol,points){
   let price=endPrice;
   const arr=[];
   for(let i=0;i<points;i++){
     arr.unshift(Math.round(price));
-    const change=1+(Math.random()*2-1)*vol;
-    price=Math.max(price/change,endPrice*0.15);
+    price=Math.max(priceStep(price,vol,endPrice),endPrice*0.15);
   }
   arr[arr.length-1]=Math.round(endPrice);
   return arr;
 }
 function updateMarket(){
+  state.week=(state.week||0)+1;
   MARKET.forEach(m=>{
     m.prevPrice=m.price;
-    const change=1+(Math.random()*2-1)*m.vol;
-    m.price=Math.max(Math.round(m.price*change),Math.round(m.basePrice0*0.15));
+    m.price=Math.max(Math.round(priceStep(m.price,m.vol,m.anchor||m.basePrice0)),Math.round(m.basePrice0*0.15),1);
     m.high52=Math.max(m.high52||m.price,m.price);
     m.low52=Math.min(m.low52||m.price,m.price);
     m.history.push(m.price);
     if(m.history.length>15) m.history.shift();
   });
 }
+// Listing price vs market value, bell-curved so offers aren't always bargains: FOR SALE centres on the
+// 1% under market value (±9%), WANTED buyers on 5% above it (±8%) — sometimes a buyer lowballs you.
+function listingPriceFactor(kind){
+  return kind==="ask"?Math.max(0.8,Math.min(1.2,0.99+0.09*randn())):Math.max(0.9,Math.min(1.3,1.05+0.08*randn()));
+}
 function spawnListing(){
   const pool=MARKET.filter(m=>m.type==="realestate");
   const m=pool[Math.floor(Math.random()*pool.length)];
   const kind=Math.random()<0.6?"ask":"bid";
   const qty=1;
-  const price=kind==="ask"?Math.round(m.price*(0.78+Math.random()*0.17)):Math.round(m.price*(1.05+Math.random()*0.22));
+  const price=Math.round(m.price*listingPriceFactor(kind));
   const turnsLeft=2+Math.floor(Math.random()*3);
-  state.listings.push({id:"L"+(state.listingSeq++),instId:m.id,kind,price,qty,turnsLeft});
+  state.listings.push({id:"L"+(state.listingSeq++),instId:m.id,kind,price,qty,turnsLeft,downPct:pickDownPct(),costPct:pickCostPct()});
 }
 function tickListings(){
   state.listings.forEach(l=>{
@@ -406,33 +656,52 @@ function tickListings(){
 function startGame(){
   if(state.online&&!state.isHost) return;
   MARKET.forEach(m=>{
-    if(m.type==="stock") m.price=Math.max(1,Math.round(m.designPrice*(0.7+Math.random()*0.6)));
-    m.basePrice0=m.price;
+    // Reset every instrument (real estate too), so a new game never inherits the last game's prices.
+    m.price=m.type==="stock"?Math.max(1,Math.round(m.designPrice*Math.exp(0.18*randn()))):m.designPrice;
+    m.basePrice0=m.price; m.anchor=m.price; m.rent=m.designRent; m.div=m.designDiv;
     m.history=genHistory(m.price,m.vol,15);
     m.prevPrice=m.history[m.history.length-2];
     m.high52=Math.max(...m.history);
     m.low52=Math.min(...m.history);
   });
-  state.qty={}; state.finance={}; state.flashQty=1; state.listings=[]; state.listingSeq=1; state.loanTakeAmt=1000; state.loanPayAmt=1000; state.selectedStock=null;
-  MARKET.forEach(m=>{state.qty[m.id]=1; state.finance[m.id]=false;});
+  state.qty={}; state.flashQty=1; state.listings=[]; state.listingSeq=1; state.loanTakeAmt=1000; state.loanPayAmt=1000; state.selectedStock=null;
+  MARKET.forEach(m=>{state.qty[m.id]=1;});
   for(let i=0;i<4;i++) spawnListing();
   state.players=state.names.map((nm,i)=>{
     const pr=PROFESSIONS[Math.floor(Math.random()*PROFESSIONS.length)];
     return {...pr,profession:pr.name,name:nm.trim()||("Player "+(i+1)),cash:pr.savings,kids:0,holdings:{},bankLoanBal:0,bankLoanPmt:0,pos:0,escaped:false,color:COLORS[i]};
   });
-  state.phase="playing"; state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
+  state.phase="playing"; state.week=0; state.mortgageRate=startMortgageRate(); state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
   log("Game started. "+state.players[0].name+" goes first. Market is open.");
   if(state.online) pushState();
   render();
 }
 function activePlayers(){return state.players.filter(p=>!p.escaped);}
 function syncRender(){ if(state.online) pushState(); render(); }
+const DOWNSIZED_SKIPS=2;
+// Flash-deal lock-up: units bought at a flash-deal discount can't be sold for the buyer's next 3 turns, so
+// the discount is a bet on where the price goes, not an instant flip. p.turnsTaken counts the player's turns
+// (skipped ones too); p.locks[id] = [{qty, until: turnsTaken value when they unlock}].
+const FLASH_LOCK_TURNS=3;
+function activeLocks(p,id){const t=p.turnsTaken||0; return ((p.locks||{})[id]||[]).filter(l=>l.until>t);}
+function lockedQty(p,id){return activeLocks(p,id).reduce((s,l)=>s+l.qty,0);}
+function lockTurnsLeft(p,id){const ls=activeLocks(p,id); return ls.length?Math.min(...ls.map(l=>l.until))-(p.turnsTaken||0):0;}
+function sellableQty(p,id){return Math.max(0,(p.holdings[id]||0)-lockedQty(p,id));}
+function addLock(p,id,qty){p.locks=p.locks||{}; p.locks[id]=[...activeLocks(p,id),{qty,until:(p.turnsTaken||0)+FLASH_LOCK_TURNS}];}
 function nextTurn(){
   updateMarket();
   tickListings();
   state.hasRolled=false;
   if(activePlayers().length===0){state.phase="over"; syncRender(); return;}
-  do{ state.turn=(state.turn+1)%state.players.length; }while(state.players[state.turn].escaped);
+  // Downsized players sit out their skipped turns (each skip uses one up), like the original game.
+  for(;;){
+    do{ state.turn=(state.turn+1)%state.players.length; }while(state.players[state.turn].escaped);
+    const np=state.players[state.turn];
+    np.turnsTaken=(np.turnsTaken||0)+1;
+    if(!(np.skipTurns>0)) break;
+    np.skipTurns--;
+    log("⚠️ "+np.name+" is downsized and sits out this turn"+(np.skipTurns?" ("+np.skipTurns+" more to go).":" — back next round."));
+  }
   state.pending=null; syncRender();
 }
 function endTurn(){
@@ -446,14 +715,20 @@ function checkWin(p){
     log("🎉 "+p.name+" escaped the Rat Race! Passive income now covers all expenses.");
   }
 }
-function rollDice(){
+// n = number of dice. Two dice are only allowed while the player has charity turns left; every
+// roll (1 or 2 dice) during that window uses one of them up.
+function rollDice(n){
   if(state.online&&state.myIdx!==state.turn) return;
   if(state.hasRolled||state.pending) return;
   const p=state.players[state.turn];
-  const roll=1+Math.floor(Math.random()*6);
+  const charity=(p.charityTurns||0)>0;
+  n=n===2&&charity?2:1;
+  const dice=Array.from({length:n},()=>1+Math.floor(Math.random()*6));
+  const roll=dice.reduce((a,b)=>a+b,0);
+  if(charity) p.charityTurns--;
   p.pos=(p.pos+roll)%BOARD.length;
   const sp=BOARD[p.pos];
-  log(p.name+" rolled a "+roll+" -> landed on "+sp+".");
+  log(p.name+" rolled "+(n===2?dice.join(" + ")+" = "+roll:"a "+roll)+" -> landed on "+sp+"."+(charity?" ("+p.charityTurns+" charity turn"+(p.charityTurns===1?"":"s")+" left)":""));
   state.hasRolled=true;
   resolveSpace(p,sp);
   syncRender();
@@ -463,9 +738,10 @@ function rollDice(){
 // (via the End Turn button) once they're done rolling/trading, so nobody gets cut off mid-turn.
 function resolveSpace(p,sp){
   if(sp==="payday"){
-    const inc=p.salary-p.taxes-totalExpenses(p)+passiveIncome(p);
-    p.cash+=inc;
-    log(p.name+" collects payday: "+fmt(inc)+" net cashflow.");
+    // A negative cash flow is a bill you can't refuse: it comes out of cash, auto-borrowing if needed.
+    const inc=Math.round(monthlyCashflow(p));
+    log(p.name+(inc>=0?" collects payday: "+fmt(inc)+" net cashflow.":" hits payday with negative cash flow: pays "+fmt(-inc)+"."));
+    if(inc>=0) p.cash+=inc; else payCash(p,-inc);
     checkWin(p);
   }else if(sp==="doodad"){
     const d=DOODADS[Math.floor(Math.random()*DOODADS.length)];
@@ -474,7 +750,8 @@ function resolveSpace(p,sp){
   }else if(sp==="downsized"){
     const loss=totalExpenses(p);
     payCash(p,loss);
-    log(p.name+" got downsized! Paid "+fmt(loss)+" in expenses, no payday this round.");
+    p.skipTurns=DOWNSIZED_SKIPS;
+    log(p.name+" got downsized! Paid "+fmt(loss)+" in expenses and loses the next "+DOWNSIZED_SKIPS+" turns.");
     checkWin(p);
   }else if(sp==="baby"){
     if(p.kids<3){p.kids++; log(p.name+" had a baby! Monthly expenses up "+fmt(p.childExp)+".");}
@@ -484,66 +761,146 @@ function resolveSpace(p,sp){
     state.pending={kind:"charity",p};
   }else if(sp==="market"){
     const m=MARKET[Math.floor(Math.random()*MARKET.length)];
-    const discountPct=10+Math.floor(Math.random()*21);
+    // Offer price vs market follows a bell curve centred on an 8% discount (σ 12%, clamped −20%…+35%):
+    // about 3 in 4 offers are bargains, the rest fair or overpriced. The game never says which — the player has to compare with the market.
+    const discountPct=Math.round(Math.max(-20,Math.min(35,8+12*randn())));
     const dealPrice=Math.max(1,Math.round(m.price*(1-discountPct/100)));
-    const qtyMax=m.type==="stock"?10:1;
+    const qtyMax=m.type==="stock"?null:1;
     state.flashQty=1;
-    state.pending={kind:"flashdeal",p,id:m.id,dealPrice,qtyMax,discountPct};
+    state.pending={kind:"flashdeal",p,id:m.id,dealPrice,qtyMax,downPct:m.type==="realestate"?pickDownPct():null,costPct:m.type==="realestate"?pickCostPct():null};
   }else if(sp==="event"){
-    const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)];
-    ev.run(state.players,p);
-    log("🎲 Event — "+ev.name+": "+ev.desc);
+    const ev=pickEvent();
+    const desc=ev.run(state.players,p);
+    log("🎲 Event — "+ev.name+": "+desc);
     checkWin(p);
-    state.pending={kind:"eventinfo",ev};
+    state.pending={kind:"eventinfo",ev:{name:ev.name,desc}};
   }
 }
-function charityPay(){
+// Real-game rule: donate 10% of total income (salary + passive) to roll 1 or 2 dice for 3 turns.
+const CHARITY_TURNS=3;
+function charityAmount(p){return Math.round((p.salary+passiveIncome(p))*0.1);}
+// pending.p is a serialized copy once state has gone over the network, so always act on the
+// real entry in state.players.
+function charityPay(ok){
   if(state.online&&state.myIdx!==state.turn) return;
-  const p=state.pending.p;
-  const amt=Math.round((p.salary)*0.1);
+  if(!state.pending||state.pending.kind!=="charity") return;
+  const p=state.players[state.turn];
+  const amt=charityAmount(p);
+  if(!ok&&askLoanConfirm(state.turn,{title:"Donate "+fmt(amt)+" to charity",due:amt,confirmLabel:"Donate anyway",run:()=>charityPay(true)})) return;
   payCash(p,amt);
-  log(p.name+" donated "+fmt(amt)+" to charity.");
+  p.charityTurns=CHARITY_TURNS;
+  log(p.name+" donated "+fmt(amt)+" to charity — may roll 1 or 2 dice for the next "+CHARITY_TURNS+" turns.");
   state.pending=null; checkWin(p); syncRender();
 }
 function charitySkip(){if(state.online&&state.myIdx!==state.turn)return;log(state.pending.p.name+" skipped charity.");state.pending=null;syncRender();}
 function continueEvent(){if(state.online&&state.myIdx!==state.turn)return;state.pending=null; syncRender();}
-function setFlashQty(v){state.flashQty=Math.max(1,Math.min(state.pending.qtyMax,parseInt(v)||1));}
-function buyFlashDeal(){
+function setFlashQty(v,rerender){
+  if(!state.pending||state.pending.kind!=="flashdeal") return;
+  state.flashQty=Math.max(1,Math.min(state.pending.qtyMax||Infinity,parseInt(v)||1));
+  // While typing, refresh only the preview so the input keeps focus.
+  if(rerender) render(); else { const el=document.getElementById("flash-preview"); if(el) el.innerHTML=flashPreviewHTML(); }
+}
+// Most units the player can pay for from cash alone (no loan).
+function flashMaxCash(){
+  const pd=state.pending, p=state.players[state.turn], m=MARKET.find(x=>x.id===pd.id);
+  const unit=cashDue(m,pd.dealPrice,pd.downPct);
+  return Math.max(1,Math.min(pd.qtyMax||Infinity,Math.floor(Math.max(0,p.cash)/Math.max(1,unit))));
+}
+// Live cost preview for the flash deal: total, what comes out of cash, any bank loan and the bank's verdict.
+function flashPreviewHTML(){
+  const pd=state.pending, p=state.players[state.turn], m=MARKET.find(x=>x.id===pd.id), qty=state.flashQty||1;
+  const cost=pd.dealPrice*qty, due=cashDue(m,cost,pd.downPct), mort=cost-due, cfl=incomeDeltaBuy(m,qty,pd.dealPrice,pd.downPct,pd.costPct);
+  const loan=p.cash-due<0?Math.ceil((due-p.cash)/1000)*1000:0;
+  const chk=loan?loanCheck(p,loan,cfl):{ok:true};
+  const row=(a,b,c)=>`<div class="fp-row${c?" "+c:""}"><span>${a}</span><b>${b}</b></div>`;
+  return row(qty+" × "+fmt(pd.dealPrice),fmt(cost),"fp-total")
+    +(m.type==="realestate"?row("Cash down ("+pd.downPct+"%)",fmt(due))+row("Mortgage ("+(100-pd.downPct)+"%)",fmt(mort))+row("Rent",fmt(qty*m.rent)+"/mo")+row("Running costs ("+pd.costPct+"% of rent)","−"+fmt(costsFor(m,qty,pd.costPct))+"/mo")+row("Mortgage payment ("+mortgageRate().toFixed(1)+"%)","−"+fmt(mortgagePmtFor(mort))+"/mo")+row("Cash flow",sgn(cfl)+"/mo",cfl<0?"fp-bad":""):"")
+    +row("From your cash",fmt(due-loan)+" of "+fmt(p.cash))
+    +(loan?row("Bank loan needed",fmt(loan),chk.ok?"fp-warn":"fp-bad"):"")
+    +row("Cash after",fmt(p.cash+loan-due))
+    +(loan&&!chk.ok?`<div class="fp-note">🚫 Over your bank limit (max ${fmt(chk.max)}) — buy fewer.</div>`:"");
+}
+function buyFlashDeal(ok){
   if(state.online&&state.myIdx!==state.turn) return;
-  const pd=state.pending, p=pd.p, m=MARKET.find(x=>x.id===pd.id), qty=state.flashQty||1;
-  const cost=pd.dealPrice*qty;
-  payCash(p,cost);
-  p.holdings[pd.id]=(p.holdings[pd.id]||0)+qty;
-  log(p.name+" grabbed a flash deal: "+qty+"x "+m.name+" @ "+fmt(pd.dealPrice)+" ("+pd.discountPct+"% below market).");
+  if(!state.pending||state.pending.kind!=="flashdeal") return;
+  const pd=state.pending, p=state.players[state.turn], m=MARKET.find(x=>x.id===pd.id), qty=state.flashQty||1;
+  const due=cashDue(m,pd.dealPrice*qty,pd.downPct);
+  if(!ok&&askLoanConfirm(state.turn,{title:"Flash deal: "+qty+"x "+m.name,due,incomeDelta:incomeDeltaBuy(m,qty,pd.dealPrice,pd.downPct,pd.costPct),confirmLabel:"Buy with loan",run:()=>buyFlashDeal(true)})) return;
+  const note=buyAsset(p,m,qty,pd.dealPrice,pd.downPct,pd.costPct);
+  addLock(p,m.id,qty);
+  log(p.name+" grabbed a flash deal: "+qty+"x "+m.name+" @ "+fmt(pd.dealPrice)+note+" 🔒 Locked for "+FLASH_LOCK_TURNS+" turns.");
   checkWin(p);
   state.pending=null; syncRender();
 }
 function passFlash(){if(state.online&&state.myIdx!==state.turn)return;log(state.pending.p.name+" passed on the flash deal.");state.pending=null;syncRender();}
 function actingIdx(){ return state.online?state.myIdx:state.turn; }
-function buyListing(id){
+
+// ---- Buying & selling assets ----
+// Real estate works like the board game: you pay the offer's down payment in cash and the rest becomes a
+// mortgage on that property (a liability with no monthly payment — the rent is its net cash flow).
+// When sold, that property's share of the mortgage is paid off out of the sale and you keep the rest.
+// p.reMortgage = {propertyId: total mortgage balance across the units held}.
+function sgn(v){return (v>=0?"+":"−")+fmt(Math.abs(v));}
+function reDown(cost,downPct){return Math.round(cost*(downPct==null?10:downPct)/100);}
+function reMortgageTotal(p){return Object.values(p.reMortgage||{}).reduce((a,b)=>a+b,0);}
+function cashDue(m,cost,downPct){return m.type==="realestate"?reDown(cost,downPct):cost;}
+function mortgageShare(p,id,qty){
+  const held=p.holdings[id]||0, bal=(p.reMortgage||{})[id]||0;
+  return held?Math.round(bal*Math.min(qty,held)/held):0;
+}
+// Every purchase is recorded for the statement's "My Holdings" charts: p.costBasis[id] is the total
+// price paid for the units still held (average-cost), p.buyMarks[id] the recent buys as {w:week,price}.
+function recordBuy(p,id,qty,price){
+  p.costBasis=p.costBasis||{}; p.buyMarks=p.buyMarks||{};
+  p.costBasis[id]=(p.costBasis[id]||0)+price*qty;
+  p.buyMarks[id]=[...(p.buyMarks[id]||[]),{w:state.week||0,price}].slice(-10);
+}
+function buyAsset(p,m,qty,price,downPct,costPct){
+  const cost=price*qty;
+  recordBuy(p,m.id,qty,price);
+  if(m.type!=="realestate"){ payCash(p,cost); p.holdings[m.id]=(p.holdings[m.id]||0)+qty; return " ("+fmt(cost)+")."; }
+  const down=reDown(cost,downPct), mort=cost-down;
+  payCash(p,down);
+  p.reMortgage=p.reMortgage||{}; p.reMortgage[m.id]=(p.reMortgage[m.id]||0)+mort;
+  const held=p.holdings[m.id]||0, cp=costPct==null?25:costPct;
+  p.reCostPct=p.reCostPct||{}; p.reCostPct[m.id]=held?((p.reCostPct[m.id]==null?25:p.reCostPct[m.id])*held+cp*qty)/(held+qty):cp;
+  p.holdings[m.id]=(p.holdings[m.id]||0)+qty;
+  return " — "+fmt(down)+" down ("+(downPct==null?10:downPct)+"%), "+fmt(mort)+" mortgage.";
+}
+// If a property sells for less than its mortgage, the shortfall comes out of cash (auto-loan if needed).
+function sellAsset(p,m,qty,price){
+  const sale=price*qty, payoff=mortgageShare(p,m.id,qty);
+  if(p.costBasis&&p.costBasis[m.id]) p.costBasis[m.id]-=Math.round(p.costBasis[m.id]*qty/p.holdings[m.id]);
+  p.cash+=sale; p.holdings[m.id]-=qty;
+  if(!p.holdings[m.id]){ if(p.costBasis) delete p.costBasis[m.id]; if(p.buyMarks) delete p.buyMarks[m.id]; }
+  if(payoff){ p.reMortgage[m.id]-=payoff; payCash(p,payoff); }
+  if(!p.holdings[m.id]&&p.reMortgage) delete p.reMortgage[m.id];
+  if(!p.holdings[m.id]&&p.reCostPct) delete p.reCostPct[m.id];
+  return payoff?" — "+fmt(sale)+" sale, "+fmt(payoff)+" mortgage paid off, "+(sale>=payoff?fmt(sale-payoff)+" to you.":"you cover the "+fmt(payoff-sale)+" shortfall."):" ("+fmt(sale)+").";
+}
+function buyListing(id,ok){
   const p=state.players[actingIdx()], l=state.listings.find(x=>x.id===id);
   if(!p||!l||l.kind!=="ask"){return;}
   const m=MARKET.find(x=>x.id===l.instId);
-  const buyQty=l.qty, cost=buyQty*l.price;
-  const finance=!!state.finance[l.id];
-  const due=finance?Math.round(cost*0.1):cost;
-  payCash(p,due);
-  if(finance){const financed=cost-due; p.bankLoanBal+=financed; p.bankLoanPmt=Math.round(p.bankLoanBal*0.1);}
-  p.holdings[l.instId]=(p.holdings[l.instId]||0)+buyQty; l.qty=0;
-  log(p.name+" grabbed "+buyQty+"x "+m.name+" off the floor @ "+fmt(l.price)+(finance?" — "+fmt(due)+" down (10%), "+fmt(cost-due)+" financed.":"."));
+  const buyQty=l.qty, due=cashDue(m,buyQty*l.price,l.downPct);
+  if(!ok&&askLoanConfirm(actingIdx(),{title:"Buy "+buyQty+"x "+m.name+" @ "+fmt(l.price),due,incomeDelta:incomeDeltaBuy(m,buyQty,l.price,l.downPct,l.costPct),confirmLabel:"Buy with loan",run:()=>buyListing(id,true)})) return;
+  const note=buyAsset(p,m,buyQty,l.price,l.downPct,l.costPct); l.qty=0;
+  log(p.name+" grabbed "+buyQty+"x "+m.name+" off the floor @ "+fmt(l.price)+note);
   checkWin(p);
   state.listings=state.listings.filter(x=>x.qty>0);
   syncRender();
 }
-function sellListing(id){
+function sellListing(id,ok){
   const p=state.players[actingIdx()], l=state.listings.find(x=>x.id===id);
   if(!p||!l||l.kind!=="bid"){return;}
   const m=MARKET.find(x=>x.id===l.instId);
-  const sellQty=Math.min(l.qty,p.holdings[l.instId]||0);
-  if(sellQty<=0){log(p.name+" has none of "+m.name+" to sell into that request.");}
+  const sellQty=Math.min(l.qty,sellableQty(p,l.instId));
+  if(sellQty<=0){log(p.name+(p.holdings[l.instId]?"'s "+m.name+" is locked from a flash deal for "+lockTurnsLeft(p,l.instId)+" more turn(s).":" has none of "+m.name+" to sell into that request."));}
   else{
-    p.cash+=sellQty*l.price; p.holdings[l.instId]-=sellQty; l.qty-=sellQty;
-    log(p.name+" sold "+sellQty+"x "+m.name+" into a buy request @ "+fmt(l.price)+".");
+    const shortfall=mortgageShare(p,m.id,sellQty)-sellQty*l.price;
+    if(!ok&&askLoanConfirm(actingIdx(),{title:"Sell "+m.name+" below its mortgage",due:shortfall,incomeDelta:incomeDeltaSell(p,m,sellQty),confirmLabel:"Sell anyway",run:()=>sellListing(id,true)})) return;
+    const note=sellAsset(p,m,sellQty,l.price); l.qty-=sellQty;
+    log(p.name+" sold "+sellQty+"x "+m.name+" into a buy request @ "+fmt(l.price)+note);
   }
   state.listings=state.listings.filter(x=>x.qty>0);
   syncRender();
@@ -553,71 +910,242 @@ function togglePanel(name){state.panel=state.panel===name?null:name; render();}
 function closePanel(){state.panel=null; render();}
 function setMarketTab(t){state.marketTab=t; render();}
 function selectStock(id){state.selectedStock=state.selectedStock===id?null:id; render();}
-function sparklineSVG(history,w,h){
-  w=w||280; h=h||70;
-  if(!history||history.length<2) return `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}"></svg>`;
-  const min=Math.min(...history), max=Math.max(...history), range=(max-min)||1;
-  const pad=Math.max(9,Math.min(15,Math.round(h*0.24)));
-  const usableH=h-pad*2;
-  const stepX=w/(history.length-1);
-  const yFor=v=>pad+usableH-((v-min)/range)*usableH;
-  const pts=history.map((v,i)=>`${(i*stepX).toFixed(1)},${yFor(v).toFixed(1)}`).join(" ");
-  const up=history[history.length-1]>=history[0];
-  const stroke=up?"#1f7a5c":"#b3261e";
-  const fill=up?"rgba(31,122,92,.15)":"rgba(179,38,30,.15)";
-  const startY=yFor(history[0]).toFixed(1);
-  const fs=h<50?7.5:9.5;
-  const cur=history[history.length-1];
-  return `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-    <line x1="0" y1="${startY}" x2="${w}" y2="${startY}" stroke="currentColor" stroke-opacity=".35" stroke-dasharray="3,3"/>
-    <polyline points="0,${(h-pad).toFixed(1)} ${pts} ${w},${(h-pad).toFixed(1)}" fill="${fill}" stroke="none"/>
-    <polyline points="${pts}" fill="none" stroke="${stroke}" stroke-width="2"/>
-    <text x="3" y="${fs+2}" font-size="${fs}" fill="currentColor" opacity=".7">${fmt(max)}</text>
-    <text x="3" y="${h-3}" font-size="${fs}" fill="currentColor" opacity=".7">${fmt(min)}</text>
-    <text x="${w-3}" y="${fs+2}" font-size="${fs}" fill="${stroke}" text-anchor="end" font-weight="bold">${fmt(cur)}</text>
-    <text x="${w-3}" y="${h-3}" font-size="${fs}" fill="currentColor" text-anchor="end" opacity=".55">start ${fmt(history[0])}</text>
-  </svg>`;
-}
-function setQty(id,v){state.qty[id]=Math.max(1,parseInt(v)||1);}
-function buyUnit(id){
+function selectHolding(id){state.selectedHolding=state.selectedHolding===id?null:id; render();}
+// Updates the live "= $total" under the input directly (no re-render, so typing keeps focus).
+function setQty(id,v){state.qty[id]=Math.max(1,parseInt(v)||1); const el=document.getElementById("cost-"+id), m=MARKET.find(x=>x.id===id); if(el&&m) el.textContent="= "+fmt(m.price*state.qty[id]);}
+function buyUnit(id,ok){
   const p=state.players[actingIdx()]; if(!p) return;
   const m=MARKET.find(x=>x.id===id), qty=state.qty[id]||1;
-  const finance=m.type==="realestate"&&state.finance[id];
-  const cost=m.price*qty;
-  const due=finance?Math.round(cost*0.1):cost;
-  payCash(p,due);
-  if(finance){const financed=cost-due; p.bankLoanBal+=financed; p.bankLoanPmt=Math.round(p.bankLoanBal*0.1);}
-  p.holdings[id]=(p.holdings[id]||0)+qty;
-  log(p.name+" bought "+qty+"x "+m.name+" @ "+fmt(m.price)+(finance?" — "+fmt(due)+" down (10%), "+fmt(cost-due)+" financed.":" ("+fmt(cost)+")."));
+  const due=cashDue(m,m.price*qty);
+  if(!ok&&askLoanConfirm(actingIdx(),{title:"Buy "+qty+"x "+m.name+" @ "+fmt(m.price),due,incomeDelta:incomeDeltaBuy(m,qty,m.price),confirmLabel:"Buy with loan",run:()=>buyUnit(id,true)})) return;
+  const note=buyAsset(p,m,qty,m.price);
+  log(p.name+" bought "+qty+"x "+m.name+" @ "+fmt(m.price)+note);
   checkWin(p);
   syncRender();
 }
 function sellUnit(id){
   const p=state.players[actingIdx()]; if(!p) return;
-  const m=MARKET.find(x=>x.id===id), qty=state.qty[id]||1, held=p.holdings[id]||0;
-  if(held<qty){log(p.name+" only owns "+held+"x "+m.name+".");}
-  else{const proceeds=m.price*qty; p.cash+=proceeds; p.holdings[id]-=qty; log(p.name+" sold "+qty+"x "+m.name+" @ "+fmt(m.price)+" ("+fmt(proceeds)+").");}
+  const m=MARKET.find(x=>x.id===id), qty=state.qty[id]||1, held=p.holdings[id]||0, free=sellableQty(p,id);
+  if(free<qty){log(held<qty?p.name+" only owns "+held+"x "+m.name+".":p.name+" can sell only "+free+"x "+m.name+" — "+(held-free)+" are locked from a flash deal for "+lockTurnsLeft(p,id)+" more turn(s).");}
+  else{const note=sellAsset(p,m,qty,m.price); log(p.name+" sold "+qty+"x "+m.name+" @ "+fmt(m.price)+note);}
   syncRender();
 }
-function takeLoan(idx){
+function takeLoan(idx,ok){
   if(state.online&&state.myIdx!==idx) return;
   const p=state.players[idx];
   const amt=Math.max(1000,Math.round((state.loanTakeAmt||1000)/1000)*1000);
+  if(!ok||!loanCheck(p,amt,0).ok){
+    state.confirm={idx,title:"Borrow "+fmt(amt)+" from the bank",auto:0,loan:amt,cashDelta:amt,incomeDelta:0,confirmLabel:"Take the loan",run:()=>takeLoan(idx,true)};
+    render(); return;
+  }
   p.bankLoanBal+=amt; p.bankLoanPmt=Math.round(p.bankLoanBal*0.1); p.cash+=amt;
   log(p.name+" took out a "+fmt(amt)+" bank loan (cash on hand).");
   if(state.online) pushState();
   render();
 }
 function setLoanTakeAmt(v){state.loanTakeAmt=Math.max(1000,Math.round((parseInt(v)||1000)/1000)*1000);}
-function setLoanPay(v){state.loanPayAmt=Math.max(1000,Math.round((parseInt(v)||1000)/1000)*1000);}
-function payLoan(idx){
+function setLoanPay(v){state.loanPayAmt=Math.max(1,parseInt(v)||1000);}
+
+// ---- Paying off liabilities ----
+// Every liability can be paid down from cash, partly or in full. Personal debts' monthly payments
+// shrink in proportion to the balance (paying one off removes that expense); the bank loan stays at
+// 10% of balance and is paid in $1,000 steps unless clearing it; property mortgages have no monthly
+// payment, so paying one down just means you keep more when the property sells.
+const PERSONAL_DEBTS={mortgage:["Home Mortgage","mortgageBal","mortgagePmt"],car:["Car Loan","carBal","carPmt"],cc:["Credit Card","ccBal","ccPmt"],retail:["Retail Debt","retailBal","retailPmt"]};
+function debtList(p){
+  const list=Object.entries(PERSONAL_DEBTS).map(([key,[name,b,m]])=>({key,name,bal:p[b],pmt:p[m]}));
+  list.push({key:"bank",name:"Bank Loan",bal:p.bankLoanBal,pmt:p.bankLoanPmt});
+  Object.entries(p.reMortgage||{}).forEach(([id,bal])=>list.push({key:"re:"+id,name:"Mortgage — "+MARKET.find(m=>m.id===id).name,bal,pmt:mortgagePmtFor(bal)}));
+  return list.filter(d=>d.bal>0);
+}
+function selectedDebt(p){const list=debtList(p); return list.find(d=>d.key===state.debtSel)||list[0]||null;}
+function selectDebt(key){state.debtSel=key; render();}
+function payDebt(idx,all){
   if(state.online&&state.myIdx!==idx) return;
-  const p=state.players[idx];
-  const amt=Math.min(state.loanPayAmt||1000,p.cash,p.bankLoanBal);
-  if(amt<=0){log(p.name+" has no cash, or no loan, to pay off.");render();return;}
-  p.cash-=amt; p.bankLoanBal-=amt; p.bankLoanPmt=Math.round(p.bankLoanBal*0.1);
-  log(p.name+" paid off "+fmt(amt)+" of bank loan.");
+  const p=state.players[idx], d=selectedDebt(p); if(!d) return;
+  let amt=all?d.bal:Math.min(state.loanPayAmt||1000,d.bal);
+  if(d.key==="bank"&&amt<d.bal) amt=Math.floor(amt/1000)*1000;
+  if(amt<=0||amt>p.cash){log(p.name+" doesn't have "+fmt(Math.max(amt,1000))+" cash to pay toward "+d.name+".");render();return;}
+  p.cash-=amt;
+  if(d.key==="bank"){ p.bankLoanBal-=amt; p.bankLoanPmt=Math.round(p.bankLoanBal*0.1); }
+  else if(d.key.startsWith("re:")){ const id=d.key.slice(3); p.reMortgage[id]-=amt; if(p.reMortgage[id]<=0) delete p.reMortgage[id]; }
+  else{ const [,b,m]=PERSONAL_DEBTS[d.key]; p[m]=Math.round(p[m]*(p[b]-amt)/p[b]); p[b]-=amt; }
+  const saved=d.pmt-(debtList(p).find(x=>x.key===d.key)||{pmt:0}).pmt;
+  log(p.name+(amt===d.bal?" paid off their "+d.name+" ("+fmt(amt)+")":" paid "+fmt(amt)+" toward their "+d.name)+(saved>0&&!d.key.startsWith("re:")?" — expenses down "+fmt(saved)+"/mo.":"."));
   checkWin(p); if(state.online) pushState(); render();
+}
+
+// ---- Loan confirmation ----
+// A choice the player makes never takes a loan silently: if paying `due` cash would dip below $0
+// (auto-loan, rounded up to $1,000), show the impact and wait for
+// Confirm. state.confirm is local to this browser (never synced); `run` re-runs the action with ok=true.
+function monthlyCashflow(p){return p.salary+passiveIncome(p)-totalExpenses(p);}
+// Bank lending limit (real-game rule): the bank only lends while your monthly cash flow, after the new
+// loan payment (10% of balance), stays at or above $0. incomeDelta = extra monthly income the purchase
+// brings (rent/dividends), which counts toward what you can afford. Mandatory costs (doodads,
+// Downsized, lawsuits) still borrow automatically via payCash — the limit only applies to choices.
+function loanCheck(p,loan,incomeDelta){
+  const cf=monthlyCashflow(p)+(incomeDelta||0);
+  const cfAfter=L=>cf-(Math.round((p.bankLoanBal+L)*0.1)-p.bankLoanPmt);
+  let max=Math.floor((10*(cf+p.bankLoanPmt)-p.bankLoanBal)/1000)*1000;
+  while(max>0&&cfAfter(max)<0) max-=1000;
+  return {ok:cfAfter(loan)>=0,max:Math.max(0,max),newCf:cfAfter(loan)};
+}
+function askLoanConfirm(idx,o){
+  const p=state.players[idx]; if(!p) return false;
+  const auto=p.cash-o.due<0?Math.ceil((o.due-p.cash)/1000)*1000:0;
+  if(auto<=0) return false;
+  state.confirm={idx,title:o.title,due:o.due,auto,loan:auto,cashDelta:auto-o.due,incomeDelta:o.incomeDelta||0,confirmLabel:o.confirmLabel||"Confirm",run:o.run};
+  render(); return true;
+}
+function confirmYes(){const c=state.confirm; state.confirm=null; if(c&&c.run) c.run(); else render();}
+function confirmNo(){state.confirm=null; render();}
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&state.confirm) confirmNo(); });
+function confirmHTML(){
+  const c=state.confirm; if(!c) return "";
+  const p=state.players[c.idx]; if(!p){state.confirm=null; return "";}
+  const newBal=p.bankLoanBal+c.loan, newPmt=Math.round(newBal*0.1);
+  const cf=monthlyCashflow(p), newCf=cf-(newPmt-p.bankLoanPmt)+c.incomeDelta;
+  const arrow=(a,b,goodUp)=>{const cls=b===a?"flat":((b>a)===goodUp?"up":"down"); return `${fmt(a)} → <span class="${cls}">${fmt(b)}</span>`;};
+  const chk=loanCheck(p,c.loan,c.incomeDelta);
+  return `<div class="confirm-backdrop" onclick="if(event.target===this)confirmNo()">
+    <div class="confirm-card${chk.ok?"":" denied"}" role="dialog" aria-modal="true">
+      <div class="confirm-head">${chk.ok?"🏦 Heads up — this takes a bank loan":"🚫 Loan denied by the bank"}</div>
+      <h3 style="margin-bottom:8px;">${c.title}</h3>
+      <table>
+        ${c.due!=null?`<tr><td>Total to pay now</td><td class="num"><b>${fmt(c.due)}</b></td></tr>
+        <tr><td>From your cash</td><td class="num">${fmt(c.due-c.auto)}</td></tr>
+        <tr class="big"><td>+ Bank loan for the rest</td><td class="num down">${fmt(c.loan)}</td></tr>
+        <tr><td colspan="2" class="muted" style="font-size:11.5px;">You have ${fmt(p.cash)} but need ${fmt(c.due)}. Loans come in $1,000 steps${c.auto-(c.due-p.cash)>0?`, so the extra ${fmt(c.auto-(c.due-p.cash))} stays in your cash`:""}.</td></tr>`
+        :`<tr class="big"><td>New bank debt</td><td class="num down">+${fmt(c.loan)}</td></tr>`}
+        <tr><td>Loan balance</td><td class="num">${arrow(p.bankLoanBal,newBal,false)}</td></tr>
+        <tr><td>Monthly loan payment (10%)</td><td class="num">${arrow(p.bankLoanPmt,newPmt,false)}</td></tr>
+        <tr><td>Cash on hand</td><td class="num">${arrow(p.cash,p.cash+c.cashDelta,true)}</td></tr>
+        <tr><td>Monthly cash flow</td><td class="num">${arrow(cf,newCf,true)}</td></tr>
+      </table>
+      ${chk.ok?"":`<div class="confirm-warn">The bank only lends while your monthly cash flow stays at $0 or more after the loan payment. This would leave you at <b>${fmt(newCf)}/mo</b>.<br>${chk.max>0?`Right now you can borrow up to <b>${fmt(chk.max)}</b>${c.incomeDelta?" for this purchase":""}.`:"Right now the bank won't lend you anything — raise your cash flow first (pay off debts or buy income assets)."}</div>`}
+      <div class="confirm-actions">
+        ${chk.ok?`<button onclick="confirmNo()">Cancel</button>
+        <button class="gold" onclick="confirmYes()">${c.confirmLabel}</button>`:`<button class="primary" onclick="confirmNo()">OK</button>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ---- Charts ----
+let chartSeq=0;
+function sparklineSVG(history,w,h){
+  w=w||640; h=h||190;
+  if(!history||history.length<2) return "";
+  const compact=h<80, n=history.length;
+  const min=Math.min(...history), max=Math.max(...history);
+  const span=(max-min)||Math.max(1,max*0.05);
+  const lo=min-span*0.1, hi=max+span*0.1;
+  const padL=compact?2:48, padR=compact?6:64, padT=compact?4:12, padB=compact?4:24;
+  const iw=w-padL-padR, ih=h-padT-padB;
+  const x=i=>padL+i*iw/(n-1);
+  const y=v=>padT+ih-(v-lo)/(hi-lo)*ih;
+  const first=history[0], cur=history[n-1];
+  const up=cur>=first;
+  const col=up?"#1f9d6e":"#d1453b";
+  const id="cg"+(++chartSeq);
+  const line=history.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1)).join("");
+  const area=line+`L${x(n-1).toFixed(1)},${padT+ih}L${padL},${padT+ih}Z`;
+  const defs=`<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${col}" stop-opacity=".35"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>`;
+  const startLine=`<line x1="${padL}" x2="${padL+iw}" y1="${y(first).toFixed(1)}" y2="${y(first).toFixed(1)}" stroke="currentColor" stroke-opacity=".4" stroke-dasharray="4 4"/>`;
+  const lastDot=`<circle cx="${x(n-1).toFixed(1)}" cy="${y(cur).toFixed(1)}" r="${compact?5:9}" fill="${col}" fill-opacity=".2"/>
+    <circle cx="${x(n-1).toFixed(1)}" cy="${y(cur).toFixed(1)}" r="${compact?2.5:4}" fill="${col}" stroke="var(--panel)" stroke-width="1.5"/>`;
+  if(compact){
+    return `<svg class="chart" viewBox="0 0 ${w} ${h}" aria-hidden="true">${defs}${startLine}
+      <path d="${area}" fill="url(#${id})"/><path d="${line}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${lastDot}</svg>`;
+  }
+  // Gridlines + y labels at high / mid / low of the data.
+  const ticks=[max,(max+min)/2,min];
+  const grid=ticks.map(v=>`<line x1="${padL}" x2="${padL+iw}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="currentColor" stroke-opacity=".12"/>
+    <text x="${padL-6}" y="${(y(v)+3.5).toFixed(1)}" font-size="10.5" fill="currentColor" fill-opacity=".6" text-anchor="end">${fmt(v)}</text>`).join("");
+  const xl=[[0,(n-1)+"w ago"],[Math.floor((n-1)/2),Math.ceil((n-1)/2)+"w ago"],[n-1,"Now"]];
+  const xlabels=xl.map(([i,t],k)=>`<text x="${x(i).toFixed(1)}" y="${h-6}" font-size="10.5" fill="currentColor" fill-opacity=".55" text-anchor="${k===0?"start":k===2?"end":"middle"}">${t}</text>`).join("");
+  // Per-week dots (green/red vs the previous week) with hover tooltips.
+  const dots=history.map((v,i)=>{
+    if(i===n-1) return "";
+    const prev=i?history[i-1]:v, d=i?Math.round((v-prev)/prev*1000)/10:0;
+    const dc=v>=prev?"#1f9d6e":"#d1453b";
+    const label=(i===n-1?"Now":(n-1-i)+"w ago")+": "+fmt(v)+(i?" ("+(d>0?"+":"")+d+"%)":"");
+    return `<g><circle class="hit" cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="9"><title>${label}</title></circle><circle class="dot" cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.5" fill="${dc}" stroke="var(--panel)" stroke-width="1"/></g>`;
+  }).join("");
+  const tagY=Math.max(padT+9,Math.min(padT+ih-9,y(cur)));
+  const tag=`<rect x="${padL+iw+8}" y="${(tagY-10).toFixed(1)}" width="${padR-10}" height="20" rx="5" fill="${col}"/>
+    <text x="${padL+iw+8+(padR-10)/2}" y="${(tagY+4).toFixed(1)}" font-size="11" font-weight="bold" fill="#fff" text-anchor="middle">${fmt(cur)}</text>`;
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Price history, now ${fmt(cur)}">${defs}${grid}${startLine}
+    <path d="${area}" fill="url(#${id})"/>
+    <path d="${line}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}${lastDot}${tag}${xlabels}</svg>`;
+}
+// Price history of one holding against what the player paid: gold dashed line = average buy price,
+// gold dots = individual buys (placed at the week they happened, if still inside the 15-week window).
+// Line/fill is green while the price is above the average buy price, red below.
+function holdingChartSVG(history,avg,marks){
+  if(!history||history.length<2) return "";
+  const w=260,h=74,n=history.length,padL=2,padR=4,padT=6,padB=6;
+  const markPts=(marks||[]).map(mk=>({i:n-1-((state.week||0)-mk.w),price:mk.price})).filter(mk=>mk.i>=0&&mk.i<n);
+  const vals=[...history,avg,...markPts.map(mk=>mk.price)];
+  const min=Math.min(...vals), max=Math.max(...vals), span=(max-min)||Math.max(1,max*0.05);
+  const lo=min-span*0.08, hi=max+span*0.08, iw=w-padL-padR, ih=h-padT-padB;
+  const x=i=>padL+i*iw/(n-1), y=v=>padT+ih-(v-lo)/(hi-lo)*ih;
+  const cur=history[n-1], col=cur>=avg?"#1f9d6e":"#d1453b", id="hg"+(++chartSeq);
+  const line=history.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1)).join("");
+  const ya=y(avg).toFixed(1);
+  // Shade between the price line and the buy line: the gain (or loss) you're sitting on.
+  const area=line+`L${x(n-1).toFixed(1)},${ya}L${padL},${ya}Z`;
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Price ${fmt(cur)} vs average buy ${fmt(avg)}">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".28"/><stop offset="1" stop-color="${col}" stop-opacity=".06"/></linearGradient></defs>
+    <path d="${area}" fill="url(#${id})"/>
+    <line x1="${padL}" x2="${padL+iw}" y1="${ya}" y2="${ya}" stroke="#b8860b" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <path d="${line}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${markPts.map(mk=>`<circle cx="${x(mk.i).toFixed(1)}" cy="${y(mk.price).toFixed(1)}" r="3.5" fill="#b8860b" stroke="var(--panel)" stroke-width="1.5"><title>Bought @ ${fmt(mk.price)}</title></circle>`).join("")}
+    <circle cx="${x(n-1).toFixed(1)}" cy="${y(cur).toFixed(1)}" r="3.5" fill="${col}" stroke="var(--panel)" stroke-width="1.5"/>
+  </svg>`;
+}
+function holdingsTrendsHTML(p){
+  const owned=MARKET.filter(m=>(p.holdings[m.id]||0)>0);
+  const cards=owned.map(m=>{
+    const qty=p.holdings[m.id], value=qty*m.price;
+    const basis=(p.costBasis||{})[m.id]||value;   // holdings from before tracking existed: assume bought at today's price
+    const avg=basis/qty, gain=value-basis, pct=basis?Math.round(gain/basis*1000)/10:0;
+    const cls=gain>0?"up":gain<0?"down":"flat";
+    const isRE=m.type==="realestate";
+    const open=state.selectedHolding===m.id;
+    // Collapsed: one clickable summary row with a mini trend line; click to open the full chart.
+    return `<div class="hold-card${open?" open":""}">
+      <div class="hold-head" onclick="selectHolding('${m.id}')" title="${open?"Hide":"Show"} chart">
+        <span class="hold-name">${open?"▾":"▸"} <b>${m.name}</b><br><small class="muted">${isRE?(qty>1?qty+" units":"property"):qty+" sh"} · ${fmt(value)}</small></span>
+        ${open?"":miniSparkSVG(m.history)}
+        <span class="num ${cls}" style="text-align:right;">${gain>0?"+":""}${pct}%<br><small class="${cls}">${gain>=0?"+":"−"}${fmt(Math.abs(gain))}</small></span>
+      </div>
+      ${open?`${holdingChartSVG(m.history,avg,(p.buyMarks||{})[m.id])}
+      <div class="hold-legend"><span><i></i>avg buy ${fmt(avg)}</span><span><b></b>your buys</span></div>
+      <div class="between"><span class="muted">Avg buy ${fmt(avg)} → now ${fmt(m.price)}</span></div>
+      <div class="between"><span class="muted">${isRE?"Equity "+fmt(value-mortgageShare(p,m.id,qty))+" (value − mortgage)":"Value "+fmt(value)}</span></div>`:""}
+    </div>`;
+  }).join("");
+  const tBasis=owned.reduce((s,m)=>s+((p.costBasis||{})[m.id]||p.holdings[m.id]*m.price),0);
+  const tValue=owned.reduce((s,m)=>s+p.holdings[m.id]*m.price,0), tGain=tValue-tBasis;
+  const tCls=tGain>0?"up":tGain<0?"down":"flat";
+  return `<div class="trends">
+    <div class="sheet-sec"><span class="num">📈</span>My Holdings vs Buy Price</div>
+    ${owned.length?`<div class="between" style="font-size:12.5px;margin:4px 0;"><span>Paid ${fmt(tBasis)} → worth ${fmt(tValue)}</span><b class="${tCls}">${tGain>=0?"+":"−"}${fmt(Math.abs(tGain))}</b></div>
+      <small class="muted" style="display:block;margin-bottom:6px;">Click a holding to chart it against what you paid.</small>${cards}`
+    :`<p class="muted" style="font-size:12px;">Buy stocks or real estate and they'll show up here, charted against the price you paid.</p>`}
+  </div>`;
+}
+// Tiny trend line for a table cell.
+function miniSparkSVG(history){
+  if(!history||history.length<2) return "";
+  const w=72,h=24,n=history.length, min=Math.min(...history), max=Math.max(...history), r=(max-min)||1;
+  const pts=history.map((v,i)=>(i*(w-4)/(n-1)+2).toFixed(1)+","+(h-3-(v-min)/r*(h-6)).toFixed(1)).join(" ");
+  const col=history[n-1]>=history[0]?"#1f9d6e":"#d1453b";
+  return `<svg class="mini-spark" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
 }
 
 function render(){
@@ -671,15 +1199,37 @@ function setupHTML(){
        ${!seatsFilled?`<p class="muted" style="font-size:12px;">Waiting for all seats to be claimed…</p>`:!allReady?`<p class="muted" style="font-size:12px;">Waiting for everyone to ready up…</p>`:""}`
     :`<p class="muted" style="font-size:12px;">Waiting for the host to start the game…</p>`}`;
 }
+// Board square types: icon, short label, colour and what landing there does (shown on the board legend).
+const SQUARES={
+  payday:{emoji:"💵",label:"Payday",color:"#1f9d6e",desc:"Collect your monthly cash flow"},
+  market:{emoji:"📊",label:"Market",color:"#2471a3",desc:"Private offer — a bargain, or a trap"},
+  doodad:{emoji:"🛍",label:"Doodad",color:"#d1453b",desc:"Surprise expense you must pay"},
+  event:{emoji:"🎲",label:"Event",color:"#7d4fb3",desc:"Random market or life event"},
+  charity:{emoji:"❤️",label:"Charity",color:"#d6457a",desc:"Give 10% of income → 1 or 2 dice for 3 turns"},
+  downsized:{emoji:"⚠️",label:"Downsized",color:"#5b6270",desc:"Pay a month of expenses, lose 2 turns"},
+  baby:{emoji:"👶",label:"Baby",color:"#2f93b8",desc:"New child: expenses go up (max 3)"},
+};
+function playerToken(pl,i,extra){
+  return `<span class="ptok${extra||""}" style="background:${pl.color}" title="${pl.name}">${(pl.name||"?").trim().charAt(0).toUpperCase()}</span>`;
+}
 function boardHTML(){
-  const emoji={payday:"💵",market:"📊",doodad:"🛍",charity:"❤️",downsized:"⚠️",baby:"👶",event:"🎲"};
+  const cur=state.players[state.turn];
   const cells=BOARD.map((sp,i)=>{
-    const [r,c]=BOARD_COORDS[i];
-    const toks=state.players.filter(pl=>pl.pos===i).map(pl=>`<span class="tok" style="background:${pl.color}" title="${pl.name}"></span>`).join("");
-    return `<div class="cell" style="grid-row:${r};grid-column:${c};" title="${sp}">${emoji[sp]}<div class="tokens">${toks}</div></div>`;
+    const [r,c]=BOARD_COORDS[i], sq=SQUARES[sp];
+    const here=state.players.map((pl,pi)=>({pl,pi})).filter(x=>x.pl.pos===i);
+    const toks=here.map(x=>playerToken(x.pl,x.pi,x.pi===state.turn?" active":"")).join("");
+    const isTurnSq=cur&&cur.pos===i;
+    return `<div class="cell${isTurnSq?" here":""}" style="grid-row:${r};grid-column:${c};--sq:${sq.color};${isTurnSq?`--turncol:${cur.color};`:""}" title="${sq.label}: ${sq.desc}">
+      ${toks?`<div class="tokens">${toks}</div>`:`<span class="sq-emoji">${sq.emoji}</span>`}<span class="sq-label${sq.label.length>7?" long":""}">${sq.label}</span>
+    </div>`;
   }).join("");
+  const legend=Object.values(SQUARES).map(sq=>`<div class="lg" style="--sq:${sq.color}"><span>${sq.emoji}</span><span><b>${sq.label}</b> ${sq.desc}</span></div>`).join("");
   return `<div class="gameboard">${cells}
-    <div class="board-center">🎩💰<br><b>CASHFLOW</b><br><small>Rat Race</small></div>
+    <div class="board-center">
+      <div class="bc-title">🎩 CASHFLOW <small>Rat Race</small></div>
+      ${cur?`<div class="bc-turn" style="--pc:${cur.color}">${playerToken(cur,state.turn)}<span><b>${cur.name}</b>'s turn · on ${SQUARES[BOARD[cur.pos]].emoji} ${SQUARES[BOARD[cur.pos]].label}</span></div>`:""}
+      <div class="legend">${legend}</div>
+    </div>
   </div>`;
 }
 function realEstateListingsHTML(){
@@ -689,11 +1239,13 @@ function realEstateListingsHTML(){
     const m=MARKET.find(x=>x.id===l.instId);
     const isAsk=l.kind==="ask";
     const held=p.holdings[l.instId]||0;
-    const canAct=isAsk?true:held>0;
-    const vsMkt=Math.round((l.price-m.price)/m.price*100);
+    const free=sellableQty(p,l.instId), canAct=isAsk?true:free>0;
     const capRate=m.rent?(m.rent*12/l.price*100).toFixed(1)+"%":"–";
     const appr=((m.price-m.basePrice0)/m.basePrice0*100).toFixed(1);
     const apprCls=appr>0?"up":appr<0?"down":"flat";
+    const dp=l.downPct==null?10:l.downPct, cost=l.qty*l.price, down=reDown(cost,dp), mPmt=mortgagePmtFor(cost-down), costs=costsFor(m,l.qty,l.costPct), cfl=incomeDeltaBuy(m,l.qty,l.price,dp,l.costPct), roi=down>0?Math.round(cfl*12/down*100)+"%":(cfl>0?"∞ (no cash in)":"—");
+    // For a WANTED offer: what the player would actually pocket after the mortgage is paid off.
+    const sellQty=Math.min(l.qty,free), net=sellQty*l.price-mortgageShare(p,l.instId,sellQty);
     return `<div class="mcard">
       <div class="between">
         <div><div class="mtitle">${m.name}</div><small class="muted">expires in ${l.turnsLeft} turn${l.turnsLeft>1?"s":""}</small></div>
@@ -701,16 +1253,19 @@ function realEstateListingsHTML(){
       </div>
       ${sparklineSVG(m.history,260,40)}
       <div class="mstats">
-        <span>Price ${fmt(l.price)} (${vsMkt>0?"+":""}${vsMkt}% vs mkt)</span>
+        <span><b>Price ${fmt(l.price)}</b></span>
+        <span>Market value ${fmt(m.price)}</span>
         <span>Rent ${fmt(m.rent)}/mo</span>
         <span>Cap Rate ${capRate}</span>
         <span class="${apprCls}">Apprec. ${appr}%</span>
       </div>
+      ${isAsk
+        ?`<div class="mstats" style="margin-top:-2px;"><span><b>Cash down ${fmt(down)}</b> (${dp}%)</span><span>Mortgage ${fmt(cost-down)}</span><span>Costs −${fmt(costs)}/mo (${l.costPct==null?25:l.costPct}%)</span><span>Mortgage pmt −${fmt(mPmt)}/mo (${mortgageRate().toFixed(1)}%)</span><span class="${cfl>=0?"up":"down"}"><b>Cash flow ${sgn(cfl)}/mo</b></span><span>ROI ${roi}</span></div>`
+        :sellQty?`<div class="mstats" style="margin-top:-2px;"><span>Sale ${fmt(sellQty*l.price)}</span><span>− Mortgage ${fmt(mortgageShare(p,l.instId,sellQty))}</span><span class="${net>=0?"up":"down"}">You get ${fmt(net)}</span></div>`:""}
       <div class="mactions">
-        ${isAsk?`<label style="font-size:11px;white-space:nowrap;"><input type="checkbox" ${state.finance[l.id]?"checked":""} onchange="state.finance['${l.id}']=this.checked;render();"> Finance (10% down)</label>`:""}
         <button class="${isAsk?'primary':'sell'}" style="margin-left:auto;" ${canAct?"":"disabled"} onclick="${isAsk?"buyListing":"sellListing"}('${l.id}')">${isAsk?"Buy now":"Sell into it"}</button>
       </div>
-      <div class="mheld" style="margin-top:4px;">Held: ${held}</div>
+      <div class="mheld" style="margin-top:4px;">Held: ${held}${held>free?` · 🔒 ${held-free} locked (${lockTurnsLeft(p,l.instId)} turn${lockTurnsLeft(p,l.instId)===1?"":"s"})`:""}</div>
     </div>`;
   }).join("");
   return `<div class="mgrid">${cards}</div>`;
@@ -725,23 +1280,26 @@ function marketHTML(){
     const yld=m.div>0?((m.div*12/m.price)*100).toFixed(1)+"%":"–";
     const expanded=state.selectedStock===m.id;
     const row=`<tr style="cursor:pointer;" onclick="selectStock('${m.id}')"><td>${expanded?"▾":"▸"} ${m.name}<br><small class="muted">${m.sector}</small></td>
+      <td>${miniSparkSVG(m.history)}</td>
       <td class="num">${fmt(m.price)}</td><td class="num ${cls}">${arrow} ${Math.abs(chg)}%</td>
       <td class="num">${fmt(m.low52)}–${fmt(m.high52)}</td>
       <td class="num">${pe}</td><td class="num">${yld}</td>
-      <td class="num">${held}</td>
-      <td onclick="event.stopPropagation()"><input class="qty" type="number" min="1" value="${state.qty[m.id]}" onchange="setQty('${m.id}',this.value)"></td>
-      <td onclick="event.stopPropagation()"><div class="row" style="flex-wrap:nowrap;"><button class="primary" onclick="buyUnit('${m.id}')">Buy</button> <button class="sell" onclick="sellUnit('${m.id}')" ${held?"":"disabled"}>Sell</button></div></td>
+      <td class="num">${held}${held>sellableQty(p,m.id)?`<br><small class="muted" title="Flash-deal shares unlock in ${lockTurnsLeft(p,m.id)} turn(s)">🔒${held-sellableQty(p,m.id)}</small>`:""}</td>
+      <td onclick="event.stopPropagation()"><input class="qty" type="number" min="1" value="${state.qty[m.id]}" oninput="setQty('${m.id}',this.value)"><div class="qty-cost" id="cost-${m.id}">= ${fmt(m.price*(state.qty[m.id]||1))}</div></td>
+      <td onclick="event.stopPropagation()"><div class="row" style="flex-wrap:nowrap;"><button class="primary" onclick="buyUnit('${m.id}')">Buy</button> <button class="sell" onclick="sellUnit('${m.id}')" ${sellableQty(p,m.id)?"":"disabled"}>Sell</button></div></td>
     </tr>`;
     if(!expanded) return row;
     const hist=m.history||[m.price];
     const histHigh=Math.max(...hist), histLow=Math.min(...hist);
-    return row+`<tr><td colspan="8" style="background:var(--bg);">
+    const periodChg=Math.round((hist[hist.length-1]-hist[0])/hist[0]*1000)/10;
+    const pCls=periodChg>0?"up":periodChg<0?"down":"flat";
+    return row+`<tr><td colspan="10" style="background:var(--bg);">
       <div style="padding:10px;">
         <div class="between">
           <div><b>${m.name}</b> <small class="muted">${m.sector} · 15-week history</small></div>
-          <div class="mprice">${fmt(m.price)} <span class="${cls}" style="font-size:12px;">${arrow} ${Math.abs(chg)}%</span></div>
+          <div class="mprice">${fmt(m.price)} <span class="${cls}" style="font-size:12px;">${arrow} ${Math.abs(chg)}% wk</span> <span class="${pCls}" style="font-size:12px;">· ${periodChg>0?"+":""}${periodChg}% 15w</span></div>
         </div>
-        ${sparklineSVG(hist)}
+        <div class="chart-box">${sparklineSVG(hist)}</div>
         <div class="mstats" style="margin-top:8px;">
           <span>15w High ${fmt(histHigh)}</span>
           <span>15w Low ${fmt(histLow)}</span>
@@ -749,110 +1307,150 @@ function marketHTML(){
           <span>52wk Range ${fmt(m.low52)}–${fmt(m.high52)}</span>
           <span>P/E ${pe}</span>
           <span>Div Yield ${yld}</span>
-          <span>Held ${held} (${fmt(held*m.price)})</span>
+          <span>Held ${held} (${fmt(held*m.price)})${held>sellableQty(p,m.id)?` · 🔒 ${held-sellableQty(p,m.id)} locked ${lockTurnsLeft(p,m.id)} more turn(s)`:""}</span>
         </div>
       </div>
     </td></tr>`;
   }).join("");
-  const stockTable=`<div class="mtable-wrap"><table><thead><tr><th>Stock (sector)</th><th class="num">Price</th><th class="num">Chg</th><th class="num">52wk Range</th><th class="num">P/E</th><th class="num">Div Yld</th><th class="num">Held</th><th>Qty</th><th></th></tr></thead><tbody>${stockRows}</tbody></table></div>`;
+  const stockTable=`<div class="mtable-wrap"><table><thead><tr><th>Stock (sector)</th><th>15w Trend</th><th class="num">Price</th><th class="num">Chg</th><th class="num">52wk Range</th><th class="num">P/E</th><th class="num">Div Yld</th><th class="num">Held</th><th>Qty</th><th></th></tr></thead><tbody>${stockRows}</tbody></table></div>`;
   return `<div class="card" style="margin-bottom:0;">
   <div class="subtabs">
     <button class="${state.marketTab==='stock'?'active':''}" onclick="setMarketTab('stock')">📈 Stocks</button>
     <button class="${state.marketTab==='realestate'?'active':''}" onclick="setMarketTab('realestate')">🏠 Real Estate</button>
   </div>
   ${state.marketTab==='stock'
-    ?`${stockTable}<small>Click a row to expand its 15-week history and details. Always-open trades at the live market price. A purchase you can't fully cover automatically takes a bank loan (min. $1,000) for the shortfall.</small>`
-    :`${realEstateListingsHTML()}<small>Real estate trades only through these live offers from other buyers/sellers — they're limited in size and time, so grab one before it's gone. Financed listings need only 10% down; the rest becomes a bank loan.</small>`}
+    ?`${stockTable}<small>Click a row to expand its 15-week history and details. Always-open trades at the live market price. A purchase you can't fully cover asks you to confirm a bank loan (in $1,000 steps) for the shortfall. Hover the chart dots for weekly prices.</small>`
+    :`${realEstateListingsHTML()}<small>Real estate trades only through these live offers from other buyers/sellers — they're limited in size and time, so grab one before it's gone. Each offer sets its own terms: down payment (0–30%) and running costs (share of rent). The rest of the price becomes a mortgage. Cash flow is rent minus running costs minus the mortgage payment, and can be negative. When you sell, the mortgage is paid off from the sale price and you keep the rest.</small>`}
   </div>`;
+}
+// Colour per income/expense line — shared by the overview bars and the dots in the detailed tables,
+// so each coloured segment can be traced back to its row.
+const FIN_COLORS={salary:"#1f7a5c",div:"#3cb883",rent:"#8fd6b1",taxes:"#8e9aa6",mortgage:"#c0392b",car:"#e67e22",cc:"#e0b000",retail:"#d6457a",other:"#9b59b6",kids:"#2f93b8",bank:"#b8860b"};
+function finDot(k){return `<i class="fdot" style="background:${FIN_COLORS[k]}"></i>`;}
+// A horizontal bar of coloured segments on a shared scale; each segment has a hover title.
+function stackBar(parts,scale){
+  return `<div class="sbar">${parts.filter(x=>x.v>0).map(x=>`<span style="width:${(x.v/scale*100).toFixed(2)}%;background:${FIN_COLORS[x.k]}" title="${x.label}: ${fmt(x.v)}"></span>`).join("")}</div>`;
 }
 function statementHTML(p,idx){
   const stocks=MARKET.filter(m=>m.type==="stock"&&(p.holdings[m.id]||0)>0);
   const props=MARKET.filter(m=>m.type==="realestate"&&(p.holdings[m.id]||0)>0);
   const dividends=stocks.reduce((s,m)=>s+(p.holdings[m.id]||0)*m.div,0);
-  const reIncome=props.reduce((s,m)=>s+(p.holdings[m.id]||0)*m.rent,0);
+  const reIncome=props.reduce((s,m)=>s+propNet(p,m),0);
   const totalIncome=p.salary+dividends+reIncome;
   const childTotal=p.kids*p.childExp;
-  const totalExp=p.taxes+p.mortgagePmt+p.carPmt+p.ccPmt+p.retailPmt+p.otherExp+p.bankLoanPmt+childTotal;
+  const totalExp=totalExpenses(p);
   const cashflow=totalIncome-totalExp;
   const pi=dividends+reIncome;
   const rawPct=Math.round(pi/Math.max(1,totalExp)*100);
-  const goalPct=Math.min(150,rawPct);
-  const barPct=Math.min(100,goalPct/1.5*100);
+  const escapedNow=rawPct>=100;
   const stockVal=stocks.reduce((s,m)=>s+(p.holdings[m.id]||0)*m.price,0);
   const propVal=props.reduce((s,m)=>s+(p.holdings[m.id]||0)*m.price,0);
-  const escapedNow=rawPct>=100;
+  const totalAssets=p.cash+stockVal+propVal;
+  const totalLiab=p.mortgageBal+p.carBal+p.ccBal+p.retailBal+p.bankLoanBal+reMortgageTotal(p);
+  const netWorth=totalAssets-totalLiab;
+  const lendMax=loanCheck(p,0,0).max;
+  const debt=selectedDebt(p);
+  const incomeParts=[{k:"salary",label:"Salary",v:p.salary},{k:"div",label:"Dividends",v:dividends},{k:"rent",label:"Rent",v:reIncome}];
+  const expParts=[{k:"taxes",label:"Taxes",v:p.taxes},{k:"mortgage",label:"Home mortgage",v:p.mortgagePmt},{k:"car",label:"Car loan",v:p.carPmt},{k:"cc",label:"Credit card",v:p.ccPmt},{k:"retail",label:"Retail debt",v:p.retailPmt},{k:"other",label:"Other",v:p.otherExp},{k:"kids",label:"Children",v:childTotal},{k:"bank",label:"Bank loan",v:p.bankLoanPmt}];
+  const flowScale=Math.max(totalIncome,totalExp,1);
+  const nwScale=Math.max(totalAssets,totalLiab,1);
+  const cls=v=>v>0?"up":v<0?"down":"flat";
+  const sign=v=>(v>=0?"+":"−")+fmt(Math.abs(v));
+  // Click a liability row to pick it in the payoff bar below.
+  const liabRow=(key,name,bal,dotKey)=>`<tr class="${bal>0?"liab":""}${debt&&debt.key===key?" sel":""}" ${bal>0?`onclick="selectDebt('${key}')" title="Click to pay this off"`:""}><td class="desc">${dotKey?finDot(dotKey):""}${name}${bal>0?' <span class="pay-hint">pay ›</span>':""}</td><td class="num">${fmt(bal)}</td></tr>`;
+  const expRow=(k,name,v)=>`<tr><td class="desc">${finDot(k)}${name}</td><td class="num">${fmt(v)}</td></tr>`;
   return `
-  <div class="head-row"><div><b>${p.name}</b> — Profession: ${p.profession}</div>${p.escaped?'<div class="tag" style="background:var(--good)">Escaped the Rat Race!</div>':""}</div>
-  <div class="summary" style="grid-template-columns:repeat(4,1fr);">
-    <div><small>Cash on Hand</small><b>${fmt(p.cash)}</b></div>
-    <div><small>Total Income</small><b>${fmt(totalIncome)}</b></div>
-    <div><small>Total Expenses</small><b>${fmt(totalExp)}</b></div>
-    <div><small>Monthly Cash Flow</small><b style="color:${cashflow>=0?'var(--good)':'var(--bad)'}">${fmt(cashflow)}</b></div>
+  <div class="fin-head">
+    <div><b style="font-size:16px;">${p.name}</b> <span class="muted">· ${p.profession}</span>${p.escaped?' <span class="tag" style="background:var(--good)">Escaped the Rat Race!</span>':""}</div>
+    <div class="fin-cash"><small>Cash on hand</small><b>${fmt(p.cash)}</b></div>
   </div>
 
-  <div class="balcols">
+  <div class="fin-overview">
+    <div class="fo-card">
+      <div class="fo-title">💵 Monthly cash flow</div>
+      <div class="fo-big ${cls(cashflow)}">${sign(cashflow)}<small> every Payday</small></div>
+      <div class="sbar-row"><span>Income</span>${stackBar(incomeParts,flowScale)}<b>${fmt(totalIncome)}</b></div>
+      <div class="sbar-row"><span>Expenses</span>${stackBar(expParts,flowScale)}<b>${fmt(totalExp)}</b></div>
+      <div class="fo-legend">${[...incomeParts,...expParts].filter(x=>x.v>0).map(x=>`<span>${finDot(x.k)}${x.label}</span>`).join("")}</div>
+    </div>
+    <div class="fo-card">
+      <div class="fo-title">🎯 Escape the Rat Race</div>
+      <div class="fo-big ${escapedNow?"up":""}">${rawPct}%<small> of expenses covered by passive income</small></div>
+      <div class="escape-bar"><div style="width:${Math.min(100,rawPct)}%;background:${escapedNow?"var(--good)":"var(--accent2)"}"></div><span>🏁</span></div>
+      <div class="fo-note">Passive income <b>${fmt(pi)}</b> / expenses <b>${fmt(totalExp)}</b></div>
+      <div class="fo-note">${escapedNow?"✅ Your assets pay for your life — you're out!":`You need <b>${fmt(totalExp-pi)}/mo</b> more passive income (dividends or rent).`}</div>
+    </div>
+    <div class="fo-card">
+      <div class="fo-title">🏦 Net worth</div>
+      <div class="fo-big ${cls(netWorth)}">${sign(netWorth)}</div>
+      <div class="sbar-row"><span>Assets</span><div class="sbar"><span style="width:${(totalAssets/nwScale*100).toFixed(2)}%;background:var(--good)"></span></div><b>${fmt(totalAssets)}</b></div>
+      <div class="sbar-row"><span>Debts</span><div class="sbar"><span style="width:${(totalLiab/nwScale*100).toFixed(2)}%;background:var(--bad)"></span></div><b>${fmt(totalLiab)}</b></div>
+      <div class="fo-note">${lendMax>0?`The bank will lend you up to <b>${fmt(lendMax)}</b>.`:`The bank won't lend you more right now — cash flow too low.`}</div>
+    </div>
+  </div>
+
+  <div class="balcols with-trends">
    <div>
-    <div class="sheet-sec"><span class="num">1</span>Income</div>
+    <div class="sheet-sec"><span class="num">1</span>Income <span class="sec-total">${fmt(totalIncome)}</span></div>
     <table class="sheet-table">
-     <tr><td class="desc">Salary</td><td class="num">${fmt(p.salary)}</td></tr>
-     <tr><td class="desc">Interest/Dividends</td><td class="num">${fmt(dividends)}</td></tr>
-     <tr><td class="desc">Real Estate/Business (rent)</td><td class="num">${fmt(reIncome)}</td></tr>
-     <tr class="total"><td class="desc">Total Income</td><td class="num">${fmt(totalIncome)}</td></tr>
+     ${expRow("salary","Salary",p.salary)}
+     ${expRow("div","Interest / Dividends",dividends)}
+     ${expRow("rent","Real Estate (net rent)",reIncome)}
+     ${props.map(m=>`<tr class="sub"><td class="desc">🏠 ${m.name}: rent ${fmt(p.holdings[m.id]*m.rent)} − costs ${fmt(propCosts(p,m))} − mortgage ${fmt(propMortgagePmt(p,m.id))}</td><td class="num ${propNet(p,m)<0?"down":""}">${sgn(propNet(p,m))}</td></tr>`).join("")}
     </table>
 
-    <div class="sheet-sec"><span class="num">2</span>Expenses</div>
+    <div class="sheet-sec"><span class="num">2</span>Expenses <span class="sec-total">${fmt(totalExp)}</span></div>
     <table class="sheet-table">
-     <tr><td class="desc">Taxes</td><td class="num">${fmt(p.taxes)}</td></tr>
-     <tr><td class="desc">Home Mortgage Payment</td><td class="num">${fmt(p.mortgagePmt)}</td></tr>
-     <tr><td class="desc">Car Loan Payment</td><td class="num">${fmt(p.carPmt)}</td></tr>
-     <tr><td class="desc">Credit Card Payment</td><td class="num">${fmt(p.ccPmt)}</td></tr>
-     <tr><td class="desc">Retail Debt Payment</td><td class="num">${fmt(p.retailPmt)}</td></tr>
-     <tr><td class="desc">Other Expenses</td><td class="num">${fmt(p.otherExp)}</td></tr>
-     <tr><td class="desc">Bank Loan Payment (bal ${fmt(p.bankLoanBal)})</td><td class="num">${fmt(p.bankLoanPmt)}</td></tr>
-     <tr><td class="desc">Per Child Expense (${fmt(p.childExp)} × ${p.kids})</td><td class="num">${fmt(childTotal)}</td></tr>
-     <tr class="total"><td class="desc">Total Expenses</td><td class="num">${fmt(totalExp)}</td></tr>
+     ${expRow("taxes","Taxes",p.taxes)}
+     ${expRow("mortgage","Home Mortgage Payment",p.mortgagePmt)}
+     ${expRow("car","Car Loan Payment",p.carPmt)}
+     ${expRow("cc","Credit Card Payment",p.ccPmt)}
+     ${expRow("retail","Retail Debt Payment",p.retailPmt)}
+     ${expRow("other","Other Expenses",p.otherExp)}
+     ${expRow("kids","Children ("+p.kids+" × "+fmt(p.childExp)+")",childTotal)}
+     ${expRow("bank","Bank Loan Payment",p.bankLoanPmt)}
     </table>
    </div>
    <div>
-    <div class="sheet-sec"><span class="num">3</span>Assets</div>
+    <div class="sheet-sec"><span class="num">3</span>Assets <span class="sec-total">${fmt(totalAssets)}</span></div>
     <table class="sheet-table">
-     <tr><td class="desc">Savings (cash on hand)</td><td class="num">${fmt(p.cash)}</td></tr>
-     ${stocks.map(m=>`<tr><td class="desc">${m.name} — ${p.holdings[m.id]} sh @ ${fmt(m.price)}</td><td class="num">${fmt((p.holdings[m.id]||0)*m.price)}</td></tr>`).join("")}
-     ${props.map(m=>`<tr><td class="desc">${m.name} (real estate)</td><td class="num">${fmt(m.price)}</td></tr>`).join("")}
-     <tr class="total"><td class="desc">Total Assets</td><td class="num">${fmt(p.cash+stockVal+propVal)}</td></tr>
+     <tr><td class="desc">💰 Cash on hand</td><td class="num">${fmt(p.cash)}</td></tr>
+     ${stocks.map(m=>`<tr><td class="desc">📈 ${m.name} <span class="muted">${p.holdings[m.id]} sh @ ${fmt(m.price)}</span></td><td class="num">${fmt((p.holdings[m.id]||0)*m.price)}</td></tr>`).join("")}
+     ${props.map(m=>`<tr><td class="desc">🏠 ${m.name}${p.holdings[m.id]>1?" ×"+p.holdings[m.id]:""}</td><td class="num">${fmt((p.holdings[m.id]||0)*m.price)}</td></tr>`).join("")}
     </table>
 
-    <div class="sheet-sec"><span class="num">4</span>Liabilities</div>
+    <div class="sheet-sec"><span class="num">4</span>Liabilities <span class="sec-total">${fmt(totalLiab)}</span></div>
     <table class="sheet-table">
-     <tr><td class="desc">Home Mortgage</td><td class="num">${fmt(p.mortgageBal)}</td></tr>
-     <tr><td class="desc">Car Loan</td><td class="num">${fmt(p.carBal)}</td></tr>
-     <tr><td class="desc">Credit Card Debt</td><td class="num">${fmt(p.ccBal)}</td></tr>
-     <tr><td class="desc">Retail Debt</td><td class="num">${fmt(p.retailBal)}</td></tr>
-     <tr><td class="desc">Bank Loan</td><td class="num">${fmt(p.bankLoanBal)}</td></tr>
-     <tr class="total"><td class="desc">Total Liabilities</td><td class="num">${fmt(p.mortgageBal+p.carBal+p.ccBal+p.retailBal+p.bankLoanBal)}</td></tr>
+     ${liabRow("mortgage","Home Mortgage",p.mortgageBal,"mortgage")}
+     ${liabRow("car","Car Loan",p.carBal,"car")}
+     ${liabRow("cc","Credit Card Debt",p.ccBal,"cc")}
+     ${liabRow("retail","Retail Debt",p.retailBal,"retail")}
+     ${props.map(m=>liabRow("re:"+m.id,"🏠 Mortgage — "+m.name,mortgageShare(p,m.id,p.holdings[m.id]))).join("")}
+     ${liabRow("bank","Bank Loan",p.bankLoanBal,"bank")}
     </table>
    </div>
+   ${holdingsTrendsHTML(p)}
   </div>
 
-  <div class="between" style="margin-top:8px;">
-    <small class="muted">Goal: Passive Income ≥ Expenses${rawPct>100?" — over goal!":""}</small>
-    <small style="font-weight:bold;color:${escapedNow?'var(--good)':'var(--ink)'}">${fmt(pi)} of ${fmt(totalExp)} (${rawPct}%)</small>
-  </div>
-  <div class="bar" style="position:relative;">
-    <div style="width:${barPct}%;background:${escapedNow?'var(--good)':'var(--accent2)'};"></div>
-    <div style="position:absolute;left:${Math.min(100,100/1.5)}%;top:0;bottom:0;width:2px;background:var(--ink);"></div>
-  </div>
-
-  <div class="row" style="margin-top:10px;align-items:center;justify-content:space-between;">
-     <div class="row" style="align-items:center;flex-wrap:nowrap;gap:6px;">
-       <input class="qty" style="width:64px;" type="number" step="1000" min="1000" value="${state.loanTakeAmt||1000}" onchange="setLoanTakeAmt(this.value)">
-       <button class="gold" onclick="takeLoan(${idx})">🏦 Take Loan</button>
+  <div class="bank-box">
+   <div class="bank-col">
+     <div class="fo-title">🏦 Borrow</div>
+     <div class="row" style="flex-wrap:nowrap;gap:6px;">
+       <input class="qty" style="width:84px;" type="number" step="1000" min="1000" value="${state.loanTakeAmt||1000}" onchange="setLoanTakeAmt(this.value)">
+       <button class="gold" onclick="takeLoan(${idx})" ${lendMax>0?"":"disabled"}>Take Loan</button>
      </div>
-     <div class="row" style="align-items:center;flex-wrap:nowrap;gap:6px;">
-       <input class="qty" style="width:64px;" type="number" step="1000" min="1000" value="${state.loanPayAmt||1000}" onchange="setLoanPay(this.value)">
-       <button onclick="payLoan(${idx})" ${p.bankLoanBal>0?"":"disabled"}>Pay (bal ${fmt(p.bankLoanBal)})</button>
-     </div>
-   </div>`;
+     <small class="muted">${lendMax>0?`Up to ${fmt(lendMax)} · costs 10% of the loan every month.`:"Not available — the bank needs your cash flow to cover the payment."}</small>
+   </div>
+   <div class="bank-col grow">
+     <div class="fo-title">💳 Pay off debt <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:normal;">— or click a liability row</span></div>
+     ${debt?`<div class="row" style="gap:6px;"><select onchange="selectDebt(this.value)">${debtList(p).map(d=>`<option value="${d.key}" ${d.key===debt.key?"selected":""}>${d.name} — ${fmt(d.bal)}${d.pmt?" ("+fmt(d.pmt)+"/mo)":""}</option>`).join("")}</select>
+       <input class="qty" style="width:84px;" type="number" step="${debt.key==="bank"?1000:100}" min="1" value="${state.loanPayAmt||1000}" onchange="setLoanPay(this.value)">
+       <button onclick="payDebt(${idx})" ${p.cash>0?"":"disabled"}>Pay</button>
+       <button class="primary" onclick="payDebt(${idx},true)" ${p.cash>=debt.bal?"":"disabled"} title="${p.cash>=debt.bal?"":"Not enough cash to clear it"}">Pay off all ${fmt(debt.bal)}</button></div>
+       <small class="muted">${debt.key.startsWith("re:")?`Property mortgage at ${mortgageRate().toFixed(1)}% — partial payments allowed.`:debt.pmt?`Paying it off in full cuts expenses by <b>${fmt(debt.pmt)}/mo</b>${debt.key==="bank"?" (partial payments in $1,000 steps)":"; partial payments lower it proportionally"}.`:`No monthly payment — paying it down means you keep more when you sell the property.`}</small>`
+     :`<span class="muted">You're debt-free! 🎉</span>`}
+   </div>
+  </div>`;
 }
 function pendingHTML(){
   if(!state.pending) return "";
@@ -861,7 +1459,8 @@ function pendingHTML(){
   if(state.pending.kind==="charity"){
     const p=state.pending.p;
     inner=myTurn?`<div class="card" style="margin:0;max-width:360px;width:100%;"><h3>❤ Charity — ${p.name}</h3>
-     <p>Donate 10% of salary (${fmt(Math.round(p.salary*0.1))}) to charity?</p>
+     <p>Donate 10% of your total income (<b>${fmt(charityAmount(state.players[state.turn]))}</b>)?</p>
+     <p class="muted" style="margin-top:-4px;">❤ Benefit: for your next ${CHARITY_TURNS} turns you may roll <b>1 or 2 dice</b> — move faster to reach more Paydays and deals.</p>
      <div class="row"><button class="primary" onclick="charityPay()">Donate</button><button onclick="charitySkip()">Skip</button></div></div>`
      :`<div class="card" style="margin:0;max-width:360px;width:100%;"><h3>❤ Charity — ${p.name}</h3><p class="muted">Waiting for ${p.name} to decide…</p></div>`;
   }else if(state.pending.kind==="eventinfo"){
@@ -871,9 +1470,15 @@ function pendingHTML(){
   }else if(state.pending.kind==="flashdeal"){
     const pd=state.pending, m=MARKET.find(x=>x.id===pd.id), p=pd.p;
     inner=myTurn?`<div class="evt" style="margin:0;max-width:360px;width:100%;"><h3>📣 Flash Deal — ${p.name}</h3>
-     <p>Insider access to <b>${m.name}</b> at ${fmt(pd.dealPrice)}/unit — ${pd.discountPct}% below today's market price of ${fmt(m.price)}. Good for this turn only.</p>
+     <p>Private offer on <b>${m.name}</b> at <b>${fmt(pd.dealPrice)}</b>/unit. Good for this turn only — is it a bargain or a trap? ${m.type==="realestate"?`<br><span class="evt-mv">Current market value: <b>${fmt(m.price)}</b></span>`:`<a href="#" class="evt-link" onclick="togglePanel('market');return false;">Check the Market</a> before you decide.`} <br><small class="evt-note">🔒 What you buy here is locked for your next ${FLASH_LOCK_TURNS} turns — no instant flipping.</small>${m.type==="realestate"?` Terms: <b>${pd.downPct}% down</b>; the rest becomes a mortgage.`:""}</p>
+     ${pd.qtyMax!==1?`<div class="evt-stepper">
+      <button onclick="setFlashQty(state.flashQty-1,true)" aria-label="One less">−</button>
+      <input class="evt-qty" type="number" min="1" value="${state.flashQty}" oninput="setFlashQty(this.value)" onchange="setFlashQty(this.value,true)" aria-label="Quantity">
+      <button onclick="setFlashQty(state.flashQty+1,true)" aria-label="One more">+</button>
+      <button class="evt-max" onclick="setFlashQty(flashMaxCash(),true)" title="Most you can buy with cash, no loan">Max cash</button>
+     </div>`:""}
+     <div class="flash-preview" id="flash-preview">${flashPreviewHTML()}</div>
      <div class="row" style="justify-content:center;">
-      <input class="qty" type="number" min="1" max="${pd.qtyMax}" value="${state.flashQty}" onchange="setFlashQty(this.value)" style="color:#333;">
       <button onclick="buyFlashDeal()" style="background:#fff;color:#333;">Buy Now</button>
       <button onclick="passFlash()" style="background:transparent;color:#fff;border-color:#fff;">Pass</button>
      </div></div>`
@@ -882,24 +1487,39 @@ function pendingHTML(){
   return `<div class="modal-backdrop">${inner}</div>`;
 }
 function playersOverviewHTML(){
-  const rows=state.players.map(pl=>{
+  // Only public info here (profession, board square, family, progress %) — cash and the full
+  // statement stay private to each player online.
+  const cards=state.players.map((pl,i)=>{
     const exp=totalExpenses(pl), pi=passiveIncome(pl);
     const rawPct=Math.round(pi/Math.max(1,exp)*100);
     const barPct=Math.min(100,rawPct/1.5);
     const markerPct=Math.min(100,100/1.5);
-    return `<div class="row" style="align-items:center;gap:10px;margin-bottom:8px;">
-      <span class="tok" style="background:${pl.color};width:16px;height:16px;flex:none;"></span>
-      <div style="min-width:110px;font-size:13px;">${pl.name}${pl.escaped?" 🎉":""}</div>
-      <div class="bar" style="position:relative;flex:1;margin:0;">
-        <div style="width:${barPct}%;background:${pl.escaped||rawPct>=100?'var(--good)':'var(--accent2)'};"></div>
-        <div style="position:absolute;left:${markerPct}%;top:0;bottom:0;width:2px;background:var(--ink);"></div>
+    const isTurn=i===state.turn&&state.phase==="playing", isMe=state.online&&state.myIdx===i;
+    const done=pl.escaped||rawPct>=100, sq=SQUARES[BOARD[pl.pos]];
+    return `<div class="pcard${isTurn?" turn":""}" style="--pc:${pl.color}">
+      <div class="ptop">
+        ${playerToken(pl,i,isTurn?" active":"")}
+        <div style="min-width:0;">
+          <div class="pname">${pl.name}${isMe?` <span class="badge soft">You</span>`:""}${isTurn?` <span class="badge">▶ Turn</span>`:""}</div>
+          <div class="pmeta">${pl.profession} · on ${sq.emoji} ${sq.label}</div>
+        </div>
+        <div class="ppct ${done?"up":""}">${rawPct}%</div>
       </div>
-      <div style="min-width:48px;text-align:right;font-size:12.5px;font-weight:bold;">${rawPct}%</div>
+      <div class="bar" style="position:relative;margin:7px 0 5px;">
+        <div style="width:${barPct}%;background:${done?'var(--good)':'var(--accent2)'};"></div>
+        <div style="position:absolute;left:${markerPct}%;top:0;bottom:0;width:2px;background:var(--ink);" title="100% — escape line"></div>
+      </div>
+      <div class="pchips">
+        ${pl.escaped?`<span class="chip good">🎉 Escaped</span>`:""}
+        ${pl.charityTurns>0?`<span class="chip" title="May roll 1 or 2 dice">❤ ${pl.charityTurns} charity turn${pl.charityTurns===1?"":"s"}</span>`:""}
+        ${pl.skipTurns>0?`<span class="chip" style="color:var(--bad);" title="Downsized">⚠️ sits out ${pl.skipTurns} turn${pl.skipTurns===1?"":"s"}</span>`:""}
+        ${pl.kids?`<span class="chip">👶 ×${pl.kids}</span>`:""}
+      </div>
     </div>`;
   }).join("");
-  return `<div class="card players-overview"><h3>🎯 Rat Race Progress</h3>
-   <p class="muted" style="margin-top:-4px;">Passive income vs total expenses — the marker is the 100% escape line.</p>
-   ${rows}</div>`;
+  return `<div class="card players-overview">
+   <div class="between" style="margin-bottom:6px;"><h3 style="margin:0;">🎯 Rat Race Progress</h3><small class="muted">Passive income ÷ expenses · line = 100% escape</small></div>
+   <div class="pgrid">${cards}</div></div>`;
 }
 function gameHTML(over){
   const p=state.players[state.turn];
@@ -907,7 +1527,7 @@ function gameHTML(over){
   const tabs=state.players.map((pl,i)=>`<button class="${state.viewTab===i?'active':''}" onclick="setTab(${i})" style="border-left:3px solid ${pl.color}">${pl.name}${pl.escaped?" ✓":""}</button>`).join("");
   const myIdx=state.online?state.myIdx:state.viewTab;
   const financePanel=state.panel==="finance"?`<div class="panel-backdrop left" onclick="if(event.target===this)closePanel()">
-      <div class="side-panel wide">
+      <div class="side-panel wide xwide">
         <div class="panel-head"><h3 style="margin:0;">💰 ${state.online?"Your":""} Financial Statement</h3><button onclick="closePanel()">✕ Close</button></div>
         <div class="panel-body">
           ${state.online?`<p class="muted" style="margin-top:0;">Only you can see your full statement. Everyone sees the shared Rat Race Progress bars below the board.</p>`:`<div class="tabs">${tabs}</div>`}
@@ -930,20 +1550,25 @@ function gameHTML(over){
   ${!over?`<button class="side-toggle right gold" onclick="togglePanel('market')">📊<br>Market</button>`:""}
   <div class="board-wrap">
     <div class="card">
-      <div class="between">
-        <div><b>Turn:</b> <span style="color:${p.color}">●</span> ${p.name}${state.online&&!myTurn?` <small class="muted">(waiting for ${p.name} to roll/end turn — you can still trade)</small>`:""}</div>
+      <div class="between turn-bar">
+        <div class="turn-who"><b>Turn:</b> <span style="color:${p.color}">●</span> ${p.name}${state.online&&!myTurn?` <small class="muted">(waiting for ${p.name} to roll/end turn — you can still trade)</small>`:""}</div>
         ${!over&&!state.pending&&myTurn?(state.hasRolled
           ?`<button class="primary" onclick="endTurn()">✅ End Turn</button>`
-          :`<button class="primary" onclick="rollDice()">🎲 Roll Dice</button>`):""}
+          :(p.charityTurns>0
+            ?`<div class="row" style="flex-wrap:nowrap;gap:6px;"><small class="roll-note" style="color:var(--bad);">❤ ${p.charityTurns} charity turn${p.charityTurns===1?"":"s"}</small><button class="primary" onclick="rollDice(1)">🎲 Roll 1</button><button class="gold" onclick="rollDice(2)">🎲🎲 Roll 2</button></div>`
+            :`<button class="primary" onclick="rollDice(1)">🎲 Roll Dice</button>`)):""}
       </div>
-      ${boardHTML()}
-      <div class="log">${state.log.map(l=>"• "+l).join("<br>")}</div>
+      <div class="board-area"><div class="board-row">
+        ${boardHTML()}
+        <div class="log-panel"><div class="log-head">📜 Game Log</div><div class="log">${state.log.map(l=>`<div>${l}</div>`).join("")}</div></div>
+      </div></div>
     </div>
     ${!over?pendingHTML():""}
   </div>
   ${playersOverviewHTML()}
   ${financePanel}
-  ${marketPanel}`;
+  ${marketPanel}
+  ${confirmHTML()}`;
 }
 render();
 </script>
