@@ -29,7 +29,7 @@ Everything is in one self-contained file: `cashflow.html` (HTML + CSS + vanilla 
 - Joining: the page tries to claim the host id. If it's taken (PeerJS error `unavailable-id`, logged as `ERROR PeerJS: ID ... is taken` — **this is expected, not a bug**), it joins as a guest instead.
 - Messages: guest → host `hello {name}`; host → guest `welcome {myIdx}`; anyone → `state {data}`. The host applies incoming state and relays it to the other guests.
 - Every mutating action updates local `state`, then calls `syncRender()` (`pushState()` + `render()`). `pushState()` sends `sharedSnapshot()`; receivers call `applyShared()`.
-- **Shared fields:** phase, numPlayers, names, profs, ready, players, turn, pending, hasRolled, log, listings, listingSeq, week, mortgageRate, alert, market. Each player also carries `costBasis`/`buyMarks` (what they paid) for the statement's holdings charts.
+- **Shared fields:** phase, numPlayers, names, profs, ready, players, turn, pending, hasRolled, log, listings, listingSeq, week, mortgageRate, alert, lastRoll, market. Each player also carries `costBasis`/`buyMarks` (what they paid) for the statement's holdings charts.
 - **Local-only fields (per browser):** alertSeen, panel, marketTab, selectedStock, selectedHolding, qty, confirm, debtSel, flashQty, loanTakeAmt, loanPayAmt, viewTab, myIdx, isHost, online.
 - Guests never run `startGame()` (only the host does). Any local-only default the UI needs must be seeded at page load, not in `startGame()`. Missing `state.finance` on guests caused a crash before.
 - Uses Google STUN plus the free OpenRelay TURN servers (`ICE_CONFIG`). A 15-second timeout falls back to local pass-and-play.
@@ -43,6 +43,7 @@ Everything is in one self-contained file: `cashflow.html` (HTML + CSS + vanilla 
 - The **market is open to every player at all times**, not just on your turn. Trades apply to the acting player: `actingIdx()` = `myIdx` online, `turn` in local mode.
 - Only the current player can roll, end the turn, or answer charity/event/flash-deal prompts.
 - Each player sees **only their own financial statement** online. Progress bars are visible to everyone.
+- Finance sheet has two overview cards (monthly cash flow, escape progress); net worth was removed on request.
 - Financial statement mirrors the real game sheet: 1 Income, 2 Expenses (left column), 3 Assets, 4 Liabilities (right column); Cash on top; goal bar can go past 100%.
 - Stocks: always-open table with random starting prices each game, a simulated 15-week history (random walk), 52-week range from that history, first "Chg" = change from the last simulated week, click a row to expand a labelled sparkline.
 - Real estate: **only** through time-limited live offers (FOR SALE / WANTED) that expire and get replaced each turn. Full data on each listing (rent, cap rate, appreciation, vs-market %).
@@ -59,10 +60,17 @@ Everything is in one self-contained file: `cashflow.html` (HTML + CSS + vanilla 
 - Profession balance: each profession's expenses and debts were scaled (Doctor −22%, Janitor −6%, Engineer +1%, Secretary +11%, Teacher +17%; salary and savings unchanged) so win rates are within 5 points of each other: 2 players 48–52%, 3 players 31.6–35.1%, 4 players 22.7–26.9%. Re-measure with the bot sim after changing anything economic.
 - Downsized: pay a month of expenses and sit out the next 2 turns (`p.skipTurns`, handled in `nextTurn()`).
 - Prices move only by the weekly random step and by events. Buying/selling never changes a price. Market events move both price and `anchor` (the level the random walk drifts to), so there is no guaranteed rebound after a crash.
-- Flash-deal buys are locked for the buyer's next 3 turns (`p.locks`, `p.turnsTaken`) — no instant flipping.
+- Flash-deal **stock** buys are locked for the buyer's next 3 turns (`p.locks`, `p.turnsTaken`) — no instant flipping. Property flash deals aren't locked (property can only be sold into WANTED listings). The flash-deal popup shows only the deal (price, terms, cash flow); if cash is short, Buy opens the loan popup with a "Take $X loan and buy" button.
 - Bank lending limit: voluntary loans (Take Loan, or buying on credit) are only allowed while monthly cash flow stays ≥ $0 after the new payment (`loanCheck()`). Mandatory costs still auto-borrow.
 - Total expenses include taxes everywhere (payday, Downsized, escape check), like the real game sheet. Event/charity/flash-deal popups have no backdrop, so Finance and Market stay usable while one is open.
 - Popups sized to content, no page scrolling on the main board view, no layout jumping when numbers change width.
+
+## Sound
+
+- All sound effects are generated in code (Web Audio API, `SYNTH` + `sfx(name)`); no files needed. A mute button (🔊/🔇) sits in the title bar and is remembered per browser (localStorage `cf_muted`).
+- Sounds play only in the browser where they matter (your roll, buy, payday…). Wins, fire sales and bankruptcies play for everyone, and "your turn" plays online; both come from `syncSounds()` after each render.
+- Dice: every roll is shared (`state.lastRoll`), so all players see the dice tumble for ~0.9 s in the box above the game log (`diceBoxHTML`/`syncDice`) and hear the dice sound; other sounds from that roll wait until the dice settle.
+- To swap in a real recording: add `sounds/<name>.mp3` and list the name in `sounds/index.json` (see `sounds/README.md` for names).
 
 ## Known pitfalls
 

@@ -47,13 +47,26 @@ html,body{height:100%;}
 .board-row{--bs:min(100cqh,100cqw - 260px,640px);height:100%;display:flex;gap:10px;justify-content:center;align-items:flex-start;}
 .board-row .gameboard{width:var(--bs);height:var(--bs);max-width:none;margin:0;flex:none;}
 .log-panel{flex:1 1 0;min-width:200px;max-width:320px;height:var(--bs);display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow:hidden;}
+.dice-box{flex:none;display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--panel);min-height:58px;}
+.dice-row{display:flex;gap:6px;flex:none;}
+.die{width:36px;height:36px;background:#fff;border:1px solid #cfc8b8;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.18),inset 0 -2px 0 rgba(0,0,0,.06);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:4px;}
+.die i{display:block;}
+.die .pip{width:7px;height:7px;border-radius:50%;background:#1f2430;place-self:center;}
+.dice-row.rolling .die{animation:dieTumble .15s ease-in-out infinite alternate;}
+.dice-row.rolling .die:nth-child(2){animation-delay:.07s;}
+@keyframes dieTumble{from{transform:translateY(0) rotate(-14deg);}to{transform:translateY(-5px) rotate(14deg);}}
+@media (prefers-reduced-motion:reduce){.dice-row.rolling .die{animation:none;}}
+.dice-cap{font-size:12.5px;line-height:1.3;min-width:0;}
 .log-panel .log-head{flex:none;font-weight:bold;font-size:13px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--panel);}
 .log-panel .log{flex:1;min-height:0;max-height:none;margin:0;border:0;padding:6px 10px 8px;overflow-y:auto;}
 .log-panel .log div{padding:3px 0;border-bottom:1px dashed var(--line);line-height:1.35;}
 .log-panel .log div:first-child{color:var(--ink);}
 @container (max-width:620px){
-  .board-row{--bs:min(100cqw,100cqh - 104px);flex-direction:column;align-items:center;gap:6px;}
-  .log-panel{flex:none;width:100%;max-width:none;height:98px;}
+  .board-row{--bs:min(100cqw,100cqh - 146px);flex-direction:column;align-items:center;gap:6px;}
+  .log-panel{flex:none;width:100%;max-width:none;height:140px;}
+  .dice-box{min-height:46px;padding:5px 10px;}
+  .die{width:28px;height:28px;padding:3px;}
+  .die .pip{width:5px;height:5px;}
 }
 .wrap.fit-screen .players-overview{flex:none;max-height:26vh;overflow-y:auto;}
 .board-wrap{position:relative;}
@@ -191,8 +204,8 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
 .fin-cash{text-align:right;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:4px 12px;}
 .fin-cash small{display:block;font-size:10.5px;}
 .fin-cash b{font-size:18px;font-variant-numeric:tabular-nums;}
-.fin-overview{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
-@media (max-width:900px){.fin-overview{grid-template-columns:1fr;}}
+.fin-overview{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;}
+@media (max-width:640px){.fin-overview{grid-template-columns:1fr;}}
 .fo-card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0;}
 .fo-title{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
 .fo-big{font-size:21px;font-weight:bold;font-variant-numeric:tabular-nums;margin-bottom:6px;}
@@ -231,10 +244,10 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
 .fp-row.fp-total{font-size:14px;border-bottom:1px solid rgba(255,255,255,.35);padding-bottom:4px;margin-bottom:2px;}
 .fp-row.fp-warn b{color:#ffd76a;}
 .fp-row.fp-bad b{color:#ffb3ad;}
-.fp-note{font-size:11.5px;color:#ffd0cc;margin-top:3px;}
 .alert-card .alert-line{margin:4px 0;font-size:13px;}
 .standings{flex:none;margin-bottom:8px;}
 .standings td{vertical-align:middle;}
+.mute-btn{float:right;font-size:15px;padding:3px 9px;line-height:1.2;}
 .confirm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
 </style>
 </head>
@@ -379,7 +392,7 @@ function applyMarketSnapshot(arr){
 }
 function sharedSnapshot(){
   return {phase:state.phase==="join"?"setup":state.phase,numPlayers:state.numPlayers,names:state.names,profs:state.profs,ready:state.ready,
-    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,alert:state.alert||null,
+    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,alert:state.alert||null,lastRoll:state.lastRoll||null,
     market:snapshotMarket(),updatedAt:Date.now()};
 }
 function applyShared(data){
@@ -399,6 +412,7 @@ function applyShared(data){
   if(typeof data.week==="number") state.week=data.week;
   if(typeof data.mortgageRate==="number") state.mortgageRate=data.mortgageRate;
   state.alert=data.alert||null;
+  state.lastRoll=data.lastRoll||null;
   applyMarketSnapshot(data.market);
 }
 function toggleReady(){
@@ -589,6 +603,132 @@ function payCash(p,amt){
 }
 function log(m){state.log.unshift(m); if(state.log.length>40)state.log.pop();}
 
+// ---- Sound effects ----
+// Generated with the Web Audio API, so no files are needed. To use a real recording instead, put
+// sounds/<name>.mp3 next to this page and list the names in sounds/index.json, e.g. ["dice","win"];
+// listed files replace the generated sound for that name (one small request, no 404 spam per sound).
+// Sounds play only in the browser where they matter (your own roll, buy, payday…); wins, fire sales
+// and bankruptcies play for everyone. Mute is remembered per browser.
+const SFX_NAMES=["dice","payday","cost","buy","sell","loan","denied","deal","event","charity","paid","turn","win","firesale","bankrupt"];
+let audioCtx=null;
+const sfxFiles={};   // name -> HTMLAudioElement once a sounds/<name>.mp3 file has loaded
+try{ state.muted=localStorage.getItem("cf_muted")==="1"; }catch(e){ state.muted=false; }
+if(typeof Audio!=="undefined"&&typeof fetch!=="undefined"&&typeof location!=="undefined"&&location.protocol!=="file:"){
+  fetch("sounds/index.json",{cache:"no-cache"}).then(r=>r.ok?r.json():[]).then(list=>{
+    (Array.isArray(list)?list:[]).filter(n=>SFX_NAMES.includes(n)).forEach(n=>{ const a=new Audio(); a.preload="auto"; a.addEventListener("canplaythrough",()=>{sfxFiles[n]=a;},{once:true}); a.src="sounds/"+n+".mp3"; });
+  }).catch(()=>{});
+}
+function toggleMute(){ state.muted=!state.muted; try{localStorage.setItem("cf_muted",state.muted?"1":"0");}catch(e){} if(!state.muted) sfx("paid"); render(); }
+function muteButtonHTML(){ return `<button class="mute-btn" onclick="toggleMute()" title="${state.muted?"Sound off — click to turn on":"Sound on — click to mute"}" aria-label="${state.muted?"Unmute":"Mute"}">${state.muted?"🔇":"🔊"}</button>`; }
+function ac(){
+  if(typeof window==="undefined") return null;
+  const C=window.AudioContext||window.webkitAudioContext; if(!C) return null;
+  if(!audioCtx) audioCtx=new C();
+  if(audioCtx.state==="suspended") audioCtx.resume();
+  return audioCtx;
+}
+// One oscillator note: freq in Hz (optionally sliding to `to`), start offset `at` and length `dur` in seconds.
+function tone(c,freq,dur,o){
+  o=o||{}; const t0=c.currentTime+(o.at||0), osc=c.createOscillator(), g=c.createGain();
+  osc.type=o.type||"sine"; osc.frequency.setValueAtTime(freq,t0);
+  if(o.to) osc.frequency.exponentialRampToValueAtTime(o.to,t0+dur);
+  if(o.vib){ const l=c.createOscillator(), lg=c.createGain(); l.frequency.value=o.vib; lg.gain.value=freq*0.03; l.connect(lg); lg.connect(osc.frequency); l.start(t0); l.stop(t0+dur); }
+  const v=(o.vol||0.18);
+  g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(v,t0+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  osc.connect(g); g.connect(c.destination); osc.start(t0); osc.stop(t0+dur+0.02);
+}
+// A short burst of filtered noise (dice clatter, card shuffle).
+function noise(c,dur,o){
+  o=o||{}; const t0=c.currentTime+(o.at||0), n=Math.floor(c.sampleRate*dur), buf=c.createBuffer(1,n,c.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*(1-i/n);
+  const src=c.createBufferSource(), f=c.createBiquadFilter(), g=c.createGain();
+  src.buffer=buf; f.type="bandpass"; f.frequency.value=o.freq||2500; f.Q.value=o.q||1.2; g.gain.value=o.vol||0.25;
+  src.connect(f); f.connect(g); g.connect(c.destination); src.start(t0);
+}
+const SYNTH={
+  dice:c=>{
+    tone(c,110,0.09,{type:"triangle",vol:0.18});
+    let t=0.03, gap=0.05;
+    for(let i=0;i<9;i++){
+      const v=0.13*(1-i/11);
+      tone(c,850+Math.random()*650,0.03,{type:"triangle",at:t,vol:v});
+      noise(c,0.022,{at:t,freq:3200+Math.random()*1800,q:3,vol:v});
+      t+=gap; gap*=1.2;
+    }
+  },
+  payday:c=>{ tone(c,988,0.12,{type:"square",vol:0.08}); tone(c,1319,0.35,{type:"square",at:0.08,vol:0.08}); },
+  cost:c=>{ tone(c,440,0.14,{type:"triangle",vol:0.16}); tone(c,330,0.22,{type:"triangle",at:0.12,vol:0.16}); },
+  buy:c=>{ noise(c,0.03,{freq:4000,vol:0.2}); tone(c,660,0.09,{type:"triangle",at:0.02,vol:0.14}); tone(c,880,0.14,{type:"triangle",at:0.09,vol:0.14}); },
+  sell:c=>{ tone(c,880,0.08,{type:"triangle",vol:0.14}); tone(c,1175,0.08,{type:"triangle",at:0.07,vol:0.14}); tone(c,1568,0.18,{type:"triangle",at:0.14,vol:0.12}); },
+  loan:c=>{ tone(c,392,0.12,{type:"sine",vol:0.16}); tone(c,523,0.12,{type:"sine",at:0.1,vol:0.16}); tone(c,392,0.25,{type:"sine",at:0.2,vol:0.14}); },
+  denied:c=>{ tone(c,140,0.18,{type:"square",vol:0.1}); tone(c,110,0.3,{type:"square",at:0.2,vol:0.1}); },
+  deal:c=>{ [1047,1319,1568,2093].forEach((f,i)=>tone(c,f,0.12,{type:"sine",at:i*0.05,vol:0.1})); },
+  event:c=>{ tone(c,523,0.3,{type:"sine",vol:0.14}); tone(c,784,0.45,{type:"sine",at:0.12,vol:0.12}); },
+  charity:c=>{ tone(c,784,0.5,{type:"sine",vol:0.12}); tone(c,988,0.5,{type:"sine",at:0.1,vol:0.1}); tone(c,1175,0.7,{type:"sine",at:0.2,vol:0.1}); },
+  paid:c=>{ tone(c,660,0.08,{type:"sine",vol:0.14}); tone(c,990,0.16,{type:"sine",at:0.07,vol:0.14}); },
+  turn:c=>{ tone(c,880,0.12,{type:"sine",vol:0.12}); tone(c,1320,0.2,{type:"sine",at:0.12,vol:0.12}); },
+  win:c=>{ [523,659,784,1047].forEach((f,i)=>tone(c,f,0.18,{type:"square",at:i*0.13,vol:0.08})); tone(c,1047,0.6,{type:"square",at:0.55,vol:0.08}); tone(c,1319,0.6,{type:"square",at:0.55,vol:0.06}); },
+  firesale:c=>{ tone(c,600,0.5,{type:"sawtooth",to:200,vol:0.06}); noise(c,0.4,{freq:900,vol:0.15,at:0.05}); },
+  bankrupt:c=>{ [392,370,349].forEach((f,i)=>tone(c,f,0.35,{type:"sawtooth",at:i*0.38,vol:0.07})); tone(c,330,1.1,{type:"sawtooth",at:1.14,vol:0.07,vib:6}); },
+};
+function sfx(name){
+  if(state.muted) return;
+  if(name!=="dice"&&typeof diceRolling==="function"&&diceRolling()){ setTimeout(()=>sfx(name),diceAnim.until-Date.now()+30); return; }
+  try{
+    const f=sfxFiles[name];
+    if(f){ const a=f.cloneNode(); a.volume=0.8; a.play().catch(()=>{}); return; }
+    const c=ac(); if(c&&SYNTH[name]) SYNTH[name](c);
+  }catch(e){}
+}
+// Sounds for things that arrive from other browsers: shared announcements (win, fire sale,
+// bankruptcy) and "it's your turn" when playing online. Called after every render.
+let lastAlertSound=null, lastTurnSound=null;
+// ---- Dice animation (in the box above the game log) ----
+// Every player sees each roll: when state.lastRoll changes, the dice tumble for ~0.9 s (faces flicker,
+// dice shake) and then settle on the real result. render() rebuilds the page, so the animation is
+// driven by a timer that re-finds the elements each tick instead of relying on one DOM node.
+const DICE_ANIM_MS=900;
+let diceAnim={id:undefined,until:0,timer:null};
+const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+function dieHTML(v){return `<div class="die" aria-label="${v}">${Array.from({length:9},(_,i)=>PIPS[v].includes(i)?'<i class="pip"></i>':'<i></i>').join("")}</div>`;}
+function diceRolling(){return Date.now()<diceAnim.until;}
+function diceCaption(r){const p=state.players[r.who]; const t=r.dice.reduce((a,b)=>a+b,0); return p?`<b>${p.name}</b> rolled ${r.dice.length>1?r.dice.join(" + ")+" = ":""}<b>${t}</b>`:"";}
+function diceBoxHTML(){
+  const r=state.lastRoll;
+  if(!r) return `<div class="dice-box"><div class="dice-row">${dieHTML(1)}</div><div class="dice-cap muted">Waiting for the first roll</div></div>`;
+  const rolling=diceRolling();
+  const faces=rolling?r.dice.map(()=>1+Math.floor(Math.random()*6)):r.dice;
+  return `<div class="dice-box"><div class="dice-row${rolling?" rolling":""}" id="dice-row">${faces.map(dieHTML).join("")}</div><div class="dice-cap" id="dice-cap">${rolling?"Rolling…":diceCaption(r)}</div></div>`;
+}
+function syncDice(){
+  const r=state.lastRoll, id=r?r.id:null;
+  // Don't animate what was already on the table when this browser first saw the game.
+  if(diceAnim.id===undefined){ diceAnim.id=id; return; }
+  if(!r||id===diceAnim.id) return;
+  diceAnim.id=id; diceAnim.until=Date.now()+DICE_ANIM_MS;
+  sfx("dice");
+  clearInterval(diceAnim.timer);
+  diceAnim.timer=setInterval(()=>{
+    const row=document.getElementById("dice-row"), cap=document.getElementById("dice-cap");
+    if(!diceRolling()){
+      clearInterval(diceAnim.timer);
+      if(row){ row.classList.remove("rolling"); row.innerHTML=r.dice.map(dieHTML).join(""); }
+      if(cap) cap.innerHTML=diceCaption(r);
+      return;
+    }
+    if(row){ row.classList.add("rolling"); row.innerHTML=r.dice.map(()=>dieHTML(1+Math.floor(Math.random()*6))).join(""); }
+  },75);
+}
+function syncSounds(){
+  const a=state.alert;
+  if(a&&a.id!==lastAlertSound){ lastAlertSound=a.id; if(state.phase!=="setup") sfx(/bankrupt/i.test(a.title)?"bankrupt":/fire sale/i.test(a.title)?"firesale":"win"); }
+  if(state.online&&state.phase==="playing"){
+    const key=state.week+":"+state.turn;
+    if(state.turn===state.myIdx&&lastTurnSound!==key&&lastTurnSound!==null) sfx("turn");
+    lastTurnSound=key;
+  }
+}
+
 // ---- Bills you can't refuse, fire sale and bankruptcy ----
 // payBill() is for mandatory costs (doodads, Downsized, negative paydays, lawsuits, theft). In order:
 //  1. pay from cash;
@@ -600,6 +740,7 @@ function log(m){state.log.unshift(m); if(state.log.length>40)state.log.pop();}
 const FIRE_SALE_RE=0.5;
 function payBill(p,amt,what){
   if(p.bankrupt) return;
+  sfx("cost");
   if(p.cash>=amt){ p.cash-=amt; return; }
   const lim=loanCheck(p,0,0).max;
   if(lim>0){
@@ -797,7 +938,7 @@ function startGame(){
     const pr=PROFESSIONS[Math.floor(Math.random()*PROFESSIONS.length)];
     return {...pr,profession:pr.name,name:nm.trim()||("Player "+(i+1)),cash:pr.savings,kids:0,holdings:{},bankLoanBal:0,bankLoanPmt:0,pos:0,escaped:false,bankrupt:false,place:null,color:COLORS[i]};
   });
-  state.phase="playing"; state.alert=null; state.week=0; state.mortgageRate=startMortgageRate(); state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
+  state.phase="playing"; state.alert=null; state.lastRoll=null; state.week=0; state.mortgageRate=startMortgageRate(); state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
   log("Game started. "+state.players[0].name+" goes first. Market is open.");
   if(state.online) pushState();
   render();
@@ -805,7 +946,7 @@ function startGame(){
 function activePlayers(){return state.players.filter(isRacing);}
 function syncRender(){ if(state.online) pushState(); render(); }
 const DOWNSIZED_SKIPS=2;
-// Flash-deal lock-up: units bought at a flash-deal discount can't be sold for the buyer's next 3 turns, so
+// Flash-deal lock-up (stocks only): shares bought at a flash-deal discount can't be sold for the buyer's next 3 turns, so
 // the discount is a bet on where the price goes, not an instant flip. p.turnsTaken counts the player's turns
 // (skipped ones too); p.locks[id] = [{qty, until: turnsTaken value when they unlock}].
 const FLASH_LOCK_TURNS=3;
@@ -854,6 +995,7 @@ function rollDice(n){
   const sp=BOARD[p.pos];
   log(p.name+" rolled "+(n===2?dice.join(" + ")+" = "+roll:"a "+roll)+" -> landed on "+sp+"."+(charity?" ("+p.charityTurns+" charity turn"+(p.charityTurns===1?"":"s")+" left)":""));
   state.hasRolled=true;
+  state.lastRoll={id:Date.now()+"-"+Math.random().toString(36).slice(2,7),dice,who:state.turn};
   resolveSpace(p,sp);
   syncRender();
 }
@@ -861,6 +1003,7 @@ function rollDice(n){
 function collectPayday(p,passing){
   if(!isRacing(p)) return;
   const inc=Math.round(monthlyCashflow(p));
+  if(inc>=0) sfx("payday");
   log(p.name+(passing?" passes":" lands on")+" Payday: "+(inc>=0?"collects "+fmt(inc)+" net cash flow.":"negative cash flow, pays "+fmt(-inc)+"."));
   if(inc>=0) p.cash+=inc; else payBill(p,-inc,"a negative payday");
   checkWin(p);
@@ -895,12 +1038,14 @@ function resolveSpace(p,sp){
     const dealPrice=Math.max(1,Math.round(m.price*(1-discountPct/100)));
     const qtyMax=m.type==="stock"?null:1;
     state.flashQty=1;
+    sfx("deal");
     state.pending={kind:"flashdeal",p,id:m.id,dealPrice,qtyMax,downPct:m.type==="realestate"?pickDownPct():null,costPct:m.type==="realestate"?pickCostPct():null};
   }else if(sp==="event"){
     const ev=pickEvent();
     const desc=ev.run(state.players,p);
     log("🎲 Event — "+ev.name+": "+desc);
     checkAllWins();
+    sfx("event");
     state.pending={kind:"eventinfo",ev:{name:ev.name,desc}};
   }
 }
@@ -914,8 +1059,9 @@ function charityPay(ok){
   if(!state.pending||state.pending.kind!=="charity") return;
   const p=state.players[state.turn];
   const amt=charityAmount(p);
-  if(!ok&&askLoanConfirm(state.turn,{title:"Donate "+fmt(amt)+" to charity",due:amt,confirmLabel:"Donate anyway",run:()=>charityPay(true)})) return;
+  if(!ok&&askLoanConfirm(state.turn,{title:"Donate "+fmt(amt)+" to charity",due:amt,confirmLabel:"Take {loan} loan and donate",run:()=>charityPay(true)})) return;
   payCash(p,amt);
+  sfx("charity");
   p.charityTurns=CHARITY_TURNS;
   log(p.name+" donated "+fmt(amt)+" to charity — may roll 1 or 2 dice for the next "+CHARITY_TURNS+" turns.");
   state.pending=null; checkWin(p); syncRender();
@@ -934,29 +1080,27 @@ function flashMaxCash(){
   const unit=cashDue(m,pd.dealPrice,pd.downPct);
   return Math.max(1,Math.min(pd.qtyMax||Infinity,Math.floor(Math.max(0,p.cash)/Math.max(1,unit))));
 }
-// Live cost preview for the flash deal: total, what comes out of cash, any bank loan and the bank's verdict.
+// Live cost preview for the flash deal: the total and, for property, the terms and cash flow. If cash
+// runs short, pressing Buy opens the loan popup (askLoanConfirm) instead.
 function flashPreviewHTML(){
   const pd=state.pending, p=state.players[state.turn], m=MARKET.find(x=>x.id===pd.id), qty=state.flashQty||1;
   const cost=pd.dealPrice*qty, due=cashDue(m,cost,pd.downPct), mort=cost-due, cfl=incomeDeltaBuy(m,qty,pd.dealPrice,pd.downPct,pd.costPct);
-  const loan=p.cash-due<0?Math.ceil((due-p.cash)/1000)*1000:0;
-  const chk=loan?loanCheck(p,loan,cfl):{ok:true};
   const row=(a,b,c)=>`<div class="fp-row${c?" "+c:""}"><span>${a}</span><b>${b}</b></div>`;
   return row(qty+" × "+fmt(pd.dealPrice),fmt(cost),"fp-total")
     +(m.type==="realestate"?row("Cash down ("+pd.downPct+"%)",fmt(due))+row("Mortgage ("+(100-pd.downPct)+"%)",fmt(mort))+row("Rent",fmt(qty*m.rent)+"/mo")+row("Running costs ("+pd.costPct+"% of rent)","−"+fmt(costsFor(m,qty,pd.costPct))+"/mo")+row("Mortgage payment ("+mortgageRate().toFixed(1)+"%)","−"+fmt(mortgagePmtFor(mort))+"/mo")+row("Cash flow",sgn(cfl)+"/mo",cfl<0?"fp-bad":""):"")
-    +row("From your cash",fmt(due-loan)+" of "+fmt(p.cash))
-    +(loan?row("Bank loan needed",fmt(loan),chk.ok?"fp-warn":"fp-bad"):"")
-    +row("Cash after",fmt(p.cash+loan-due))
-    +(loan&&!chk.ok?`<div class="fp-note">🚫 Over your bank limit (max ${fmt(chk.max)}) — buy fewer.</div>`:"");
+;
 }
 function buyFlashDeal(ok){
   if(state.online&&state.myIdx!==state.turn) return;
   if(!state.pending||state.pending.kind!=="flashdeal") return;
   const pd=state.pending, p=state.players[state.turn], m=MARKET.find(x=>x.id===pd.id), qty=state.flashQty||1;
   const due=cashDue(m,pd.dealPrice*qty,pd.downPct);
-  if(!ok&&askLoanConfirm(state.turn,{title:"Flash deal: "+qty+"x "+m.name,due,incomeDelta:incomeDeltaBuy(m,qty,pd.dealPrice,pd.downPct,pd.costPct),confirmLabel:"Buy with loan",run:()=>buyFlashDeal(true)})) return;
+  if(!ok&&askLoanConfirm(state.turn,{title:"Flash deal: "+qty+"x "+m.name,due,incomeDelta:incomeDeltaBuy(m,qty,pd.dealPrice,pd.downPct,pd.costPct),confirmLabel:"Take {loan} loan and buy",run:()=>buyFlashDeal(true)})) return;
   const note=buyAsset(p,m,qty,pd.dealPrice,pd.downPct,pd.costPct);
-  addLock(p,m.id,qty);
-  log(p.name+" grabbed a flash deal: "+qty+"x "+m.name+" @ "+fmt(pd.dealPrice)+note+" 🔒 Locked for "+FLASH_LOCK_TURNS+" turns.");
+  // Only stocks are locked: they could otherwise be flipped straight back into the always-open stock
+  // market. Property can only be sold into a WANTED listing, so it isn't locked.
+  if(m.type==="stock") addLock(p,m.id,qty);
+  log(p.name+" grabbed a flash deal: "+qty+"x "+m.name+" @ "+fmt(pd.dealPrice)+note+(m.type==="stock"?" Locked for "+FLASH_LOCK_TURNS+" turns.":""));
   checkWin(p);
   state.pending=null; syncRender();
 }
@@ -984,6 +1128,7 @@ function recordBuy(p,id,qty,price){
   p.buyMarks[id]=[...(p.buyMarks[id]||[]),{w:state.week||0,price}].slice(-10);
 }
 function buyAsset(p,m,qty,price,downPct,costPct){
+  sfx("buy");
   const cost=price*qty;
   recordBuy(p,m.id,qty,price);
   if(m.type!=="realestate"){ payCash(p,cost); p.holdings[m.id]=(p.holdings[m.id]||0)+qty; return " ("+fmt(cost)+")."; }
@@ -997,6 +1142,7 @@ function buyAsset(p,m,qty,price,downPct,costPct){
 }
 // If a property sells for less than its mortgage, the shortfall comes out of cash (auto-loan if needed).
 function sellAsset(p,m,qty,price){
+  sfx("sell");
   const sale=price*qty, payoff=mortgageShare(p,m.id,qty);
   if(p.costBasis&&p.costBasis[m.id]) p.costBasis[m.id]-=Math.round(p.costBasis[m.id]*qty/p.holdings[m.id]);
   p.cash+=sale; p.holdings[m.id]-=qty;
@@ -1011,7 +1157,7 @@ function buyListing(id,ok){
   if(!p||!isRacing(p)||!l||l.kind!=="ask"){return;}
   const m=MARKET.find(x=>x.id===l.instId);
   const buyQty=l.qty, due=cashDue(m,buyQty*l.price,l.downPct);
-  if(!ok&&askLoanConfirm(actingIdx(),{title:"Buy "+buyQty+"x "+m.name+" @ "+fmt(l.price),due,incomeDelta:incomeDeltaBuy(m,buyQty,l.price,l.downPct,l.costPct),confirmLabel:"Buy with loan",run:()=>buyListing(id,true)})) return;
+  if(!ok&&askLoanConfirm(actingIdx(),{title:"Buy "+buyQty+"x "+m.name+" @ "+fmt(l.price),due,incomeDelta:incomeDeltaBuy(m,buyQty,l.price,l.downPct,l.costPct),confirmLabel:"Take {loan} loan and buy",run:()=>buyListing(id,true)})) return;
   const note=buyAsset(p,m,buyQty,l.price,l.downPct,l.costPct); l.qty=0;
   log(p.name+" grabbed "+buyQty+"x "+m.name+" off the floor @ "+fmt(l.price)+note);
   checkWin(p);
@@ -1045,7 +1191,7 @@ function buyUnit(id,ok){
   const p=state.players[actingIdx()]; if(!p||!isRacing(p)) return;
   const m=MARKET.find(x=>x.id===id), qty=state.qty[id]||1;
   const due=cashDue(m,m.price*qty);
-  if(!ok&&askLoanConfirm(actingIdx(),{title:"Buy "+qty+"x "+m.name+" @ "+fmt(m.price),due,incomeDelta:incomeDeltaBuy(m,qty,m.price),confirmLabel:"Buy with loan",run:()=>buyUnit(id,true)})) return;
+  if(!ok&&askLoanConfirm(actingIdx(),{title:"Buy "+qty+"x "+m.name+" @ "+fmt(m.price),due,incomeDelta:incomeDeltaBuy(m,qty,m.price),confirmLabel:"Take {loan} loan and buy",run:()=>buyUnit(id,true)})) return;
   const note=buyAsset(p,m,qty,m.price);
   log(p.name+" bought "+qty+"x "+m.name+" @ "+fmt(m.price)+note);
   checkWin(p);
@@ -1063,10 +1209,12 @@ function takeLoan(idx,ok){
   const p=state.players[idx]; if(!p||!isRacing(p)) return;
   const amt=Math.max(1000,Math.round((state.loanTakeAmt||1000)/1000)*1000);
   if(!ok||!loanCheck(p,amt,0).ok){
+    if(!loanCheck(p,amt,0).ok) sfx("denied");
     state.confirm={idx,title:"Borrow "+fmt(amt)+" from the bank",auto:0,loan:amt,cashDelta:amt,incomeDelta:0,confirmLabel:"Take the loan",run:()=>takeLoan(idx,true)};
     render(); return;
   }
   p.bankLoanBal+=amt; p.bankLoanPmt=Math.round(p.bankLoanBal*0.1); p.cash+=amt;
+  sfx("loan");
   log(p.name+" took out a "+fmt(amt)+" bank loan (cash on hand).");
   if(state.online) pushState();
   render();
@@ -1095,6 +1243,7 @@ function payDebt(idx,all){
   if(d.key==="bank"&&amt<d.bal) amt=Math.floor(amt/1000)*1000;
   if(amt<=0||amt>p.cash){log(p.name+" doesn't have "+fmt(Math.max(amt,1000))+" cash to pay toward "+d.name+".");render();return;}
   p.cash-=amt;
+  sfx("paid");
   if(d.key==="bank"){ p.bankLoanBal-=amt; p.bankLoanPmt=Math.round(p.bankLoanBal*0.1); }
   else if(d.key.startsWith("re:")){ const id=d.key.slice(3); p.reMortgage[id]-=amt; if(p.reMortgage[id]<=0) delete p.reMortgage[id]; }
   else{ const [,b,m]=PERSONAL_DEBTS[d.key]; p[m]=Math.round(p[m]*(p[b]-amt)/p[b]); p[b]-=amt; }
@@ -1123,7 +1272,8 @@ function askLoanConfirm(idx,o){
   const p=state.players[idx]; if(!p) return false;
   const auto=p.cash-o.due<0?Math.ceil((o.due-p.cash)/1000)*1000:0;
   if(auto<=0) return false;
-  state.confirm={idx,title:o.title,due:o.due,auto,loan:auto,cashDelta:auto-o.due,incomeDelta:o.incomeDelta||0,confirmLabel:o.confirmLabel||"Confirm",run:o.run};
+  if(!loanCheck(p,auto,o.incomeDelta||0).ok) sfx("denied");
+  state.confirm={idx,title:o.title,due:o.due,auto,loan:auto,cashDelta:auto-o.due,incomeDelta:o.incomeDelta||0,confirmLabel:(o.confirmLabel||"Confirm").replace("{loan}",fmt(auto)),run:o.run};
   render(); return true;
 }
 function confirmYes(){const c=state.confirm; state.confirm=null; if(c&&c.run) c.run(); else render();}
@@ -1138,7 +1288,7 @@ function confirmHTML(){
   const chk=loanCheck(p,c.loan,c.incomeDelta);
   return `<div class="confirm-backdrop" onclick="if(event.target===this)confirmNo()">
     <div class="confirm-card${chk.ok?"":" denied"}" role="dialog" aria-modal="true">
-      <div class="confirm-head">${chk.ok?"🏦 Heads up — this takes a bank loan":"🚫 Loan denied by the bank"}</div>
+      <div class="confirm-head">${!chk.ok?"🚫 Loan denied by the bank":c.due!=null?"Not enough cash — you need a bank loan":"🏦 Heads up — this takes a bank loan"}</div>
       <h3 style="margin-bottom:8px;">${c.title}</h3>
       <table>
         ${c.due!=null?`<tr><td>Total to pay now</td><td class="num"><b>${fmt(c.due)}</b></td></tr>
@@ -1284,11 +1434,13 @@ function render(){
   if(state.phase!=="setup"&&!validGamePhase) state.phase="setup";
   if(state.phase==="setup"){ el.classList.remove("fit-screen"); el.innerHTML=setupHTML(); }
   else { el.classList.add("fit-screen"); el.innerHTML=gameHTML(state.phase==="over"); }
+  syncSounds();
+  syncDice();
 }
 function setupHTML(){
   const joined=state.online||state.mode==="local";
   if(!joined){
-    return `<h1>💰 Cashflow: Rat Race</h1>
+    return `<h1>💰 Cashflow: Rat Race ${muteButtonHTML()}</h1>
     <div class="card">
       <h3>Lobby</h3>
       <p class="muted">Type your name to pop into the shared lobby — connects browser-to-browser, no account or sign-in needed on either side. Keep this tab open during the game.</p>
@@ -1315,7 +1467,7 @@ function setupHTML(){
         :""}
     </div>`;
   }
-  return `<h1>💰 Cashflow: Rat Race</h1>
+  return `<h1>💰 Cashflow: Rat Race ${muteButtonHTML()}</h1>
   ${state.online?`<p class="muted">Lobby — you are <b>${state.myName}</b>${state.isHost?" (host)":""}. Professions are dealt at random when the game starts. Everyone ready up, then ${state.isHost?"hit Start.":"wait for the host to start."}</p>`
     :`<p class="muted">Pass-and-play, 2–4 players. Professions are dealt at random when the game starts. A shared stock & real-estate market fluctuates every turn, random events shake things up, and you can take or pay off bank loans anytime on your turn. Escape the Rat Race when passive income covers your expenses.</p>`}
   <div class="card">
@@ -1475,13 +1627,13 @@ function statementHTML(p,idx){
   const propVal=props.reduce((s,m)=>s+(p.holdings[m.id]||0)*m.price,0);
   const totalAssets=p.cash+stockVal+propVal;
   const totalLiab=p.mortgageBal+p.carBal+p.ccBal+p.retailBal+p.bankLoanBal+reMortgageTotal(p);
-  const netWorth=totalAssets-totalLiab;
+
   const lendMax=loanCheck(p,0,0).max;
   const debt=selectedDebt(p);
   const incomeParts=[{k:"salary",label:"Salary",v:p.salary},{k:"div",label:"Dividends",v:dividends},{k:"rent",label:"Rent",v:reIncome}];
   const expParts=[{k:"taxes",label:"Taxes",v:p.taxes},{k:"mortgage",label:"Home mortgage",v:p.mortgagePmt},{k:"car",label:"Car loan",v:p.carPmt},{k:"cc",label:"Credit card",v:p.ccPmt},{k:"retail",label:"Retail debt",v:p.retailPmt},{k:"other",label:"Other",v:p.otherExp},{k:"kids",label:"Children",v:childTotal},{k:"bank",label:"Bank loan",v:p.bankLoanPmt}];
   const flowScale=Math.max(totalIncome,totalExp,1);
-  const nwScale=Math.max(totalAssets,totalLiab,1);
+
   const cls=v=>v>0?"up":v<0?"down":"flat";
   const sign=v=>(v>=0?"+":"−")+fmt(Math.abs(v));
   // Click a liability row to pick it in the payoff bar below.
@@ -1507,13 +1659,6 @@ function statementHTML(p,idx){
       <div class="escape-bar"><div style="width:${Math.min(100,rawPct)}%;background:${escapedNow?"var(--good)":"var(--accent2)"}"></div><span>🏁</span></div>
       <div class="fo-note">Passive income <b>${fmt(pi)}</b> / expenses <b>${fmt(totalExp)}</b></div>
       <div class="fo-note">${escapedNow?"✅ Your assets pay for your life — you're out!":`You need <b>${fmt(totalExp-pi)}/mo</b> more passive income (dividends or rent).`}</div>
-    </div>
-    <div class="fo-card">
-      <div class="fo-title">🏦 Net worth</div>
-      <div class="fo-big ${cls(netWorth)}">${sign(netWorth)}</div>
-      <div class="sbar-row"><span>Assets</span><div class="sbar"><span style="width:${(totalAssets/nwScale*100).toFixed(2)}%;background:var(--good)"></span></div><b>${fmt(totalAssets)}</b></div>
-      <div class="sbar-row"><span>Debts</span><div class="sbar"><span style="width:${(totalLiab/nwScale*100).toFixed(2)}%;background:var(--bad)"></span></div><b>${fmt(totalLiab)}</b></div>
-      <div class="fo-note">${lendMax>0?`The bank will lend you up to <b>${fmt(lendMax)}</b>.`:`The bank won't lend you more right now — cash flow too low.`}</div>
     </div>
   </div>
 
@@ -1597,8 +1742,10 @@ function pendingHTML(){
      ${myTurn?`<button onclick="continueEvent()" style="background:#fff;color:#333;">Continue</button>`:`<p style="opacity:.85;">Waiting for the current player to continue…</p>`}</div>`;
   }else if(state.pending.kind==="flashdeal"){
     const pd=state.pending, m=MARKET.find(x=>x.id===pd.id), p=pd.p;
-    inner=myTurn?`<div class="evt" style="margin:0;max-width:360px;width:100%;"><h3>📣 Flash Deal — ${p.name}</h3>
-     <p>Private offer on <b>${m.name}</b> at <b>${fmt(pd.dealPrice)}</b>/unit. Good for this turn only — is it a bargain or a trap? ${m.type==="realestate"?`<br><span class="evt-mv">Current market value: <b>${fmt(m.price)}</b></span>`:`<a href="#" class="evt-link" onclick="togglePanel('market');return false;">Check the Market</a> before you decide.`} <br><small class="evt-note">🔒 What you buy here is locked for your next ${FLASH_LOCK_TURNS} turns — no instant flipping.</small>${m.type==="realestate"?` Terms: <b>${pd.downPct}% down</b>; the rest becomes a mortgage.`:""}</p>
+    inner=myTurn?`<div class="evt" style="margin:0;max-width:360px;width:100%;"><h3>Flash Deal — ${p.name}</h3>
+     <p>Private offer on <b>${m.name}</b> at <b>${fmt(pd.dealPrice)}</b>/unit.
+     ${m.type==="realestate"?`<br><span class="evt-mv">Current market value: <b>${fmt(m.price)}</b></span><br>Terms: <b>${pd.downPct}% down</b>; the rest becomes a mortgage.`
+       :`<a href="#" class="evt-link" onclick="togglePanel('market');return false;">Check the Market</a><br><small class="evt-note">Shares bought here are locked for your next ${FLASH_LOCK_TURNS} turns.</small>`}</p>
      ${pd.qtyMax!==1?`<div class="evt-stepper">
       <button onclick="setFlashQty(state.flashQty-1,true)" aria-label="One less">−</button>
       <input class="evt-qty" type="number" min="1" value="${state.flashQty}" oninput="setFlashQty(this.value)" onchange="setFlashQty(this.value,true)" aria-label="Quantity">
@@ -1610,7 +1757,7 @@ function pendingHTML(){
       <button onclick="buyFlashDeal()" style="background:#fff;color:#333;">Buy Now</button>
       <button onclick="passFlash()" style="background:transparent;color:#fff;border-color:#fff;">Pass</button>
      </div></div>`
-     :`<div class="evt" style="margin:0;max-width:360px;width:100%;"><h3>📣 Flash Deal — ${p.name}</h3><p>Waiting for ${p.name} to decide…</p></div>`;
+     :`<div class="evt" style="margin:0;max-width:360px;width:100%;"><h3>Flash Deal — ${p.name}</h3><p>Waiting for ${p.name} to decide…</p></div>`;
   }
   return `<div class="modal-backdrop">${inner}</div>`;
 }
@@ -1685,7 +1832,7 @@ function gameHTML(over){
         </div>
       </div>
     </div>`:"";
-  return `<h1>💰 Cashflow: Rat Race</h1>
+  return `<h1>💰 Cashflow: Rat Race ${muteButtonHTML()}</h1>
   ${state.online?`<p class="muted" style="margin:-6px 0 8px;">Online room <b>${state.room}</b> — playing as <b>${state.myName}</b>.</p>`:""}
   ${over?standingsHTML():""}
   <button class="side-toggle left gold" onclick="togglePanel('finance')">💰<br>Finance</button>
@@ -1702,7 +1849,7 @@ function gameHTML(over){
       </div>
       <div class="board-area"><div class="board-row">
         ${boardHTML()}
-        <div class="log-panel"><div class="log-head">📜 Game Log</div><div class="log">${state.log.map(l=>`<div>${l}</div>`).join("")}</div></div>
+        <div class="log-panel">${diceBoxHTML()}<div class="log-head">📜 Game Log</div><div class="log">${state.log.map(l=>`<div>${l}</div>`).join("")}</div></div>
       </div></div>
     </div>
     ${!over?pendingHTML():""}
