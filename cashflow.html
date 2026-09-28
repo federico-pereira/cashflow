@@ -65,6 +65,7 @@ html,body{height:100%;}
   .board-row{--bs:min(100cqw,100cqh - 146px);flex-direction:column;align-items:center;gap:6px;}
   .log-panel{flex:none;width:100%;max-width:none;height:140px;}
   .dice-box{min-height:46px;padding:5px 10px;}
+  .econ .econ-item .lf{display:none;} .econ .econ-item .ls{display:inline;}
   .die{width:28px;height:28px;padding:3px;}
   .die .pip{width:5px;height:5px;}
 }
@@ -108,10 +109,12 @@ small,.muted{color:var(--muted);font-size:12.5px;}
 .bc-title{font-weight:bold;font-size:clamp(12px,2.6vmin,20px);letter-spacing:.06em;color:var(--accent);}
 .bc-title small{display:block;font-size:.55em;letter-spacing:.2em;text-transform:uppercase;color:var(--accent2);}
 .bc-turn{font-size:clamp(8px,1.5vmin,12px);padding:3px 10px;border-radius:999px;background:color-mix(in srgb,var(--pc) 14%,var(--bg));border:1px solid var(--pc);display:inline-flex;align-items:center;gap:5px;}
-.econ{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(3px,.8vmin,6px);width:100%;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;}
+.econ{display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(3px,.8vmin,6px);width:100%;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;}
 .econ-item{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:clamp(2px,.7vmin,6px) clamp(2px,.6vmin,5px);display:flex;flex-direction:column;align-items:center;min-width:0;cursor:help;}
 .econ-item span{font-size:clamp(6px,1.05vmin,9.5px);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
 .econ-item b{font-size:clamp(9px,1.9vmin,15px);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.econ-item span i{font-style:normal;}
+.econ-item .ls{display:none;}
 .econ-item em{font-style:normal;font-size:clamp(6px,1vmin,9px);white-space:nowrap;}
 .econ-item em.flat{color:var(--muted);}
 .econ-foot{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:clamp(6.5px,1.15vmin,10.5px);color:var(--muted);line-height:1.3;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
@@ -310,6 +313,13 @@ function shiftMarket(type,f){MARKET.forEach(m=>{if(m.type===type) shiftOne(m,f);
 function shiftIds(ids,f){ids.forEach(id=>shiftOne(MARKET.find(m=>m.id===id),f));}
 function scaleRent(ids,f){MARKET.forEach(m=>{if(m.type==="realestate"&&(!ids||ids.includes(m.id))) m.rent=Math.max(0,Math.round(m.rent*f/5)*5);});}
 function addDiv(id,d){const m=MARKET.find(x=>x.id===id); m.div=Math.max(0,Math.round((m.div+d)*100)/100);}
+// Bank loan rate: % of the balance paid every month (starts at 10%, the real-game rule). It's shared
+// and moved by interest-rate events; every bank loan payment is always balance × this rate, so
+// borrowing more or paying part of a loan never resets an event's effect.
+const BANK_RATE0=10, BANK_RATE_MIN=6, BANK_RATE_MAX=16;
+function bankRate(){return state.bankRate||BANK_RATE0;}
+function bankPmtFor(bal){return Math.round(bal*bankRate()/100);}
+function setBankRate(r){state.bankRate=Math.round(Math.max(BANK_RATE_MIN,Math.min(BANK_RATE_MAX,r))*10)/10; (state.players||[]).forEach(x=>{x.bankLoanPmt=bankPmtFor(x.bankLoanBal);});}
 function moveMortgageRate(d){const before=mortgageRate(); state.mortgageRate=Math.round(Math.max(MORTGAGE_RATE_MIN,Math.min(MORTGAGE_RATE_MAX,before+d))*10)/10;}
 // Every event rolls its own size, so no two crashes (or bonuses, or rate moves) are the same. run()
 // applies the effect and returns the description with the actual numbers.
@@ -332,7 +342,7 @@ function rateEvent(dLo,dHi,bankF){
   return pl=>{
     const d=rndStep(dLo,dHi,0.1); moveMortgageRate(d);
     let txt="";
-    if(bankF){const f=rnd(bankF[0],bankF[1]); pl.forEach(x=>{if(x.bankLoanBal>0)x.bankLoanPmt=Math.round(x.bankLoanPmt*f);}); txt="Bank loan payments "+(f>=1?"rise ":"ease ")+pctOf(f)+"; ";}
+    if(bankF){const before=bankRate(); setBankRate(before*rnd(bankF[0],bankF[1])); const bd=Math.round((bankRate()-before)*10)/10; txt="Bank loan rate "+(bd>=0?"up ":"down ")+Math.abs(bd).toFixed(1)+" points (now "+bankRate().toFixed(1)+"%/month); ";}
     return txt+"mortgage rates "+(d>=0?"up ":"down ")+Math.abs(d).toFixed(1)+" points (now "+mortgageRate().toFixed(1)+"%).";
   };
 }
@@ -405,7 +415,7 @@ function applyMarketSnapshot(arr){
 }
 function sharedSnapshot(){
   return {phase:state.phase==="join"?"setup":state.phase,numPlayers:state.numPlayers,names:state.names,profs:state.profs,ready:state.ready,
-    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,prevMortgageRate:state.prevMortgageRate||null,lastMarketEvent:state.lastMarketEvent||null,alert:state.alert||null,lastRoll:state.lastRoll||null,
+    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,prevMortgageRate:state.prevMortgageRate||null,bankRate:state.bankRate||BANK_RATE0,prevBankRate:state.prevBankRate||null,lastMarketEvent:state.lastMarketEvent||null,alert:state.alert||null,lastRoll:state.lastRoll||null,
     market:snapshotMarket(),updatedAt:Date.now()};
 }
 function applyShared(data){
@@ -425,6 +435,8 @@ function applyShared(data){
   if(typeof data.week==="number") state.week=data.week;
   if(typeof data.mortgageRate==="number") state.mortgageRate=data.mortgageRate;
   state.prevMortgageRate=data.prevMortgageRate||null;
+  if(typeof data.bankRate==="number") state.bankRate=data.bankRate;
+  state.prevBankRate=data.prevBankRate||null;
   state.lastMarketEvent=data.lastMarketEvent||null;
   state.alert=data.alert||null;
   state.lastRoll=data.lastRoll||null;
@@ -611,7 +623,7 @@ function payCash(p,amt){
   p.cash-=amt;
   if(p.cash<0){
     const need=Math.ceil(-p.cash/1000)*1000;
-    p.bankLoanBal+=need; p.bankLoanPmt=Math.round(p.bankLoanBal*0.1);
+    p.bankLoanBal+=need; p.bankLoanPmt=bankPmtFor(p.bankLoanBal);
     p.cash+=need;
     log(p.name+" took a "+fmt(need)+" bank loan to cover expenses.");
   }
@@ -760,7 +772,7 @@ function payBill(p,amt,what){
   const lim=loanCheck(p,0,0).max;
   if(lim>0){
     const L=Math.min(lim,Math.ceil((amt-p.cash)/1000)*1000);
-    p.bankLoanBal+=L; p.bankLoanPmt=Math.round(p.bankLoanBal*0.1); p.cash+=L;
+    p.bankLoanBal+=L; p.bankLoanPmt=bankPmtFor(p.bankLoanBal); p.cash+=L;
     log(p.name+" took a "+fmt(L)+" bank loan to cover "+what+".");
     if(p.cash>=amt){ p.cash-=amt; return; }
   }
@@ -924,7 +936,7 @@ function genHistory(endPrice,vol,points){
 function updateMarket(){
   state.week=(state.week||0)+1;
   // Last week's values, for the week-over-week changes in the board centre.
-  state.prevMortgageRate=mortgageRate();
+  state.prevMortgageRate=mortgageRate(); state.prevBankRate=bankRate();
   MARKET.forEach(m=>{
     m.prevPrice=m.price; m.prevRent=m.rent;
     m.price=Math.max(Math.round(priceStep(m.price,m.vol,m.anchor||m.basePrice0)),Math.round(m.basePrice0*0.15),1);
@@ -978,7 +990,7 @@ function startGame(){
     const pr=PROFESSIONS[Math.floor(Math.random()*PROFESSIONS.length)];
     return {...pr,profession:pr.name,name:nm.trim()||("Player "+(i+1)),cash:pr.savings,kids:0,holdings:{},bankLoanBal:0,bankLoanPmt:0,pos:0,escaped:false,bankrupt:false,place:null,color:COLORS[i]};
   });
-  state.phase="playing"; state.alert=null; state.lastRoll=null; state.week=0; state.mortgageRate=startMortgageRate(); state.prevMortgageRate=state.mortgageRate; state.lastMarketEvent=null; state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
+  state.phase="playing"; state.alert=null; state.lastRoll=null; state.week=0; state.mortgageRate=startMortgageRate(); state.prevMortgageRate=state.mortgageRate; state.bankRate=BANK_RATE0; state.prevBankRate=BANK_RATE0; state.lastMarketEvent=null; state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
   log("Game started. "+state.players[0].name+" goes first. Market is open.");
   if(state.online) pushState();
   render();
@@ -1257,7 +1269,7 @@ function takeLoan(idx,ok){
     state.confirm={idx,title:"Borrow "+fmt(amt)+" from the bank",auto:0,loan:amt,cashDelta:amt,incomeDelta:0,confirmLabel:"Take the loan",run:()=>takeLoan(idx,true)};
     render(); return;
   }
-  p.bankLoanBal+=amt; p.bankLoanPmt=Math.round(p.bankLoanBal*0.1); p.cash+=amt;
+  p.bankLoanBal+=amt; p.bankLoanPmt=bankPmtFor(p.bankLoanBal); p.cash+=amt;
   sfx("loan");
   log(p.name+" took out a "+fmt(amt)+" bank loan (cash on hand).");
   if(state.online) pushState();
@@ -1269,7 +1281,7 @@ function setLoanPay(v){state.loanPayAmt=Math.max(1,parseInt(v)||1000);}
 // ---- Paying off liabilities ----
 // Every liability can be paid down from cash, partly or in full. Personal debts' monthly payments
 // shrink in proportion to the balance (paying one off removes that expense); the bank loan stays at
-// 10% of balance and is paid in $1,000 steps unless clearing it; property mortgages have no monthly
+// balance × bank rate and is paid in $1,000 steps unless clearing it; property mortgages have no monthly
 // payment, so paying one down just means you keep more when the property sells.
 const PERSONAL_DEBTS={mortgage:["Home Mortgage","mortgageBal","mortgagePmt"],car:["Car Loan","carBal","carPmt"],cc:["Credit Card","ccBal","ccPmt"],retail:["Retail Debt","retailBal","retailPmt"]};
 function debtList(p){
@@ -1288,7 +1300,7 @@ function payDebt(idx,all){
   if(amt<=0||amt>p.cash){log(p.name+" doesn't have "+fmt(Math.max(amt,1000))+" cash to pay toward "+d.name+".");render();return;}
   p.cash-=amt;
   sfx("paid");
-  if(d.key==="bank"){ p.bankLoanBal-=amt; p.bankLoanPmt=Math.round(p.bankLoanBal*0.1); }
+  if(d.key==="bank"){ p.bankLoanBal-=amt; p.bankLoanPmt=bankPmtFor(p.bankLoanBal); }
   else if(d.key.startsWith("re:")){ const id=d.key.slice(3); p.reMortgage[id]-=amt; if(p.reMortgage[id]<=0) delete p.reMortgage[id]; }
   else{ const [,b,m]=PERSONAL_DEBTS[d.key]; p[m]=Math.round(p[m]*(p[b]-amt)/p[b]); p[b]-=amt; }
   const saved=d.pmt-(debtList(p).find(x=>x.key===d.key)||{pmt:0}).pmt;
@@ -1302,13 +1314,13 @@ function payDebt(idx,all){
 // Confirm. state.confirm is local to this browser (never synced); `run` re-runs the action with ok=true.
 function monthlyCashflow(p){return p.salary+passiveIncome(p)-totalExpenses(p);}
 // Bank lending limit (real-game rule): the bank only lends while your monthly cash flow, after the new
-// loan payment (10% of balance), stays at or above $0. incomeDelta = extra monthly income the purchase
+// loan payment (balance × bank rate, 10% to start), stays at or above $0. incomeDelta = extra monthly income the purchase
 // brings (rent/dividends), which counts toward what you can afford. Mandatory costs (doodads,
 // Downsized, lawsuits) still borrow automatically via payCash — the limit only applies to choices.
 function loanCheck(p,loan,incomeDelta){
   const cf=monthlyCashflow(p)+(incomeDelta||0);
-  const cfAfter=L=>cf-(Math.round((p.bankLoanBal+L)*0.1)-p.bankLoanPmt);
-  let max=Math.floor((10*(cf+p.bankLoanPmt)-p.bankLoanBal)/1000)*1000;
+  const cfAfter=L=>cf-(bankPmtFor(p.bankLoanBal+L)-p.bankLoanPmt);
+  let max=Math.floor(((cf+p.bankLoanPmt)*100/bankRate()-p.bankLoanBal)/1000)*1000;
   while(max>0&&cfAfter(max)<0) max-=1000;
   return {ok:cfAfter(loan)>=0,max:Math.max(0,max),newCf:cfAfter(loan)};
 }
@@ -1326,7 +1338,7 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&state.confirm) con
 function confirmHTML(){
   const c=state.confirm; if(!c) return "";
   const p=state.players[c.idx]; if(!p){state.confirm=null; return "";}
-  const newBal=p.bankLoanBal+c.loan, newPmt=Math.round(newBal*0.1);
+  const newBal=p.bankLoanBal+c.loan, newPmt=bankPmtFor(newBal);
   const cf=monthlyCashflow(p), newCf=cf-(newPmt-p.bankLoanPmt)+c.incomeDelta;
   const money=v=>(v<0?"−":"")+fmt(Math.abs(v));
   const arrow=(a,b,goodUp)=>{const cls=b===a?"flat":((b>a)===goodUp?"up":"down"); return `${money(a)} → <span class="${cls}">${money(b)}</span>`;};
@@ -1353,7 +1365,7 @@ function confirmHTML(){
         <tr><td colspan="2" class="muted" style="font-size:11.5px;">You have ${fmt(p.cash)} but need ${fmt(c.due)}. Loans come in $1,000 steps${c.auto-(c.due-p.cash)>0?`, so the extra ${fmt(c.auto-(c.due-p.cash))} stays in your cash`:""}.</td></tr>`
         :`<tr class="big"><td>New bank debt</td><td class="num down">+${fmt(c.loan)}</td></tr>`}
         <tr><td>Loan balance</td><td class="num">${arrow(p.bankLoanBal,newBal,false)}</td></tr>
-        <tr><td>Monthly loan payment (10%)</td><td class="num">${arrow(p.bankLoanPmt,newPmt,false)}</td></tr>
+        <tr><td>Monthly loan payment (${bankRate().toFixed(1)}%)</td><td class="num">${arrow(p.bankLoanPmt,newPmt,false)}</td></tr>
         <tr><td>Cash on hand</td><td class="num">${arrow(p.cash,p.cash+c.cashDelta,true)}</td></tr>
         <tr><td>Monthly cash flow</td><td class="num">${arrow(cf,newCf,true)}</td></tr>
       </table>`}
@@ -1560,12 +1572,14 @@ function economyHTML(){
   const pct=v=>Math.abs(v)<0.005?"0%":(v>0?"▲ ":"▼ ")+Math.abs(Math.round(v*100))+"%";
   const cls=(v,goodUp)=>Math.abs(v)<0.005?"flat":((v>0)===goodUp?"up":"down");
   const d=Math.round((mortgageRate()-(state.prevMortgageRate||mortgageRate()))*10)/10;
-  const item=(label,value,sub,subCls,tip)=>`<div class="econ-item" title="${tip}"><span>${label}</span><b>${value}</b>${sub?`<em class="${subCls}">${sub}</em>`:""}</div>`;
+  const bd=Math.round((bankRate()-(state.prevBankRate||bankRate()))*10)/10;
+  const item=(label,value,sub,subCls,tip)=>{const [lf,ls]=label.split("|"); return `<div class="econ-item" title="${tip}"><span><i class="lf">${lf}</i><i class="ls">${ls||lf}</i></span><b>${value}</b>${sub?`<em class="${subCls}">${sub}</em>`:""}</div>`;};
   const ev=state.lastMarketEvent;
   return `<div class="econ">
-    ${item("Mortgage",mortgageRate().toFixed(1)+"%",d?(d>0?"▲ ":"▼ ")+Math.abs(d).toFixed(1)+" pts":"same as last wk",d>0?"down":d<0?"up":"flat","Mortgage rate and its change since last week. Property mortgage payment = balance × rate ÷ 12, every month.")}
+    ${item("Mortgage|Mtg",mortgageRate().toFixed(1)+"%",d?(d>0?"▲ ":"▼ ")+Math.abs(d).toFixed(1)+" pts":"same as last wk",d>0?"down":d<0?"up":"flat","Mortgage rate and its change since last week. Property mortgage payment = balance × rate ÷ 12, every month.")}
+    ${item("Bank loan|Loan",bankRate().toFixed(1)+"%",bd?(bd>0?"▲ ":"▼ ")+Math.abs(bd).toFixed(1)+" pts":"same as last wk",bd>0?"down":bd<0?"up":"flat","Bank loan rate: every month you pay this % of your bank loan balance. Starts at 10%; moved by interest-rate events.")}
     ${item("Stocks",pct(st),"vs last week",cls(st,true),"Average stock price change since last week.")}
-    ${item("Property",pct(pr),"vs last week",cls(pr,true),"Average property value change since last week.")}
+    ${item("Property|Prop.",pct(pr),"vs last week",cls(pr,true),"Average property value change since last week.")}
     ${item("Rents",pct(rn),"vs last week",cls(rn,true),"Average rent change since last week (rent events).")}
   </div>
   <div class="econ-foot">Week ${state.week||0}${ev?` · <b>Last:</b> ${ev.name} — ${ev.desc}`:""}</div>`;
@@ -1794,7 +1808,7 @@ function statementHTML(p,idx){
        <input class="qty" style="width:84px;" type="number" step="1000" min="1000" value="${state.loanTakeAmt||1000}" onchange="setLoanTakeAmt(this.value)">
        <button class="gold" onclick="takeLoan(${idx})" ${lendMax>0?"":"disabled"}>Take Loan</button>
      </div>
-     <small class="muted">${lendMax>0?`Up to ${fmt(lendMax)} · costs 10% of the loan every month.`:"Not available — the bank needs your cash flow to cover the payment."}</small>
+     <small class="muted">${lendMax>0?`Up to ${fmt(lendMax)} · costs ${bankRate().toFixed(1)}% of the loan every month.`:"Not available — the bank needs your cash flow to cover the payment."}</small>
    </div>
    <div class="bank-col grow">
      <div class="fo-title">💳 Pay off debt <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:normal;">— or click a liability row</span></div>
