@@ -310,7 +310,7 @@ function shiftMarket(type,f){MARKET.forEach(m=>{if(m.type===type) shiftOne(m,f);
 function shiftIds(ids,f){ids.forEach(id=>shiftOne(MARKET.find(m=>m.id===id),f));}
 function scaleRent(ids,f){MARKET.forEach(m=>{if(m.type==="realestate"&&(!ids||ids.includes(m.id))) m.rent=Math.max(0,Math.round(m.rent*f/5)*5);});}
 function addDiv(id,d){const m=MARKET.find(x=>x.id===id); m.div=Math.max(0,Math.round((m.div+d)*100)/100);}
-function moveMortgageRate(d){const before=mortgageRate(); state.mortgageRate=Math.round(Math.max(MORTGAGE_RATE_MIN,Math.min(MORTGAGE_RATE_MAX,before+d))*10)/10; state.mortgageRateChange=Math.round((state.mortgageRate-before)*10)/10;}
+function moveMortgageRate(d){const before=mortgageRate(); state.mortgageRate=Math.round(Math.max(MORTGAGE_RATE_MIN,Math.min(MORTGAGE_RATE_MAX,before+d))*10)/10;}
 // Every event rolls its own size, so no two crashes (or bonuses, or rate moves) are the same. run()
 // applies the effect and returns the description with the actual numbers.
 function rnd(a,b){return a+Math.random()*(b-a);}
@@ -397,15 +397,15 @@ try{ const sr=localStorage.getItem("cf_room"), sn=localStorage.getItem("cf_name"
 // ---- Online sync (peer-to-peer via PeerJS/WebRTC — no account needed) ----
 let peer=null, hostConns={}, hostConn=null, connectTimer=null;
 function snapshotMarket(){
-  return MARKET.map(m=>({id:m.id,price:m.price,prevPrice:m.prevPrice,history:m.history,high52:m.high52,low52:m.low52,basePrice0:m.basePrice0,anchor:m.anchor,rent:m.rent,div:m.div}));
+  return MARKET.map(m=>({id:m.id,price:m.price,prevPrice:m.prevPrice,history:m.history,high52:m.high52,low52:m.low52,basePrice0:m.basePrice0,prevRent:m.prevRent,anchor:m.anchor,rent:m.rent,div:m.div}));
 }
 function applyMarketSnapshot(arr){
   if(!arr) return;
-  arr.forEach(s=>{const m=MARKET.find(x=>x.id===s.id); if(m){m.price=s.price;m.prevPrice=s.prevPrice;m.history=s.history;m.high52=s.high52;m.low52=s.low52;m.basePrice0=s.basePrice0;m.anchor=s.anchor;if(s.rent!=null)m.rent=s.rent;if(s.div!=null)m.div=s.div;}});
+  arr.forEach(s=>{const m=MARKET.find(x=>x.id===s.id); if(m){m.price=s.price;m.prevPrice=s.prevPrice;m.history=s.history;m.high52=s.high52;m.low52=s.low52;m.basePrice0=s.basePrice0;if(s.prevRent!=null)m.prevRent=s.prevRent;m.anchor=s.anchor;if(s.rent!=null)m.rent=s.rent;if(s.div!=null)m.div=s.div;}});
 }
 function sharedSnapshot(){
   return {phase:state.phase==="join"?"setup":state.phase,numPlayers:state.numPlayers,names:state.names,profs:state.profs,ready:state.ready,
-    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,mortgageRateChange:state.mortgageRateChange||0,lastMarketEvent:state.lastMarketEvent||null,alert:state.alert||null,lastRoll:state.lastRoll||null,
+    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,prevMortgageRate:state.prevMortgageRate||null,lastMarketEvent:state.lastMarketEvent||null,alert:state.alert||null,lastRoll:state.lastRoll||null,
     market:snapshotMarket(),updatedAt:Date.now()};
 }
 function applyShared(data){
@@ -424,7 +424,7 @@ function applyShared(data){
   if(data.listingSeq) state.listingSeq=data.listingSeq;
   if(typeof data.week==="number") state.week=data.week;
   if(typeof data.mortgageRate==="number") state.mortgageRate=data.mortgageRate;
-  state.mortgageRateChange=data.mortgageRateChange||0;
+  state.prevMortgageRate=data.prevMortgageRate||null;
   state.lastMarketEvent=data.lastMarketEvent||null;
   state.alert=data.alert||null;
   state.lastRoll=data.lastRoll||null;
@@ -923,8 +923,10 @@ function genHistory(endPrice,vol,points){
 }
 function updateMarket(){
   state.week=(state.week||0)+1;
+  // Last week's values, for the week-over-week changes in the board centre.
+  state.prevMortgageRate=mortgageRate();
   MARKET.forEach(m=>{
-    m.prevPrice=m.price;
+    m.prevPrice=m.price; m.prevRent=m.rent;
     m.price=Math.max(Math.round(priceStep(m.price,m.vol,m.anchor||m.basePrice0)),Math.round(m.basePrice0*0.15),1);
     m.high52=Math.max(m.high52||m.price,m.price);
     m.low52=Math.min(m.low52||m.price,m.price);
@@ -963,7 +965,7 @@ function startGame(){
   MARKET.forEach(m=>{
     // Reset every instrument (real estate too), so a new game never inherits the last game's prices.
     m.price=m.type==="stock"?Math.max(1,Math.round(m.designPrice*Math.exp(0.18*randn()))):m.designPrice;
-    m.basePrice0=m.price; m.anchor=m.price; m.rent=m.designRent; m.div=m.designDiv;
+    m.basePrice0=m.price; m.anchor=m.price; m.rent=m.designRent; m.div=m.designDiv; m.prevRent=m.rent;
     m.history=genHistory(m.price,m.vol,15);
     m.prevPrice=m.history[m.history.length-2];
     m.high52=Math.max(...m.history);
@@ -976,7 +978,7 @@ function startGame(){
     const pr=PROFESSIONS[Math.floor(Math.random()*PROFESSIONS.length)];
     return {...pr,profession:pr.name,name:nm.trim()||("Player "+(i+1)),cash:pr.savings,kids:0,holdings:{},bankLoanBal:0,bankLoanPmt:0,pos:0,escaped:false,bankrupt:false,place:null,color:COLORS[i]};
   });
-  state.phase="playing"; state.alert=null; state.lastRoll=null; state.week=0; state.mortgageRate=startMortgageRate(); state.mortgageRateChange=0; state.lastMarketEvent=null; state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
+  state.phase="playing"; state.alert=null; state.lastRoll=null; state.week=0; state.mortgageRate=startMortgageRate(); state.prevMortgageRate=state.mortgageRate; state.lastMarketEvent=null; state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
   log("Game started. "+state.players[0].name+" goes first. Market is open.");
   if(state.online) pushState();
   render();
@@ -1552,17 +1554,19 @@ function playerToken(pl,i,extra){
 function avgChange(list,cur,base){const v=list.filter(m=>base(m)>0).map(m=>cur(m)/base(m)); return v.length?v.reduce((a,b)=>a+b,0)/v.length-1:0;}
 function economyHTML(){
   const stocks=MARKET.filter(m=>m.type==="stock"), props=MARKET.filter(m=>m.type==="realestate");
-  const st=avgChange(stocks,m=>m.price,m=>m.basePrice0), pr=avgChange(props,m=>m.price,m=>m.basePrice0), rn=avgChange(props,m=>m.rent,m=>m.designRent);
+  // Everything is compared with last week (prevPrice/prevRent/prevMortgageRate, snapshotted in updateMarket),
+  // so it includes both the weekly random move and any event since then.
+  const st=avgChange(stocks,m=>m.price,m=>m.prevPrice||m.price), pr=avgChange(props,m=>m.price,m=>m.prevPrice||m.price), rn=avgChange(props,m=>m.rent,m=>m.prevRent||m.rent);
   const pct=v=>Math.abs(v)<0.005?"0%":(v>0?"▲ ":"▼ ")+Math.abs(Math.round(v*100))+"%";
   const cls=(v,goodUp)=>Math.abs(v)<0.005?"flat":((v>0)===goodUp?"up":"down");
-  const d=state.mortgageRateChange||0;
+  const d=Math.round((mortgageRate()-(state.prevMortgageRate||mortgageRate()))*10)/10;
   const item=(label,value,sub,subCls,tip)=>`<div class="econ-item" title="${tip}"><span>${label}</span><b>${value}</b>${sub?`<em class="${subCls}">${sub}</em>`:""}</div>`;
   const ev=state.lastMarketEvent;
   return `<div class="econ">
-    ${item("Mortgage",mortgageRate().toFixed(1)+"%",d?(d>0?"▲ ":"▼ ")+Math.abs(d).toFixed(1):"",d>0?"down":"up","Mortgage rate. Property mortgage payment = balance × rate ÷ 12, every month. Moved by interest-rate events.")}
-    ${item("Stocks",pct(st),"since start",cls(st,true),"Average stock price vs. the start of the game.")}
-    ${item("Property",pct(pr),"since start",cls(pr,true),"Average property value vs. the start of the game.")}
-    ${item("Rents",pct(rn),"since start",cls(rn,true),"Average rent vs. normal — changed by rent events.")}
+    ${item("Mortgage",mortgageRate().toFixed(1)+"%",d?(d>0?"▲ ":"▼ ")+Math.abs(d).toFixed(1)+" pts":"same as last wk",d>0?"down":d<0?"up":"flat","Mortgage rate and its change since last week. Property mortgage payment = balance × rate ÷ 12, every month.")}
+    ${item("Stocks",pct(st),"vs last week",cls(st,true),"Average stock price change since last week.")}
+    ${item("Property",pct(pr),"vs last week",cls(pr,true),"Average property value change since last week.")}
+    ${item("Rents",pct(rn),"vs last week",cls(rn,true),"Average rent change since last week (rent events).")}
   </div>
   <div class="econ-foot">Week ${state.week||0}${ev?` · <b>Last:</b> ${ev.name} — ${ev.desc}`:""}</div>`;
 }

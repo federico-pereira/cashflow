@@ -21,7 +21,7 @@ Everything is in one self-contained file: `cashflow.html` (HTML + CSS + vanilla 
 - One global `state` object plus a `render()` that rebuilds `#app.innerHTML` from template strings. Inline `onclick` handlers call global functions.
 - Phases: `"setup"` (lobby) → `"playing"` → `"over"`. `render()` falls back to the lobby if a game phase has no valid player data, rather than crashing.
 - `MARKET` is a static array of 8 stocks and 8 properties. Their live fields (price, prevPrice, history, high52, low52, basePrice0) change during play and are synced via `snapshotMarket()` / `applyMarketSnapshot()`.
-- Board centre: title, whose turn, a public **economy strip** (mortgage rate + last change, stock/property/rent indexes vs. game start, week, last market event; `economyHTML`) and a collapsible board guide (legend; local `showLegend`, remembered in localStorage `cf_legend`). Indexes are market-wide only, never single-offer values.
+- Board centre: title, whose turn, a public **economy strip** (mortgage rate, stock/property/rent averages — all as change vs last week, from `prevMortgageRate`/`prevPrice`/`prevRent` snapshotted in `updateMarket` — plus week and last market event; `economyHTML`) and a collapsible board guide (legend; local `showLegend`, remembered in localStorage `cf_legend`). Indexes are market-wide only, never single-offer values.
 - UI: a 7×7 perimeter board in the middle; Finance (left) and Market (right) open as side popups; event/charity/flash-deal prompts are modals over the board; shared "Rat Race Progress" bars below.
 
 ## Multiplayer (PeerJS / WebRTC, star topology)
@@ -30,7 +30,7 @@ Everything is in one self-contained file: `cashflow.html` (HTML + CSS + vanilla 
 - Joining: the page tries to claim the host id. If it's taken (PeerJS error `unavailable-id`, logged as `ERROR PeerJS: ID ... is taken` — **this is expected, not a bug**), it joins as a guest instead.
 - Messages: guest → host `hello {name}`; host → guest `welcome {myIdx}`; anyone → `state {data}`. The host applies incoming state and relays it to the other guests.
 - Every mutating action updates local `state`, then calls `syncRender()` (`pushState()` + `render()`). `pushState()` sends `sharedSnapshot()`; receivers call `applyShared()`.
-- **Shared fields:** phase, numPlayers, names, profs, ready, players, turn, pending, hasRolled, log, listings, listingSeq, week, mortgageRate, mortgageRateChange, lastMarketEvent, alert, lastRoll, market. Each player also carries `costBasis`/`buyMarks` (what they paid) for the statement's holdings charts.
+- **Shared fields:** phase, numPlayers, names, profs, ready, players, turn, pending, hasRolled, log, listings, listingSeq, week, mortgageRate, prevMortgageRate, lastMarketEvent, alert, lastRoll, market. Each player also carries `costBasis`/`buyMarks` (what they paid) for the statement's holdings charts.
 - **Local-only fields (per browser):** showLegend, alertSeen, panel, marketTab, selectedStock, selectedHolding, qty, confirm, debtSel, flashQty, loanTakeAmt, loanPayAmt, viewTab, myIdx, isHost, online.
 - Guests never run `startGame()` (only the host does). Any local-only default the UI needs must be seeded at page load, not in `startGame()`. Missing `state.finance` on guests caused a crash before.
 - Uses Google STUN plus the free OpenRelay TURN servers (`ICE_CONFIG`). A 15-second timeout falls back to local pass-and-play.
