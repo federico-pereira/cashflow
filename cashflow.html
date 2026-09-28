@@ -234,6 +234,10 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
 .evt small.evt-note{color:rgba(255,255,255,.88);font-size:12px;}
 .evt a.evt-link{color:#ffd76a;font-weight:bold;}
 .evt .evt-mv{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);font-size:13px;}
+.bill-card{background:linear-gradient(135deg,#8e2b2b,#b8551e);}
+.bill-amt{font-size:28px;font-weight:bold;margin:4px 0 2px;font-variant-numeric:tabular-nums;}
+.bill-cash{font-size:12.5px;opacity:.9;margin:2px 0 10px;}
+.bill-pay{background:#fff;color:#8e2b2b;border-color:#fff;font-weight:bold;padding:8px 18px;}
 .evt-stepper{display:flex;justify-content:center;align-items:center;gap:6px;margin:8px 0;}
 .evt-stepper button{background:#fff;color:#1f2430;border-color:#fff;font-weight:bold;min-width:34px;}
 .evt-stepper .evt-max{min-width:0;font-size:12px;background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.7);}
@@ -337,8 +341,8 @@ const EVENTS=[
  {name:"Tax Refund",type:"personal",run:(pl,p)=>{const a=rndStep(200,900,50); p.cash+=a; return "You receive a surprise tax refund of "+fmt(a)+".";}},
  {name:"Year-End Bonus",type:"personal",run:(pl,p)=>{const a=rndStep(0.05,0.3,0.01)*p.salary; p.cash+=Math.round(a); return "Your employer pays you a "+fmt(a)+" bonus.";}},
  {name:"Inheritance",type:"personal",run:(pl,p)=>{const a=rndStep(1000,5000,250); p.cash+=a; return "A distant relative leaves you "+fmt(a)+".";}},
- {name:"Lawsuit",type:"personal",run:(pl,p)=>{const a=rndStep(500,2500,100); payBill(p,a,"a lawsuit"); return "You're sued and must pay "+fmt(a)+" in damages.";}},
- {name:"Identity Theft",type:"personal",run:(pl,p)=>{const a=rndStep(200,1200,50); payBill(p,a,"identity theft"); return fmt(a)+" is stolen from your account.";}},
+ {name:"Lawsuit",type:"personal",run:(pl,p)=>{const a=rndStep(500,2500,100); state.nextBill={amt:a,what:"a lawsuit"}; return "You're sued and must pay "+fmt(a)+" in damages.";}},
+ {name:"Identity Theft",type:"personal",run:(pl,p)=>{const a=rndStep(200,1200,50); state.nextBill={amt:a,what:"identity theft"}; return fmt(a)+" is stolen from your account.";}},
  // ---- Stock-specific ----
  {name:"Tech Breakthrough",type:"market",run:specific(["TEC"],1.2,1.5)},
  {name:"Chip Shortage",type:"market",run:specific(["TEC"],0.65,0.85)},
@@ -801,6 +805,29 @@ function goBankrupt(p,what,amt,lines){
   checkGameOver();
 }
 
+// ---- Bills from the board (doodads, Downsized, costly events) ----
+// The player presses Pay. With enough cash it's paid at once; otherwise the loan popup opens with
+// "Take $X loan and pay", or — if the bank won't lend — "Sell assets and pay", which runs payBill's
+// fire sale (and bankruptcy if nothing is left). Cancel lets the player sell things first; the turn
+// can't end while the bill is unpaid. mode: undefined = Pay button, "loan"/"force" = confirmed.
+function payPendingBill(mode){
+  if(state.online&&state.myIdx!==state.turn) return;
+  const pd=state.pending; if(!pd||pd.kind!=="bill") return;
+  const p=state.players[state.turn];
+  if(!mode&&p.cash<pd.amt){
+    const L=Math.ceil((pd.amt-p.cash)/1000)*1000, ok=loanCheck(p,L,0).ok;
+    if(!ok) sfx("denied");
+    state.confirm={idx:state.turn,title:"Pay "+pd.what,due:pd.amt,auto:L,loan:L,cashDelta:L-pd.amt,incomeDelta:0,bill:true,
+      confirmLabel:ok?"Take "+fmt(L)+" loan and pay":"Sell assets and pay",run:()=>payPendingBill(ok?"loan":"force")};
+    render(); return;
+  }
+  state.pending=null;
+  payBill(p,pd.amt,pd.what);
+  if(!p.bankrupt) log(p.name+" paid "+fmt(pd.amt)+" for "+pd.what+".");
+  checkAllWins(); checkGameOver();
+  syncRender();
+}
+
 // ---- Places ----
 // Escaping the Rat Race takes the next free place from the top; going bankrupt takes the next free
 // place from the bottom. The game ends when at most one player is still racing (they take the last
@@ -1016,14 +1043,15 @@ function resolveSpace(p,sp){
     collectPayday(p,false);
   }else if(sp==="doodad"){
     const d=DOODADS[Math.floor(Math.random()*DOODADS.length)];
-    payBill(p,d.cost,"a doodad ("+d.name+")");
     log(p.name+" hit a doodad: "+d.name+" ("+fmt(d.cost)+").");
+    sfx("event");
+    state.pending={kind:"bill",amt:d.cost,what:"a doodad ("+d.name+")",title:"Doodad: "+d.name,desc:"An unexpected expense — you have to pay for it."};
   }else if(sp==="downsized"){
     const loss=totalExpenses(p);
-    payBill(p,loss,"a month of expenses after being downsized");
     p.skipTurns=DOWNSIZED_SKIPS;
-    log(p.name+" got downsized! Paid "+fmt(loss)+" in expenses and loses the next "+DOWNSIZED_SKIPS+" turns.");
-    checkWin(p);
+    log(p.name+" got downsized! Owes "+fmt(loss)+" (a month of expenses) and loses the next "+DOWNSIZED_SKIPS+" turns.");
+    sfx("event");
+    state.pending={kind:"bill",amt:loss,what:"a month of expenses after being downsized",title:"Downsized!",desc:"You lost your job for a while: pay one month of expenses and sit out your next "+DOWNSIZED_SKIPS+" turns."};
   }else if(sp==="baby"){
     if(p.kids<3){p.kids++; log(p.name+" had a baby! Monthly expenses up "+fmt(p.childExp)+".");}
     else log(p.name+" landed on Baby but already has 3 kids.");
@@ -1042,11 +1070,13 @@ function resolveSpace(p,sp){
     state.pending={kind:"flashdeal",p,id:m.id,dealPrice,qtyMax,downPct:m.type==="realestate"?pickDownPct():null,costPct:m.type==="realestate"?pickCostPct():null};
   }else if(sp==="event"){
     const ev=pickEvent();
+    state.nextBill=null;
     const desc=ev.run(state.players,p);
     log("🎲 Event — "+ev.name+": "+desc);
     checkAllWins();
     sfx("event");
-    state.pending={kind:"eventinfo",ev:{name:ev.name,desc}};
+    const bill=state.nextBill; state.nextBill=null;
+    state.pending=bill?{kind:"bill",amt:bill.amt,what:bill.what,title:ev.name,desc}:{kind:"eventinfo",ev:{name:ev.name,desc}};
   }
 }
 // Real-game rule: donate 10% of total income (salary + passive) to roll 1 or 2 dice for 3 turns.
@@ -1284,13 +1314,25 @@ function confirmHTML(){
   const p=state.players[c.idx]; if(!p){state.confirm=null; return "";}
   const newBal=p.bankLoanBal+c.loan, newPmt=Math.round(newBal*0.1);
   const cf=monthlyCashflow(p), newCf=cf-(newPmt-p.bankLoanPmt)+c.incomeDelta;
-  const arrow=(a,b,goodUp)=>{const cls=b===a?"flat":((b>a)===goodUp?"up":"down"); return `${fmt(a)} → <span class="${cls}">${fmt(b)}</span>`;};
+  const money=v=>(v<0?"−":"")+fmt(Math.abs(v));
+  const arrow=(a,b,goodUp)=>{const cls=b===a?"flat":((b>a)===goodUp?"up":"down"); return `${money(a)} → <span class="${cls}">${money(b)}</span>`;};
   const chk=loanCheck(p,c.loan,c.incomeDelta);
+  // A bill the bank won't finance: show what a fire sale could raise instead of loan numbers.
+  const fire=c.bill&&!chk.ok;
+  let doomed=false;
+  const fireValue=MARKET.reduce((t,m)=>{const q=p.holdings[m.id]||0; if(!q) return t; return t+(m.type==="stock"?q*m.price:Math.max(0,Math.round(m.price*FIRE_SALE_RE)*q-mortgageShare(p,m.id,q)));},0);
+  doomed=fire&&fireValue<c.due-p.cash&&cf<0;
   return `<div class="confirm-backdrop" onclick="if(event.target===this)confirmNo()">
     <div class="confirm-card${chk.ok?"":" denied"}" role="dialog" aria-modal="true">
-      <div class="confirm-head">${!chk.ok?"🚫 Loan denied by the bank":c.due!=null?"Not enough cash — you need a bank loan":"🏦 Heads up — this takes a bank loan"}</div>
+      <div class="confirm-head">${!chk.ok&&c.bill?"The bank won't lend — fire sale":!chk.ok?"🚫 Loan denied by the bank":c.due!=null?"Not enough cash — you need a bank loan":"🏦 Heads up — this takes a bank loan"}</div>
       <h3 style="margin-bottom:8px;">${c.title}</h3>
-      <table>
+      ${fire?`<table>
+        <tr><td>Total to pay now</td><td class="num"><b>${fmt(c.due)}</b></td></tr>
+        <tr><td>Cash on hand</td><td class="num">${fmt(p.cash)}</td></tr>
+        <tr class="big"><td>Short by</td><td class="num down">${fmt(c.due-p.cash)}</td></tr>
+        <tr><td>A fire sale could raise about</td><td class="num">${fmt(fireValue)}</td></tr>
+        <tr><td>Monthly cash flow</td><td class="num ${cf<0?"down":""}">${money(cf)}</td></tr>
+      </table>`:`<table>
         ${c.due!=null?`<tr><td>Total to pay now</td><td class="num"><b>${fmt(c.due)}</b></td></tr>
         <tr><td>From your cash</td><td class="num">${fmt(c.due-c.auto)}</td></tr>
         <tr class="big"><td>+ Bank loan for the rest</td><td class="num down">${fmt(c.loan)}</td></tr>
@@ -1300,11 +1342,12 @@ function confirmHTML(){
         <tr><td>Monthly loan payment (10%)</td><td class="num">${arrow(p.bankLoanPmt,newPmt,false)}</td></tr>
         <tr><td>Cash on hand</td><td class="num">${arrow(p.cash,p.cash+c.cashDelta,true)}</td></tr>
         <tr><td>Monthly cash flow</td><td class="num">${arrow(cf,newCf,true)}</td></tr>
-      </table>
-      ${chk.ok?"":`<div class="confirm-warn">The bank only lends while your monthly cash flow stays at $0 or more after the loan payment. This would leave you at <b>${fmt(newCf)}/mo</b>.<br>${chk.max>0?`Right now you can borrow up to <b>${fmt(chk.max)}</b>${c.incomeDelta?" for this purchase":""}.`:"Right now the bank won't lend you anything — raise your cash flow first (pay off debts or buy income assets)."}</div>`}
+      </table>`}
+      ${!fire?"":`<div class="confirm-warn">The bank won't lend you this (your cash flow can't cover the loan payment). To pay, your assets will be sold in a <b>fire sale</b>: stocks at market price, property at half value. If that isn't enough and your cash flow is negative, you go <b>bankrupt</b>. Cancel to sell things yourself first.</div>${doomed?`<div class="confirm-warn" style="font-weight:bold;">That isn't enough to cover it, so paying now means going bankrupt.</div>`:""}`}
+      ${chk.ok||c.bill?"":`<div class="confirm-warn">The bank only lends while your monthly cash flow stays at $0 or more after the loan payment. This would leave you at <b>${money(newCf)}/mo</b>.<br>${chk.max>0?`Right now you can borrow up to <b>${fmt(chk.max)}</b>${c.incomeDelta?" for this purchase":""}.`:"Right now the bank won't lend you anything — raise your cash flow first (pay off debts or buy income assets)."}</div>`}
       <div class="confirm-actions">
-        ${chk.ok?`<button onclick="confirmNo()">Cancel</button>
-        <button class="gold" onclick="confirmYes()">${c.confirmLabel}</button>`:`<button class="primary" onclick="confirmNo()">OK</button>`}
+        ${chk.ok||c.bill?`<button onclick="confirmNo()">Cancel</button>
+        <button class="${chk.ok?"gold":"sell"}" onclick="confirmYes()">${doomed?"Sell everything and go bankrupt":c.confirmLabel}</button>`:`<button class="primary" onclick="confirmNo()">OK</button>`}
       </div>
     </div>
   </div>`;
@@ -1736,6 +1779,13 @@ function pendingHTML(){
      <p class="muted" style="margin-top:-4px;">❤ Benefit: for your next ${CHARITY_TURNS} turns you may roll <b>1 or 2 dice</b> — move faster to reach more Paydays and deals.</p>
      <div class="row"><button class="primary" onclick="charityPay()">Donate</button><button onclick="charitySkip()">Skip</button></div></div>`
      :`<div class="card" style="margin:0;max-width:360px;width:100%;"><h3>❤ Charity — ${p.name}</h3><p class="muted">Waiting for ${p.name} to decide…</p></div>`;
+  }else if(state.pending.kind==="bill"){
+    const b=state.pending, p=state.players[state.turn];
+    inner=`<div class="evt bill-card" style="margin:0;max-width:360px;width:100%;"><h3>${b.title}</h3><p>${b.desc}</p>
+      <div class="bill-amt">${fmt(b.amt)}</div>
+      ${myTurn?`<p class="bill-cash">Cash on hand: <b>${fmt(p.cash)}</b>${p.cash<b.amt?" — not enough, you'll need a loan":""}</p>
+      <button class="bill-pay" onclick="payPendingBill()">Pay ${fmt(b.amt)}</button>`
+      :`<p style="opacity:.85;">Waiting for ${p.name} to pay…</p>`}</div>`;
   }else if(state.pending.kind==="eventinfo"){
     const ev=state.pending.ev;
     inner=`<div class="evt" style="margin:0;max-width:360px;width:100%;"><h3>🎲 ${ev.name}</h3><p>${ev.desc}</p>
