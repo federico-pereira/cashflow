@@ -29,8 +29,8 @@ Everything is in one self-contained file: `cashflow.html` (HTML + CSS + vanilla 
 - Joining: the page tries to claim the host id. If it's taken (PeerJS error `unavailable-id`, logged as `ERROR PeerJS: ID ... is taken` — **this is expected, not a bug**), it joins as a guest instead.
 - Messages: guest → host `hello {name}`; host → guest `welcome {myIdx}`; anyone → `state {data}`. The host applies incoming state and relays it to the other guests.
 - Every mutating action updates local `state`, then calls `syncRender()` (`pushState()` + `render()`). `pushState()` sends `sharedSnapshot()`; receivers call `applyShared()`.
-- **Shared fields:** phase, numPlayers, names, profs, ready, players, turn, pending, hasRolled, log, listings, listingSeq, week, mortgageRate, market. Each player also carries `costBasis`/`buyMarks` (what they paid) for the statement's holdings charts.
-- **Local-only fields (per browser):** panel, marketTab, selectedStock, selectedHolding, qty, confirm, debtSel, flashQty, loanTakeAmt, loanPayAmt, viewTab, myIdx, isHost, online.
+- **Shared fields:** phase, numPlayers, names, profs, ready, players, turn, pending, hasRolled, log, listings, listingSeq, week, mortgageRate, alert, market. Each player also carries `costBasis`/`buyMarks` (what they paid) for the statement's holdings charts.
+- **Local-only fields (per browser):** alertSeen, panel, marketTab, selectedStock, selectedHolding, qty, confirm, debtSel, flashQty, loanTakeAmt, loanPayAmt, viewTab, myIdx, isHost, online.
 - Guests never run `startGame()` (only the host does). Any local-only default the UI needs must be seeded at page load, not in `startGame()`. Missing `state.finance` on guests caused a crash before.
 - Uses Google STUN plus the free OpenRelay TURN servers (`ICE_CONFIG`). A 15-second timeout falls back to local pass-and-play.
 - **Does not work inside a claude.ai artifact:** that sandbox blocks WebRTC by CSP. It must be hosted normally (GitHub Pages).
@@ -52,6 +52,11 @@ Everything is in one self-contained file: `cashflow.html` (HTML + CSS + vanilla 
 - Any liability (home mortgage, car, credit card, retail, bank loan, property mortgages) can be paid down from the Finance panel, partly or in full. Personal debt payments shrink proportionally; paying one off removes that expense.
 - "Market" board squares give a private one-turn **Flash Deal**. Its price vs market is a bell curve (mean 8% off, σ 12%, −20%…+35%): ~3 in 4 are bargains, the rest fair or overpriced. The game never says which (no "% vs market" anywhere, flash deals or real estate listings) — players judge prices themselves. Real estate offers (flash deals and listings) show the current market value as a reference, since there is no public property price board; stock offers link to the always-open stock table instead. No quantity cap on stocks; a live preview shows total, cash used, loan needed and cash after.
 - Random global/personal events (crashes, rallies, rate changes, lawsuits, inheritance...).
+- Winning and places: first player to escape (passive income ≥ total expenses) takes #1; others keep playing for #2, #3… Bankrupt players take places from the bottom. The game ends when at most one player is still racing; a final standings table shows. Shared `alert` popups announce wins, fire sales and bankruptcies (dismissed per browser via local `alertSeen`).
+- Mandatory costs go through `payBill()`: cash → bank loan within the lending limit → fire sale (stocks at market, properties at 50% of value, bank forgives underwater mortgages) → if still short with nothing to sell and negative cash flow: bankrupt (out); otherwise an emergency loan.
+- Payday is collected when passing a Payday square, not only landing (real rule).
+- Pacing, tuned with a smart-bot simulation: listings have a 30%/week chance to be snapped up, ~1.5 new ones appear per week (max 10); rents are ~12% above the original design values. Measured winner week (2 players): mean ~38.5, SD ~23 (kept random on purpose; an SD of 6 would need catch-up mechanics). Game over: 2 players ≈40 weeks, 3 ≈75, 4 ≈103.
+- Profession balance: each profession's expenses and debts were scaled (Doctor −22%, Janitor −6%, Engineer +1%, Secretary +11%, Teacher +17%; salary and savings unchanged) so win rates are within 5 points of each other: 2 players 48–52%, 3 players 31.6–35.1%, 4 players 22.7–26.9%. Re-measure with the bot sim after changing anything economic.
 - Downsized: pay a month of expenses and sit out the next 2 turns (`p.skipTurns`, handled in `nextTurn()`).
 - Prices move only by the weekly random step and by events. Buying/selling never changes a price. Market events move both price and `anchor` (the level the random walk drifts to), so there is no guaranteed rebound after a crash.
 - Flash-deal buys are locked for the buyer's next 3 turns (`p.locks`, `p.turnsTaken`) — no instant flipping.
@@ -68,4 +73,4 @@ Everything is in one self-contained file: `cashflow.html` (HTML + CSS + vanilla 
 
 Pushed 2026-09-27: loan confirmations + bank lending limit, property mortgages with variable terms and running costs, market-specific and variable-size events, flash-deal lock-up, Downsized skips, charity dice, debt payoff, redesigned board/finance sheet/player cards. Passed a 60-game random-play stress test (with JSON state round-trips) and a headless click-through test. Still needs a real two-player online test (normal + incognito window).
 
-Open design topic: balancing bankruptcy and winning (no bankruptcy rule yet — mandatory costs just keep auto-borrowing).
+Also pushed 2026-09-27 (second push): places + final standings, fire sale and bankruptcy, payday on passing, pacing and profession balance (see Game rules). Manual testing by Federico in progress.

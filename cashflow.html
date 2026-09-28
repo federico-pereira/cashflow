@@ -232,18 +232,24 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
 .fp-row.fp-warn b{color:#ffd76a;}
 .fp-row.fp-bad b{color:#ffb3ad;}
 .fp-note{font-size:11.5px;color:#ffd0cc;margin-top:3px;}
+.alert-card .alert-line{margin:4px 0;font-size:13px;}
+.standings{flex:none;margin-bottom:8px;}
+.standings td{vertical-align:middle;}
 .confirm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
 </style>
 </head>
 <body>
 <div class="wrap" id="app"></div>
 <script>
+// Expenses and debts balanced per profession by bot simulation so every profession wins within
+// 5 points of each other (measured: 2 players 48–51%, 3 players 31–36%, 4 players 23–27%).
+// Salary and savings are the original values.
 const PROFESSIONS=[
- {name:"Janitor",salary:1600,taxes:200,otherExp:200,mortgagePmt:180,mortgageBal:8000,carPmt:130,carBal:5000,ccPmt:50,ccBal:1000,retailPmt:25,retailBal:500,childExp:130,savings:600},
- {name:"Secretary",salary:2400,taxes:320,otherExp:280,mortgagePmt:240,mortgageBal:15000,carPmt:180,carBal:8000,ccPmt:70,ccBal:1500,retailPmt:40,retailBal:800,childExp:150,savings:1200},
- {name:"Teacher",salary:3200,taxes:450,otherExp:350,mortgagePmt:300,mortgageBal:25000,carPmt:220,carBal:10000,ccPmt:90,ccBal:2000,retailPmt:50,retailBal:1000,childExp:180,savings:2000},
- {name:"Engineer",salary:4800,taxes:900,otherExp:500,mortgagePmt:520,mortgageBal:60000,carPmt:320,carBal:15000,ccPmt:140,ccBal:3000,retailPmt:80,retailBal:1500,childExp:220,savings:4000},
- {name:"Doctor",salary:9000,taxes:2200,otherExp:900,mortgagePmt:1200,mortgageBal:150000,carPmt:480,carBal:25000,ccPmt:260,ccBal:6000,retailPmt:150,retailBal:3000,childExp:300,savings:10000},
+ {name:"Janitor",salary:1600,taxes:190,otherExp:190,mortgagePmt:170,mortgageBal:7500,carPmt:125,carBal:4800,ccPmt:50,ccBal:1000,retailPmt:25,retailBal:500,childExp:125,savings:600},
+ {name:"Secretary",salary:2400,taxes:355,otherExp:310,mortgagePmt:265,mortgageBal:16600,carPmt:200,carBal:8800,ccPmt:75,ccBal:1700,retailPmt:45,retailBal:900,childExp:165,savings:1200},
+ {name:"Teacher",salary:3200,taxes:525,otherExp:410,mortgagePmt:350,mortgageBal:29300,carPmt:260,carBal:11700,ccPmt:105,ccBal:2300,retailPmt:55,retailBal:1100,childExp:210,savings:2000},
+ {name:"Engineer",salary:4800,taxes:905,otherExp:505,mortgagePmt:525,mortgageBal:60500,carPmt:325,carBal:15100,ccPmt:140,ccBal:3000,retailPmt:80,retailBal:1500,childExp:220,savings:4000},
+ {name:"Doctor",salary:9000,taxes:1725,otherExp:705,mortgagePmt:940,mortgageBal:117600,carPmt:375,carBal:19600,ccPmt:205,ccBal:4700,retailPmt:115,retailBal:2300,childExp:235,savings:10000},
 ];
 const DOODADS=[
  {name:"New TV",cost:500},{name:"Family Vacation",cost:1200},{name:"Car Repair",cost:400},
@@ -259,14 +265,14 @@ const MARKET=[
  {id:"MED",name:"MedTech Solutions",type:"stock",sector:"Healthcare",price:65,vol:0.20,div:0,eps:1.5},
  {id:"RTL",name:"Retail Chain Co",type:"stock",sector:"Consumer",price:28,vol:0.22,div:0.5,eps:2},
  {id:"NRG",name:"Energy Partners",type:"stock",sector:"Energy",price:120,vol:0.19,div:4,eps:10},
- {id:"CND",name:"Downtown Condo",type:"realestate",price:40000,vol:0.10,div:0,rent:350},
- {id:"HSE",name:"Suburban House",type:"realestate",price:80000,vol:0.08,div:0,rent:650},
- {id:"PLX",name:"Fourplex",type:"realestate",price:150000,vol:0.12,div:0,rent:1400},
+ {id:"CND",name:"Downtown Condo",type:"realestate",price:40000,vol:0.10,div:0,rent:390},
+ {id:"HSE",name:"Suburban House",type:"realestate",price:80000,vol:0.08,div:0,rent:725},
+ {id:"PLX",name:"Fourplex",type:"realestate",price:150000,vol:0.12,div:0,rent:1570},
  {id:"LND",name:"Undeveloped Land",type:"realestate",price:20000,vol:0.20,div:0,rent:0},
- {id:"BCH",name:"Beachfront Villa",type:"realestate",price:220000,vol:0.15,div:0,rent:1800},
- {id:"IND",name:"Industrial Warehouse",type:"realestate",price:95000,vol:0.09,div:0,rent:900},
- {id:"MXD",name:"Mixed-Use Building",type:"realestate",price:180000,vol:0.11,div:0,rent:1650},
- {id:"CBN",name:"Mountain Cabin",type:"realestate",price:60000,vol:0.13,div:0,rent:450},
+ {id:"BCH",name:"Beachfront Villa",type:"realestate",price:220000,vol:0.15,div:0,rent:2020},
+ {id:"IND",name:"Industrial Warehouse",type:"realestate",price:95000,vol:0.09,div:0,rent:1010},
+ {id:"MXD",name:"Mixed-Use Building",type:"realestate",price:180000,vol:0.11,div:0,rent:1850},
+ {id:"CBN",name:"Mountain Cabin",type:"realestate",price:60000,vol:0.13,div:0,rent:505},
 ];
 MARKET.forEach(m=>{m.designPrice=m.price; m.designRent=m.rent||0; m.designDiv=m.div||0;});
 // Market events move both the price and its anchor (the level the weekly random walk drifts toward),
@@ -318,8 +324,8 @@ const EVENTS=[
  {name:"Tax Refund",type:"personal",run:(pl,p)=>{const a=rndStep(200,900,50); p.cash+=a; return "You receive a surprise tax refund of "+fmt(a)+".";}},
  {name:"Year-End Bonus",type:"personal",run:(pl,p)=>{const a=rndStep(0.05,0.3,0.01)*p.salary; p.cash+=Math.round(a); return "Your employer pays you a "+fmt(a)+" bonus.";}},
  {name:"Inheritance",type:"personal",run:(pl,p)=>{const a=rndStep(1000,5000,250); p.cash+=a; return "A distant relative leaves you "+fmt(a)+".";}},
- {name:"Lawsuit",type:"personal",run:(pl,p)=>{const a=rndStep(500,2500,100); payCash(p,a); return "You're sued and must pay "+fmt(a)+" in damages.";}},
- {name:"Identity Theft",type:"personal",run:(pl,p)=>{const a=rndStep(200,1200,50); payCash(p,a); return fmt(a)+" is stolen from your account.";}},
+ {name:"Lawsuit",type:"personal",run:(pl,p)=>{const a=rndStep(500,2500,100); payBill(p,a,"a lawsuit"); return "You're sued and must pay "+fmt(a)+" in damages.";}},
+ {name:"Identity Theft",type:"personal",run:(pl,p)=>{const a=rndStep(200,1200,50); payBill(p,a,"identity theft"); return fmt(a)+" is stolen from your account.";}},
  // ---- Stock-specific ----
  {name:"Tech Breakthrough",type:"market",run:specific(["TEC"],1.2,1.5)},
  {name:"Chip Shortage",type:"market",run:specific(["TEC"],0.65,0.85)},
@@ -373,7 +379,7 @@ function applyMarketSnapshot(arr){
 }
 function sharedSnapshot(){
   return {phase:state.phase==="join"?"setup":state.phase,numPlayers:state.numPlayers,names:state.names,profs:state.profs,ready:state.ready,
-    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,
+    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,alert:state.alert||null,
     market:snapshotMarket(),updatedAt:Date.now()};
 }
 function applyShared(data){
@@ -392,6 +398,7 @@ function applyShared(data){
   if(data.listingSeq) state.listingSeq=data.listingSeq;
   if(typeof data.week==="number") state.week=data.week;
   if(typeof data.mortgageRate==="number") state.mortgageRate=data.mortgageRate;
+  state.alert=data.alert||null;
   applyMarketSnapshot(data.market);
 }
 function toggleReady(){
@@ -582,6 +589,123 @@ function payCash(p,amt){
 }
 function log(m){state.log.unshift(m); if(state.log.length>40)state.log.pop();}
 
+// ---- Bills you can't refuse, fire sale and bankruptcy ----
+// payBill() is for mandatory costs (doodads, Downsized, negative paydays, lawsuits, theft). In order:
+//  1. pay from cash;
+//  2. borrow what the bank will lend (only while monthly cash flow stays >= $0);
+//  3. fire sale: stocks at market price, then properties at 50% of market value (worst cash flow
+//     first; the bank takes the mortgage out of the proceeds and forgives any shortfall);
+//  4. if still short with nothing left to sell: negative cash flow = bankrupt (out of the game);
+//     otherwise an emergency bank loan covers the rest.
+const FIRE_SALE_RE=0.5;
+function payBill(p,amt,what){
+  if(p.bankrupt) return;
+  if(p.cash>=amt){ p.cash-=amt; return; }
+  const lim=loanCheck(p,0,0).max;
+  if(lim>0){
+    const L=Math.min(lim,Math.ceil((amt-p.cash)/1000)*1000);
+    p.bankLoanBal+=L; p.bankLoanPmt=Math.round(p.bankLoanBal*0.1); p.cash+=L;
+    log(p.name+" took a "+fmt(L)+" bank loan to cover "+what+".");
+    if(p.cash>=amt){ p.cash-=amt; return; }
+  }
+  const lines=fireSale(p,amt-p.cash);
+  if(p.cash>=amt){
+    p.cash-=amt;
+    raiseAlert("🔥 Fire sale — "+p.name,[p.name+" couldn't cover "+what+" ("+fmt(amt)+") and the bank wouldn't lend more, so assets were sold:",...lines]);
+    return;
+  }
+  if(monthlyCashflow(p)<0){ goBankrupt(p,what,amt,lines); return; }
+  payCash(p,amt);
+  log("🏦 Emergency loan: "+p.name+" had nothing left to sell, so the bank covered "+what+".");
+  if(lines.length) raiseAlert("🔥 Fire sale — "+p.name,[p.name+" couldn't cover "+what+" ("+fmt(amt)+"), so assets were sold:",...lines,"The bank covered the rest with an emergency loan."]);
+}
+function fireSellable(p){return MARKET.some(m=>(p.holdings[m.id]||0)>0);}
+// Removes units from a holding and keeps all per-holding bookkeeping (mortgage, cost basis, buy marks,
+// running costs, flash-deal locks) consistent. Returns the mortgage share that went with them.
+function removeUnits(p,m,qty){
+  const held=p.holdings[m.id]||0, payoff=mortgageShare(p,m.id,qty);
+  if(p.costBasis&&p.costBasis[m.id]) p.costBasis[m.id]-=Math.round(p.costBasis[m.id]*qty/held);
+  if(payoff) p.reMortgage[m.id]-=payoff;
+  p.holdings[m.id]=held-qty;
+  let over=lockedQty(p,m.id)-p.holdings[m.id];
+  if(over>0&&p.locks&&p.locks[m.id]) p.locks[m.id]=p.locks[m.id].map(l=>{const cut=Math.min(l.qty,over); over-=cut; return {...l,qty:l.qty-cut};}).filter(l=>l.qty>0);
+  if(!p.holdings[m.id]){ ['reMortgage','costBasis','buyMarks','reCostPct','locks'].forEach(k=>{ if(p[k]) delete p[k][m.id]; }); }
+  return payoff;
+}
+function fireSale(p,need){
+  const lines=[];
+  // Stocks first, whole shares, just enough to cover what's needed.
+  MARKET.filter(m=>m.type==="stock"&&(p.holdings[m.id]||0)>0).sort((a,b)=>b.price*p.holdings[b.id]-a.price*p.holdings[a.id]).forEach(m=>{
+    if(need<=0) return;
+    const qty=Math.min(p.holdings[m.id],Math.ceil(need/m.price)), got=qty*m.price;
+    removeUnits(p,m,qty); p.cash+=got; need-=got;
+    lines.push("📈 Sold "+qty+"x "+m.name+" at "+fmt(m.price)+" = "+fmt(got));
+  });
+  // Then properties at half value, worst cash flow per unit first.
+  const props=()=>MARKET.filter(m=>m.type==="realestate"&&(p.holdings[m.id]||0)>0).sort((a,b)=>propNet(p,a)/p.holdings[a.id]-propNet(p,b)/p.holdings[b.id]);
+  while(need>0&&props().length){
+    const m=props()[0], sale=Math.round(m.price*FIRE_SALE_RE), payoff=removeUnits(p,m,1), got=Math.max(0,sale-payoff);
+    p.cash+=got; need-=got;
+    lines.push("🏠 Sold "+m.name+" at half value "+fmt(sale)+" − mortgage "+fmt(payoff)+" = "+fmt(got)+(sale<payoff?" (bank forgave the rest)":""));
+  }
+  lines.forEach(l=>log("🔥 "+p.name+": "+l.replace(/^\S+ /,"")));
+  return lines;
+}
+function goBankrupt(p,what,amt,lines){
+  p.bankrupt=true; p.cash=0;
+  const n=state.players.length, gone=state.players.filter(x=>x.bankrupt&&x!==p).length;
+  p.place=n-gone; p.finishWeek=state.week||0;
+  log("💀 "+p.name+" is BANKRUPT — couldn't pay "+what+" with negative cash flow and nothing left to sell. Out of the game (#"+p.place+").");
+  raiseAlert("💀 "+p.name+" is bankrupt",[...(lines.length?[p.name+"'s assets were sold in a fire sale:",...lines]:[]),"It still wasn't enough to cover "+what+" ("+fmt(amt)+"), the cash flow is negative and the bank won't lend more.",p.name+" is out of the game and finishes #"+p.place+"."]);
+  checkGameOver();
+}
+
+// ---- Places ----
+// Escaping the Rat Race takes the next free place from the top; going bankrupt takes the next free
+// place from the bottom. The game ends when at most one player is still racing (they take the last
+// open place).
+function isRacing(p){return !p.escaped&&!p.bankrupt;}
+function checkWin(p){
+  if(isRacing(p) && passiveIncome(p)>=totalExpenses(p)){
+    p.escaped=true;
+    p.place=state.players.filter(x=>x.escaped).length; p.finishWeek=state.week||0;
+    const medal=["🥇","🥈","🥉"][p.place-1]||"🏁";
+    log(medal+" "+p.name+" escaped the Rat Race"+(p.place===1?" and WINS!":" — finishes #"+p.place+".")+" Passive income now covers all expenses.");
+    raiseAlert(medal+" "+p.name+(p.place===1?" wins!":" finishes #"+p.place),[p.name+" escaped the Rat Race: passive income "+fmt(passiveIncome(p))+"/mo now covers expenses of "+fmt(totalExpenses(p))+"/mo.",p.place===1?"Everyone else keeps playing for the other places.":""].filter(Boolean));
+    checkGameOver();
+  }
+}
+// Rent/dividend/rate events and other players' trades can push anyone over the line, not just the
+// player whose turn it is.
+function checkAllWins(){state.players.forEach(checkWin);}
+function checkGameOver(){
+  const racing=state.players.filter(isRacing);
+  if(state.phase!=="playing"||racing.length>1) return;
+  racing.forEach(p=>{
+    const taken=new Set(state.players.map(x=>x.place).filter(Boolean));
+    let pl=1; while(taken.has(pl)) pl++;
+    p.place=pl; p.finishWeek=state.week||0;
+    log("🏁 "+p.name+" is the last one in the Rat Race and finishes #"+pl+".");
+  });
+  state.phase="over"; state.pending=null;
+  log("🏁 Game over! Final standings are in.");
+}
+// Shared announcements (fire sale, bankruptcy, a win). Everyone sees them once; each browser
+// dismisses them locally (state.alertSeen), so one player closing it doesn't hide it for others.
+function raiseAlert(title,lines){state.alert={id:(state.alert&&state.alert.id||0)+1,title,lines};}
+function dismissAlert(){state.alertSeen=state.alert&&state.alert.id; render();}
+function alertHTML(){
+  const a=state.alert; if(!a||state.alertSeen===a.id) return "";
+  return `<div class="confirm-backdrop" onclick="if(event.target===this)dismissAlert()">
+    <div class="confirm-card alert-card" role="dialog" aria-modal="true">
+      <h3 style="margin-bottom:8px;">${a.title}</h3>
+      ${a.lines.map(l=>`<p class="alert-line">${l}</p>`).join("")}
+      <div class="confirm-actions"><button class="primary" onclick="dismissAlert()">OK</button></div>
+    </div>
+  </div>`;
+}
+
+
 function setPlayers(n){
   if(state.online&&!state.isHost) return;
   const oldNames=state.names||[], oldProfs=state.profs||[], oldReady=state.ready||[];
@@ -644,13 +768,15 @@ function spawnListing(){
   state.listings.push({id:"L"+(state.listingSeq++),instId:m.id,kind,price,qty,turnsLeft,downPct:pickDownPct(),costPct:pickCostPct()});
 }
 function tickListings(){
+  // Pacing (tuned by bot simulation for ~30-minute games): each week an offer may get snapped up by
+  // someone else (30%), and about 1.5 new offers appear.
   state.listings.forEach(l=>{
     l.turnsLeft--;
-    if(Math.random()<0.65){ l.qty-=1+Math.floor(Math.random()*Math.min(2,l.qty)); }
+    if(Math.random()<0.3) l.qty=0;
   });
   state.listings=state.listings.filter(l=>l.qty>0&&l.turnsLeft>0);
-  const maxListings=8;
-  let tries=(Math.random()<0.75?1:0)+(Math.random()<0.35?1:0);
+  const maxListings=10;
+  let tries=(Math.random()<0.9?1:0)+(Math.random()<0.6?1:0);
   for(let i=0;i<tries&&state.listings.length<maxListings;i++) spawnListing();
 }
 function startGame(){
@@ -669,14 +795,14 @@ function startGame(){
   for(let i=0;i<4;i++) spawnListing();
   state.players=state.names.map((nm,i)=>{
     const pr=PROFESSIONS[Math.floor(Math.random()*PROFESSIONS.length)];
-    return {...pr,profession:pr.name,name:nm.trim()||("Player "+(i+1)),cash:pr.savings,kids:0,holdings:{},bankLoanBal:0,bankLoanPmt:0,pos:0,escaped:false,color:COLORS[i]};
+    return {...pr,profession:pr.name,name:nm.trim()||("Player "+(i+1)),cash:pr.savings,kids:0,holdings:{},bankLoanBal:0,bankLoanPmt:0,pos:0,escaped:false,bankrupt:false,place:null,color:COLORS[i]};
   });
-  state.phase="playing"; state.week=0; state.mortgageRate=startMortgageRate(); state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
+  state.phase="playing"; state.alert=null; state.week=0; state.mortgageRate=startMortgageRate(); state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
   log("Game started. "+state.players[0].name+" goes first. Market is open.");
   if(state.online) pushState();
   render();
 }
-function activePlayers(){return state.players.filter(p=>!p.escaped);}
+function activePlayers(){return state.players.filter(isRacing);}
 function syncRender(){ if(state.online) pushState(); render(); }
 const DOWNSIZED_SKIPS=2;
 // Flash-deal lock-up: units bought at a flash-deal discount can't be sold for the buyer's next 3 turns, so
@@ -692,10 +818,11 @@ function nextTurn(){
   updateMarket();
   tickListings();
   state.hasRolled=false;
-  if(activePlayers().length===0){state.phase="over"; syncRender(); return;}
+  checkAllWins(); checkGameOver();
+  if(state.phase!=="playing"){ syncRender(); return; }
   // Downsized players sit out their skipped turns (each skip uses one up), like the original game.
   for(;;){
-    do{ state.turn=(state.turn+1)%state.players.length; }while(state.players[state.turn].escaped);
+    do{ state.turn=(state.turn+1)%state.players.length; }while(!isRacing(state.players[state.turn]));
     const np=state.players[state.turn];
     np.turnsTaken=(np.turnsTaken||0)+1;
     if(!(np.skipTurns>0)) break;
@@ -709,12 +836,6 @@ function endTurn(){
   if(state.pending||!state.hasRolled) return;
   nextTurn();
 }
-function checkWin(p){
-  if(!p.escaped && passiveIncome(p)>=totalExpenses(p)){
-    p.escaped=true;
-    log("🎉 "+p.name+" escaped the Rat Race! Passive income now covers all expenses.");
-  }
-}
 // n = number of dice. Two dice are only allowed while the player has charity turns left; every
 // roll (1 or 2 dice) during that window uses one of them up.
 function rollDice(n){
@@ -726,6 +847,9 @@ function rollDice(n){
   const dice=Array.from({length:n},()=>1+Math.floor(Math.random()*6));
   const roll=dice.reduce((a,b)=>a+b,0);
   if(charity) p.charityTurns--;
+  // Real-game rule: you're paid whenever you pass a Payday square, not only when you land on one
+  // (landing is handled by resolveSpace).
+  for(let s=1;s<roll;s++){ if(BOARD[(p.pos+s)%BOARD.length]==="payday") collectPayday(p,true); }
   p.pos=(p.pos+roll)%BOARD.length;
   const sp=BOARD[p.pos];
   log(p.name+" rolled "+(n===2?dice.join(" + ")+" = "+roll:"a "+roll)+" -> landed on "+sp+"."+(charity?" ("+p.charityTurns+" charity turn"+(p.charityTurns===1?"":"s")+" left)":""));
@@ -733,23 +857,27 @@ function rollDice(n){
   resolveSpace(p,sp);
   syncRender();
 }
+// A negative cash flow is a bill you can't refuse: it comes out of cash, and can trigger a fire sale.
+function collectPayday(p,passing){
+  if(!isRacing(p)) return;
+  const inc=Math.round(monthlyCashflow(p));
+  log(p.name+(passing?" passes":" lands on")+" Payday: "+(inc>=0?"collects "+fmt(inc)+" net cash flow.":"negative cash flow, pays "+fmt(-inc)+"."));
+  if(inc>=0) p.cash+=inc; else payBill(p,-inc,"a negative payday");
+  checkWin(p);
+}
 // Landing on a space resolves its effect but no longer auto-advances the turn — the market
 // stays open to everyone at all times, and the current player ends their own turn explicitly
 // (via the End Turn button) once they're done rolling/trading, so nobody gets cut off mid-turn.
 function resolveSpace(p,sp){
   if(sp==="payday"){
-    // A negative cash flow is a bill you can't refuse: it comes out of cash, auto-borrowing if needed.
-    const inc=Math.round(monthlyCashflow(p));
-    log(p.name+(inc>=0?" collects payday: "+fmt(inc)+" net cashflow.":" hits payday with negative cash flow: pays "+fmt(-inc)+"."));
-    if(inc>=0) p.cash+=inc; else payCash(p,-inc);
-    checkWin(p);
+    collectPayday(p,false);
   }else if(sp==="doodad"){
     const d=DOODADS[Math.floor(Math.random()*DOODADS.length)];
-    payCash(p,d.cost);
+    payBill(p,d.cost,"a doodad ("+d.name+")");
     log(p.name+" hit a doodad: "+d.name+" ("+fmt(d.cost)+").");
   }else if(sp==="downsized"){
     const loss=totalExpenses(p);
-    payCash(p,loss);
+    payBill(p,loss,"a month of expenses after being downsized");
     p.skipTurns=DOWNSIZED_SKIPS;
     log(p.name+" got downsized! Paid "+fmt(loss)+" in expenses and loses the next "+DOWNSIZED_SKIPS+" turns.");
     checkWin(p);
@@ -772,7 +900,7 @@ function resolveSpace(p,sp){
     const ev=pickEvent();
     const desc=ev.run(state.players,p);
     log("🎲 Event — "+ev.name+": "+desc);
-    checkWin(p);
+    checkAllWins();
     state.pending={kind:"eventinfo",ev:{name:ev.name,desc}};
   }
 }
@@ -880,7 +1008,7 @@ function sellAsset(p,m,qty,price){
 }
 function buyListing(id,ok){
   const p=state.players[actingIdx()], l=state.listings.find(x=>x.id===id);
-  if(!p||!l||l.kind!=="ask"){return;}
+  if(!p||!isRacing(p)||!l||l.kind!=="ask"){return;}
   const m=MARKET.find(x=>x.id===l.instId);
   const buyQty=l.qty, due=cashDue(m,buyQty*l.price,l.downPct);
   if(!ok&&askLoanConfirm(actingIdx(),{title:"Buy "+buyQty+"x "+m.name+" @ "+fmt(l.price),due,incomeDelta:incomeDeltaBuy(m,buyQty,l.price,l.downPct,l.costPct),confirmLabel:"Buy with loan",run:()=>buyListing(id,true)})) return;
@@ -892,7 +1020,7 @@ function buyListing(id,ok){
 }
 function sellListing(id,ok){
   const p=state.players[actingIdx()], l=state.listings.find(x=>x.id===id);
-  if(!p||!l||l.kind!=="bid"){return;}
+  if(!p||!isRacing(p)||!l||l.kind!=="bid"){return;}
   const m=MARKET.find(x=>x.id===l.instId);
   const sellQty=Math.min(l.qty,sellableQty(p,l.instId));
   if(sellQty<=0){log(p.name+(p.holdings[l.instId]?"'s "+m.name+" is locked from a flash deal for "+lockTurnsLeft(p,l.instId)+" more turn(s).":" has none of "+m.name+" to sell into that request."));}
@@ -914,7 +1042,7 @@ function selectHolding(id){state.selectedHolding=state.selectedHolding===id?null
 // Updates the live "= $total" under the input directly (no re-render, so typing keeps focus).
 function setQty(id,v){state.qty[id]=Math.max(1,parseInt(v)||1); const el=document.getElementById("cost-"+id), m=MARKET.find(x=>x.id===id); if(el&&m) el.textContent="= "+fmt(m.price*state.qty[id]);}
 function buyUnit(id,ok){
-  const p=state.players[actingIdx()]; if(!p) return;
+  const p=state.players[actingIdx()]; if(!p||!isRacing(p)) return;
   const m=MARKET.find(x=>x.id===id), qty=state.qty[id]||1;
   const due=cashDue(m,m.price*qty);
   if(!ok&&askLoanConfirm(actingIdx(),{title:"Buy "+qty+"x "+m.name+" @ "+fmt(m.price),due,incomeDelta:incomeDeltaBuy(m,qty,m.price),confirmLabel:"Buy with loan",run:()=>buyUnit(id,true)})) return;
@@ -924,7 +1052,7 @@ function buyUnit(id,ok){
   syncRender();
 }
 function sellUnit(id){
-  const p=state.players[actingIdx()]; if(!p) return;
+  const p=state.players[actingIdx()]; if(!p||!isRacing(p)) return;
   const m=MARKET.find(x=>x.id===id), qty=state.qty[id]||1, held=p.holdings[id]||0, free=sellableQty(p,id);
   if(free<qty){log(held<qty?p.name+" only owns "+held+"x "+m.name+".":p.name+" can sell only "+free+"x "+m.name+" — "+(held-free)+" are locked from a flash deal for "+lockTurnsLeft(p,id)+" more turn(s).");}
   else{const note=sellAsset(p,m,qty,m.price); log(p.name+" sold "+qty+"x "+m.name+" @ "+fmt(m.price)+note);}
@@ -932,7 +1060,7 @@ function sellUnit(id){
 }
 function takeLoan(idx,ok){
   if(state.online&&state.myIdx!==idx) return;
-  const p=state.players[idx];
+  const p=state.players[idx]; if(!p||!isRacing(p)) return;
   const amt=Math.max(1000,Math.round((state.loanTakeAmt||1000)/1000)*1000);
   if(!ok||!loanCheck(p,amt,0).ok){
     state.confirm={idx,title:"Borrow "+fmt(amt)+" from the bank",auto:0,loan:amt,cashDelta:amt,incomeDelta:0,confirmLabel:"Take the loan",run:()=>takeLoan(idx,true)};
@@ -1510,7 +1638,9 @@ function playersOverviewHTML(){
         <div style="position:absolute;left:${markerPct}%;top:0;bottom:0;width:2px;background:var(--ink);" title="100% — escape line"></div>
       </div>
       <div class="pchips">
-        ${pl.escaped?`<span class="chip good">🎉 Escaped</span>`:""}
+        ${pl.escaped?`<span class="chip good">${["🥇","🥈","🥉"][pl.place-1]||"🏁"} Escaped · #${pl.place}</span>`:""}
+        ${pl.bankrupt?`<span class="chip" style="color:var(--bad);border-color:var(--bad);">💀 Bankrupt · #${pl.place}</span>`:""}
+        ${pl.place&&!pl.escaped&&!pl.bankrupt?`<span class="chip">🏁 Finished · #${pl.place}</span>`:""}
         ${pl.charityTurns>0?`<span class="chip" title="May roll 1 or 2 dice">❤ ${pl.charityTurns} charity turn${pl.charityTurns===1?"":"s"}</span>`:""}
         ${pl.skipTurns>0?`<span class="chip" style="color:var(--bad);" title="Downsized">⚠️ sits out ${pl.skipTurns} turn${pl.skipTurns===1?"":"s"}</span>`:""}
         ${pl.kids?`<span class="chip">👶 ×${pl.kids}</span>`:""}
@@ -1520,6 +1650,18 @@ function playersOverviewHTML(){
   return `<div class="card players-overview">
    <div class="between" style="margin-bottom:6px;"><h3 style="margin:0;">🎯 Rat Race Progress</h3><small class="muted">Passive income ÷ expenses · line = 100% escape</small></div>
    <div class="pgrid">${cards}</div></div>`;
+}
+// Final standings: places 1..n, how each player finished, and their numbers at the end.
+function standingsHTML(){
+  const rows=state.players.slice().sort((a,b)=>(a.place||99)-(b.place||99)).map(p=>{
+    const medal=["🥇","🥈","🥉"][p.place-1]||"#"+p.place;
+    const worth=p.cash+MARKET.reduce((s,m)=>s+(p.holdings[m.id]||0)*m.price,0)-(p.mortgageBal+p.carBal+p.ccBal+p.retailBal+p.bankLoanBal+reMortgageTotal(p));
+    return `<tr><td style="font-size:18px;">${medal}</td><td><span style="color:${p.color}">●</span> <b>${p.name}</b><br><small class="muted">${p.profession}</small></td>
+      <td>${p.escaped?"Escaped in week "+p.finishWeek:p.bankrupt?"💀 Bankrupt in week "+p.finishWeek:"Last one left in the Rat Race"}</td>
+      <td class="num">${fmt(passiveIncome(p))}/mo</td><td class="num">${p.bankrupt?"—":(worth<0?"−":"")+fmt(Math.abs(worth))}</td></tr>`;
+  }).join("");
+  return `<div class="card standings"><h3>🏁 Game over — final standings</h3>
+    <table><thead><tr><th></th><th>Player</th><th>Result</th><th class="num">Passive income</th><th class="num">Net worth</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function gameHTML(over){
   const p=state.players[state.turn];
@@ -1545,7 +1687,7 @@ function gameHTML(over){
     </div>`:"";
   return `<h1>💰 Cashflow: Rat Race</h1>
   ${state.online?`<p class="muted" style="margin:-6px 0 8px;">Online room <b>${state.room}</b> — playing as <b>${state.myName}</b>.</p>`:""}
-  ${over?`<div class="win">🏁 All players have escaped the Rat Race!</div>`:""}
+  ${over?standingsHTML():""}
   <button class="side-toggle left gold" onclick="togglePanel('finance')">💰<br>Finance</button>
   ${!over?`<button class="side-toggle right gold" onclick="togglePanel('market')">📊<br>Market</button>`:""}
   <div class="board-wrap">
@@ -1568,7 +1710,8 @@ function gameHTML(over){
   ${playersOverviewHTML()}
   ${financePanel}
   ${marketPanel}
-  ${confirmHTML()}`;
+  ${confirmHTML()}
+  ${alertHTML()}`;
 }
 render();
 </script>
