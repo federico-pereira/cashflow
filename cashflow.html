@@ -108,6 +108,15 @@ small,.muted{color:var(--muted);font-size:12.5px;}
 .bc-title{font-weight:bold;font-size:clamp(12px,2.6vmin,20px);letter-spacing:.06em;color:var(--accent);}
 .bc-title small{display:block;font-size:.55em;letter-spacing:.2em;text-transform:uppercase;color:var(--accent2);}
 .bc-turn{font-size:clamp(8px,1.5vmin,12px);padding:3px 10px;border-radius:999px;background:color-mix(in srgb,var(--pc) 14%,var(--bg));border:1px solid var(--pc);display:inline-flex;align-items:center;gap:5px;}
+.econ{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(3px,.8vmin,6px);width:100%;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;}
+.econ-item{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:clamp(2px,.7vmin,6px) clamp(2px,.6vmin,5px);display:flex;flex-direction:column;align-items:center;min-width:0;cursor:help;}
+.econ-item span{font-size:clamp(6px,1.05vmin,9.5px);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.econ-item b{font-size:clamp(9px,1.9vmin,15px);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.econ-item em{font-style:normal;font-size:clamp(6px,1vmin,9px);white-space:nowrap;}
+.econ-item em.flat{color:var(--muted);}
+.econ-foot{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:clamp(6.5px,1.15vmin,10.5px);color:var(--muted);line-height:1.3;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.econ-foot b{color:var(--ink);}
+.legend-toggle{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:clamp(7px,1.2vmin,11px);padding:2px 10px;border-radius:999px;color:var(--muted);background:transparent;}
 .legend{display:grid;grid-template-columns:1fr 1fr;gap:clamp(2px,.6vmin,5px) clamp(6px,1.4vmin,12px);text-align:left;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:clamp(6.5px,1.25vmin,10.5px);line-height:1.25;width:100%;}
 .legend .lg{display:flex;gap:4px;align-items:flex-start;color:var(--muted);}
 .legend .lg b{color:var(--sq);}
@@ -301,7 +310,7 @@ function shiftMarket(type,f){MARKET.forEach(m=>{if(m.type===type) shiftOne(m,f);
 function shiftIds(ids,f){ids.forEach(id=>shiftOne(MARKET.find(m=>m.id===id),f));}
 function scaleRent(ids,f){MARKET.forEach(m=>{if(m.type==="realestate"&&(!ids||ids.includes(m.id))) m.rent=Math.max(0,Math.round(m.rent*f/5)*5);});}
 function addDiv(id,d){const m=MARKET.find(x=>x.id===id); m.div=Math.max(0,Math.round((m.div+d)*100)/100);}
-function moveMortgageRate(d){state.mortgageRate=Math.round(Math.max(MORTGAGE_RATE_MIN,Math.min(MORTGAGE_RATE_MAX,mortgageRate()+d))*10)/10;}
+function moveMortgageRate(d){const before=mortgageRate(); state.mortgageRate=Math.round(Math.max(MORTGAGE_RATE_MIN,Math.min(MORTGAGE_RATE_MAX,before+d))*10)/10; state.mortgageRateChange=Math.round((state.mortgageRate-before)*10)/10;}
 // Every event rolls its own size, so no two crashes (or bonuses, or rate moves) are the same. run()
 // applies the effect and returns the description with the actual numbers.
 function rnd(a,b){return a+Math.random()*(b-a);}
@@ -396,7 +405,7 @@ function applyMarketSnapshot(arr){
 }
 function sharedSnapshot(){
   return {phase:state.phase==="join"?"setup":state.phase,numPlayers:state.numPlayers,names:state.names,profs:state.profs,ready:state.ready,
-    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,alert:state.alert||null,lastRoll:state.lastRoll||null,
+    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,mortgageRateChange:state.mortgageRateChange||0,lastMarketEvent:state.lastMarketEvent||null,alert:state.alert||null,lastRoll:state.lastRoll||null,
     market:snapshotMarket(),updatedAt:Date.now()};
 }
 function applyShared(data){
@@ -415,6 +424,8 @@ function applyShared(data){
   if(data.listingSeq) state.listingSeq=data.listingSeq;
   if(typeof data.week==="number") state.week=data.week;
   if(typeof data.mortgageRate==="number") state.mortgageRate=data.mortgageRate;
+  state.mortgageRateChange=data.mortgageRateChange||0;
+  state.lastMarketEvent=data.lastMarketEvent||null;
   state.alert=data.alert||null;
   state.lastRoll=data.lastRoll||null;
   applyMarketSnapshot(data.market);
@@ -965,7 +976,7 @@ function startGame(){
     const pr=PROFESSIONS[Math.floor(Math.random()*PROFESSIONS.length)];
     return {...pr,profession:pr.name,name:nm.trim()||("Player "+(i+1)),cash:pr.savings,kids:0,holdings:{},bankLoanBal:0,bankLoanPmt:0,pos:0,escaped:false,bankrupt:false,place:null,color:COLORS[i]};
   });
-  state.phase="playing"; state.alert=null; state.lastRoll=null; state.week=0; state.mortgageRate=startMortgageRate(); state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
+  state.phase="playing"; state.alert=null; state.lastRoll=null; state.week=0; state.mortgageRate=startMortgageRate(); state.mortgageRateChange=0; state.lastMarketEvent=null; state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
   log("Game started. "+state.players[0].name+" goes first. Market is open.");
   if(state.online) pushState();
   render();
@@ -1075,6 +1086,7 @@ function resolveSpace(p,sp){
     log("🎲 Event — "+ev.name+": "+desc);
     checkAllWins();
     sfx("event");
+    if(ev.type!=="personal") state.lastMarketEvent={name:ev.name,desc,week:state.week||0};
     const bill=state.nextBill; state.nextBill=null;
     state.pending=bill?{kind:"bill",amt:bill.amt,what:bill.what,title:ev.name,desc}:{kind:"eventinfo",ev:{name:ev.name,desc}};
   }
@@ -1535,6 +1547,27 @@ const SQUARES={
 function playerToken(pl,i,extra){
   return `<span class="ptok${extra||""}" style="background:${pl.color}" title="${pl.name}">${(pl.name||"?").trim().charAt(0).toUpperCase()}</span>`;
 }
+// Public economy overview in the board centre: market-wide numbers only (no single-offer values, so
+// judging an individual deal stays the player's job).
+function avgChange(list,cur,base){const v=list.filter(m=>base(m)>0).map(m=>cur(m)/base(m)); return v.length?v.reduce((a,b)=>a+b,0)/v.length-1:0;}
+function economyHTML(){
+  const stocks=MARKET.filter(m=>m.type==="stock"), props=MARKET.filter(m=>m.type==="realestate");
+  const st=avgChange(stocks,m=>m.price,m=>m.basePrice0), pr=avgChange(props,m=>m.price,m=>m.basePrice0), rn=avgChange(props,m=>m.rent,m=>m.designRent);
+  const pct=v=>Math.abs(v)<0.005?"0%":(v>0?"▲ ":"▼ ")+Math.abs(Math.round(v*100))+"%";
+  const cls=(v,goodUp)=>Math.abs(v)<0.005?"flat":((v>0)===goodUp?"up":"down");
+  const d=state.mortgageRateChange||0;
+  const item=(label,value,sub,subCls,tip)=>`<div class="econ-item" title="${tip}"><span>${label}</span><b>${value}</b>${sub?`<em class="${subCls}">${sub}</em>`:""}</div>`;
+  const ev=state.lastMarketEvent;
+  return `<div class="econ">
+    ${item("Mortgage",mortgageRate().toFixed(1)+"%",d?(d>0?"▲ ":"▼ ")+Math.abs(d).toFixed(1):"",d>0?"down":"up","Mortgage rate. Property mortgage payment = balance × rate ÷ 12, every month. Moved by interest-rate events.")}
+    ${item("Stocks",pct(st),"since start",cls(st,true),"Average stock price vs. the start of the game.")}
+    ${item("Property",pct(pr),"since start",cls(pr,true),"Average property value vs. the start of the game.")}
+    ${item("Rents",pct(rn),"since start",cls(rn,true),"Average rent vs. normal — changed by rent events.")}
+  </div>
+  <div class="econ-foot">Week ${state.week||0}${ev?` · <b>Last:</b> ${ev.name} — ${ev.desc}`:""}</div>`;
+}
+try{ state.showLegend=localStorage.getItem("cf_legend")==="1"; }catch(e){ state.showLegend=false; }
+function toggleLegend(){ state.showLegend=!state.showLegend; try{localStorage.setItem("cf_legend",state.showLegend?"1":"0");}catch(e){} render(); }
 function boardHTML(){
   const cur=state.players[state.turn];
   const cells=BOARD.map((sp,i)=>{
@@ -1551,7 +1584,9 @@ function boardHTML(){
     <div class="board-center">
       <div class="bc-title">🎩 CASHFLOW <small>Rat Race</small></div>
       ${cur?`<div class="bc-turn" style="--pc:${cur.color}">${playerToken(cur,state.turn)}<span><b>${cur.name}</b>'s turn · on ${SQUARES[BOARD[cur.pos]].emoji} ${SQUARES[BOARD[cur.pos]].label}</span></div>`:""}
-      <div class="legend">${legend}</div>
+      ${economyHTML()}
+      <button class="legend-toggle" onclick="toggleLegend()" aria-expanded="${!!state.showLegend}">${state.showLegend?"▾ Hide board guide":"▸ Board guide"}</button>
+      ${state.showLegend?`<div class="legend">${legend}</div>`:""}
     </div>
   </div>`;
 }
