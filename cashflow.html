@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cashflow: Rat Race</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Oswald:wght@400;500;600&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=UnifrakturMaguntia&family=Courier+Prime:wght@400;700&display=swap">
 <style>
 :root{
   --bg:#f4f1ea; --panel:#fff; --ink:#1f2430; --muted:#6b7280; --line:#e2ddd0;
@@ -298,6 +299,438 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
 .standings td{vertical-align:middle;}
 .mute-btn{float:right;font-size:15px;padding:3px 9px;line-height:1.2;}
 .confirm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
+/* =====================================================================
+   Tabletop board UI — styles for tb-board.js
+   Fonts (add once in <head>):
+   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Oswald:wght@400;500;600&display=swap">
+   Everything scales with the board's width (cqi units), so the board
+   works at any --bs size. The board is a printed object: it keeps its
+   own colours in light and dark theme.
+   ===================================================================== */
+
+/* ---------- Board + bezel --------------------------------------------- */
+.gameboard.tb-board{
+  --tb-bezel:#1f4a35;          /* frame colour; also title + buttons */
+  --tb-bezel-dark:#0f2a1c;
+  --tb-paper:#f3e9d2;          /* square card stock */
+  --tb-line:#2a2016;           /* printed lines between squares */
+  --tb-ink:#231c14;
+  --tb-ink-2:#5b4a36;
+  --tb-ink-3:#6b5a44;
+  --tb-good:#1c7a52;
+  --tb-bad:#b3261e;
+  --tb-display:'Alfa Slab One',Georgia,serif;
+  --tb-text:'Oswald','Arial Narrow',system-ui,sans-serif;
+
+  container-type:inline-size;
+  display:block; gap:0; padding:0;
+  width:100%; max-width:640px; aspect-ratio:1/1;
+  margin:4px auto 10px;
+  background:var(--tb-bezel);
+  border:0; border-radius:14px;
+  box-shadow:0 18px 36px rgba(0,0,0,.45),0 4px 10px rgba(0,0,0,.35),
+             inset 0 0 0 2px rgba(255,255,255,.08),inset 0 2px 0 rgba(255,255,255,.18);
+  font-family:var(--tb-text);
+}
+/* Inside the game layout, .board-row .gameboard already sets width/height from --bs. */
+.board-row .gameboard.tb-board{width:var(--bs);height:var(--bs);max-width:none;margin:0;flex:none;}
+
+.tb-grid{
+  margin:1.4cqi; height:calc(100% - 2.8cqi); box-sizing:border-box;
+  display:grid;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  grid-template-rows:repeat(7,minmax(0,1fr));
+  gap:.22cqi;
+  background:var(--tb-line); border:.22cqi solid var(--tb-line);
+}
+
+/* ---------- Squares --------------------------------------------------- */
+.tb-sq{position:relative;overflow:hidden;background:var(--tb-paper);min-width:0;min-height:0;}
+.tb-sq-face{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--tb-paper);}
+/* Colour band faces the centre on every side. */
+.tb-top    .tb-sq-face{transform:rotate(180deg);}
+.tb-right  .tb-sq-face{transform:rotate(-90deg);}
+.tb-left   .tb-sq-face{transform:rotate(90deg);}
+.tb-c0 .tb-sq-face{transform:rotate(135deg);}
+.tb-c1 .tb-sq-face{transform:rotate(-135deg);}
+.tb-c2 .tb-sq-face{transform:rotate(-45deg);}
+.tb-c3 .tb-sq-face{transform:rotate(45deg);}
+
+.tb-sq-band{
+  flex:none;height:23%;display:flex;align-items:center;justify-content:center;
+  background:var(--sq);color:#fffaf0;
+  font:600 max(6px,1.45cqi)/1 var(--tb-text);letter-spacing:.16cqi;text-transform:uppercase;white-space:nowrap;
+  box-shadow:inset 0 -.2cqi 0 rgba(0,0,0,.18);
+}
+.tb-sq-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5cqi;color:var(--sq);}
+.tb-sq-body .tb-icon{width:5cqi;height:5cqi;}
+
+.tb-corner{background:var(--sq);}
+.tb-corner .tb-sq-face{background:var(--sq);}
+.tb-corner .tb-sq-body{color:#fffaf0;}
+.tb-corner .tb-sq-body .tb-icon{width:4.2cqi;height:4.2cqi;}
+.tb-sq-name{font:max(7px,1.75cqi)/1 var(--tb-display);letter-spacing:.12cqi;text-transform:uppercase;text-shadow:0 .2cqi 0 rgba(0,0,0,.25);}
+
+/* Square the current player is standing on */
+.tb-sq-tokens{position:absolute;inset:0;z-index:2;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;align-content:center;gap:.3cqi;padding:1cqi;pointer-events:none;}
+
+/* ---------- Icons ----------------------------------------------------- */
+.tb-icon{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none;}
+.tb-icon .f{fill:currentColor;stroke:none;}
+.tb-arrow{width:.8em;height:.8em;fill:currentColor;flex:none;}
+
+/* ---------- Player token (pawn) --------------------------------------- */
+.tb-token{
+  --pc:#c0392b;
+  flex:none;display:inline-flex;align-items:center;justify-content:center;
+  width:max(14px,3.8cqi);height:max(14px,3.8cqi);border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--pc) 55%,#fff),var(--pc) 55%,color-mix(in srgb,var(--pc) 60%,#000));
+  border:max(1px,.25cqi) solid color-mix(in srgb,var(--pc) 55%,#000);
+  box-shadow:0 .6cqi .8cqi rgba(0,0,0,.45),inset 0 -.35cqi 0 rgba(0,0,0,.25);
+  color:#fff;font:max(8px,1.8cqi)/1 var(--tb-display);text-shadow:0 1px 0 rgba(0,0,0,.4);
+}
+.tb-token.is-active{animation:tbHop 1.4s ease-in-out infinite;}
+.tb-token--sm{width:max(12px,2.7cqi);height:max(12px,2.7cqi);font-size:max(7px,1.3cqi);box-shadow:0 .25cqi .4cqi rgba(0,0,0,.35);}
+@keyframes tbHop{0%,100%{transform:translateY(0);}50%{transform:translateY(-.7cqi);}}
+@media (prefers-reduced-motion:reduce){.tb-token.is-active{animation:none;}}
+
+/* ---------- Centre ---------------------------------------------------- */
+.tb-center{
+  grid-row:2/7;grid-column:2/7;position:relative;min-height:0;overflow:hidden;
+  background-color:#f2e8d2;
+  background-image:radial-gradient(rgba(120,90,50,.07) 1px,transparent 1px);background-size:7px 7px;
+  box-shadow:inset 0 0 4cqi rgba(110,80,40,.25);
+}
+.tb-center-frame{
+  position:absolute;inset:1.3cqi;box-sizing:border-box;
+  border:.2cqi solid #b8a27a;outline:.1cqi solid #b8a27a;outline-offset:.45cqi;border-radius:.6cqi;
+  padding:1.6cqi 2.2cqi;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5cqi;
+  text-align:center;color:var(--tb-ink);font-family:var(--tb-text);
+}
+
+.tb-title{display:flex;flex-direction:column;align-items:center;gap:.3cqi;}
+.tb-title-main{font:6.2cqi/1 var(--tb-display);letter-spacing:.3cqi;color:var(--tb-bezel);text-shadow:.3cqi .3cqi 0 #d8a93a,.5cqi .5cqi 0 rgba(60,40,20,.2);}
+.tb-title-sub{display:flex;align-items:center;gap:1.2cqi;color:#9b6a14;}
+.tb-title-sub span{font:600 max(7px,1.9cqi)/1 var(--tb-text);letter-spacing:1cqi;padding-left:1cqi;text-transform:uppercase;}
+.tb-title-sub i{display:block;width:6cqi;height:.2cqi;background:currentColor;}
+
+.tb-turn{
+  display:inline-flex;align-items:center;gap:1cqi;padding:.6cqi 2cqi .6cqi .7cqi;
+  background:#fffaf0;border:.2cqi solid var(--pc);border-radius:999px;
+  box-shadow:0 .35cqi 0 color-mix(in srgb,var(--pc) 60%,#000);
+  font:400 max(8px,1.75cqi)/1.2 var(--tb-text);letter-spacing:.05cqi;color:var(--tb-ink);
+}
+.tb-turn b{font-weight:600;}
+.tb-turn-sq{color:var(--sq);text-transform:uppercase;letter-spacing:.12cqi;}
+
+/* Economy tiles */
+.tb-econ{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1cqi;width:100%;}
+.tb-econ-item{
+  --tone:var(--tb-ink-3);
+  display:flex;flex-direction:column;align-items:center;gap:.15cqi;min-width:0;
+  padding:.9cqi .4cqi .8cqi;margin:0;
+  background:#fffaf0;border:.18cqi solid var(--tb-line);border-radius:.9cqi;box-shadow:0 .35cqi 0 var(--tb-line);
+  font-family:var(--tb-text);color:var(--tb-ink);cursor:help;
+}
+.tb-econ-item.tone-good{--tone:var(--tb-good);}
+.tb-econ-item.tone-bad{--tone:var(--tb-bad);}
+button.tb-econ-item{appearance:none;cursor:pointer;white-space:normal;line-height:normal;}
+button.tb-econ-item:hover{transform:translateY(-.15cqi);box-shadow:0 .5cqi 0 var(--tb-line);}
+button.tb-econ-item[aria-expanded="true"]{background:#fff3cf;}
+.tb-econ-label{font:500 max(6px,1.1cqi)/1.1 var(--tb-text);letter-spacing:.12cqi;text-transform:uppercase;color:var(--tb-ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.tb-econ-label i,.tb-econ-sub i{font-style:normal;}
+.tb-econ-label .ls,.tb-econ-sub .ls{display:none;}
+.tb-econ-value{display:inline-flex;align-items:center;gap:.3cqi;font:600 max(9px,2.7cqi)/1.1 var(--tb-text);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--tb-ink);}
+.tb-econ-value .tb-arrow{color:var(--tone);width:.6em;height:.6em;}
+.tb-econ-sub{display:inline-flex;align-items:center;gap:.25cqi;font:500 max(6px,1.02cqi)/1.1 var(--tb-text);font-style:normal;letter-spacing:.06cqi;white-space:nowrap;color:var(--tone);}
+
+.tb-rent-table{display:flex;flex-wrap:wrap;justify-content:center;gap:.3cqi 1.2cqi;font:400 max(6.5px,1.15cqi)/1.3 var(--tb-text);color:var(--tb-ink-3);}
+.tb-rent-table b{color:var(--tb-ink);font-weight:600;}
+.tb-rent-table .tb-arrow{margin-left:.2cqi;}
+
+.tb-econ-foot{
+  font:400 max(6.5px,1.2cqi)/1.3 var(--tb-text);letter-spacing:.08cqi;color:var(--tb-ink-2);max-width:100%;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.tb-econ-foot b{color:var(--tb-ink);font-weight:600;}
+
+/* Card decks (decorative) */
+.tb-decks{display:flex;gap:3cqi;padding:.4cqi 0 .8cqi;}
+.tb-deck{width:8.4cqi;height:11.6cqi;}
+.tb-deck:nth-child(1){transform:rotate(-5deg);}
+.tb-deck:nth-child(2){transform:rotate(3deg);}
+.tb-deck:nth-child(3){transform:rotate(-2deg);}
+.tb-deck-card{
+  width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;
+  background:#fffaf0;border:.25cqi solid var(--sq);border-radius:.9cqi;
+  box-shadow:.3cqi .3cqi 0 #efe4c8,.35cqi .35cqi 0 .06cqi rgba(0,0,0,.25),
+             .65cqi .65cqi 0 color-mix(in srgb,var(--sq) 70%,#000),0 1cqi 1.4cqi rgba(0,0,0,.35);
+}
+.tb-deck-band{flex:none;height:2.4cqi;display:flex;align-items:center;justify-content:center;background:var(--sq);color:#fffaf0;font:600 max(6px,1.1cqi)/1 var(--tb-text);letter-spacing:.15cqi;text-transform:uppercase;}
+.tb-deck-body{flex:1;display:flex;align-items:center;justify-content:center;color:var(--sq);}
+.tb-deck-body .tb-icon{width:4cqi;height:4cqi;}
+
+/* Board guide */
+.tb-legend-toggle{
+  appearance:none;margin:0;min-height:max(24px,3.4cqi);padding:.6cqi 2.2cqi;
+  font:500 max(8px,1.25cqi)/1 var(--tb-text);letter-spacing:.14cqi;text-transform:uppercase;
+  color:#fffaf0;background:var(--tb-bezel);border:0;border-radius:999px;box-shadow:0 .3cqi 0 var(--tb-bezel-dark);cursor:pointer;
+}
+.tb-legend-toggle:hover{background:color-mix(in srgb,var(--tb-bezel) 85%,#fff);}
+.tb-legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6cqi 1.4cqi;width:100%;text-align:left;font:400 max(6.5px,1.2cqi)/1.25 var(--tb-text);color:var(--tb-ink-2);}
+.tb-lg{display:flex;gap:.6cqi;align-items:flex-start;}
+.tb-lg .tb-icon{width:max(10px,1.9cqi);height:max(10px,1.9cqi);color:var(--sq);}
+.tb-lg b{color:var(--sq);font-weight:600;text-transform:uppercase;letter-spacing:.08cqi;}
+
+/* Small boards: short labels, no decks */
+@container (max-width:470px){
+  .tb-econ-label .lf,.tb-econ-sub .lf{display:none;} .tb-econ-label .ls,.tb-econ-sub .ls{display:inline;}
+  .tb-decks{display:none;}
+}
+
+/* ---------- Optional extras ------------------------------------------- */
+/* Wooden table behind the board: add class="tb-table" to .board-area (or body). */
+.tb-table{
+  background-color:#5b3a22;
+  background-image:
+    repeating-linear-gradient(92deg,rgba(0,0,0,.10) 0 2px,transparent 2px 9px),
+    repeating-linear-gradient(88deg,rgba(255,220,170,.05) 0 1px,transparent 1px 23px),
+    linear-gradient(90deg,#4e311c,#6a4428 30%,#5a3a21 55%,#6e472a 80%,#4b2f1b);
+}
+/* Ivory dice for the existing dice box: add class "tb-dice-skin" to .dice-box. */
+.tb-dice-skin .die{background:#fffdf7;border-color:#cfc5b0;border-radius:22%;box-shadow:inset -3px -4px 0 #e6dcc7,0 4px 6px rgba(0,0,0,.3);}
+.tb-dice-skin .die .pip{background:#231c14;}
+.tb-dice-skin .die[aria-label="1"] .pip,.tb-dice-skin .die[aria-label="5"] .pip:nth-child(5){background:#b3261e;}
+.pmeta-sq{color:var(--sq);white-space:nowrap;}
+.pmeta-sq .tb-icon{width:12px;height:12px;vertical-align:-2px;margin-right:3px;}
+
+/* ---------- Game screen in the board's style ---------------------------
+   While a game is on screen (body.tb-page) the whole page is the wooden table,
+   and the log, dice box, progress cards and standings are printed paper like the
+   board. Paper components re-map the theme variables, so they keep these colours
+   in dark mode too (the board is a physical object). */
+body.tb-page{
+  background-color:#5b3a22;
+  background-image:
+    repeating-linear-gradient(92deg,rgba(0,0,0,.10) 0 2px,transparent 2px 9px),
+    repeating-linear-gradient(88deg,rgba(255,220,170,.05) 0 1px,transparent 1px 23px),
+    linear-gradient(90deg,#4e311c,#6a4428 30%,#5a3a21 55%,#6e472a 80%,#4b2f1b);
+  background-attachment:fixed;
+}
+body.tb-page #app>h1{font:400 22px/1.1 'Alfa Slab One',Georgia,serif;letter-spacing:.04em;color:#f3e9d2;text-shadow:0 2px 0 rgba(0,0,0,.35);}
+body.tb-page .board-wrap>.card{background:transparent;border:0;box-shadow:none;padding:6px 0 0;}
+body.tb-page .turn-bar{color:#f3e9d2;font-family:'Oswald','Arial Narrow',system-ui,sans-serif;letter-spacing:.03em;}
+body.tb-page .turn-bar .muted,body.tb-page .turn-bar small{color:#e3d3b0;}
+body.tb-page .turn-bar button,body.tb-page .side-toggle{
+  font:500 13px/1 'Oswald','Arial Narrow',system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;
+  background:#1f4a35;border:1px solid #0f2a1c;color:#fffaf0;box-shadow:0 3px 0 #0f2a1c;
+}
+body.tb-page .turn-bar button.gold{background:#9b6a14;border-color:#6e4b0e;box-shadow:0 3px 0 #6e4b0e;}
+body.tb-page .turn-bar button:hover,body.tb-page .side-toggle:hover{filter:brightness(1.12);}
+body.tb-page .side-toggle{padding:14px 10px;box-shadow:0 4px 14px rgba(0,0,0,.35);}
+body.tb-page .mute-btn{background:#f3e9d2;border-color:#2a2016;color:#231c14;}
+/* Paper components */
+body.tb-page .log-panel,body.tb-page .players-overview,body.tb-page .standings{
+  --bg:#efe3c6;--panel:#fffaf0;--ink:#231c14;--muted:#6b5a44;--line:#cdbb95;
+  background:#f3e9d2;color:#231c14;border:2px solid #2a2016;
+  box-shadow:0 12px 26px rgba(0,0,0,.4),0 3px 8px rgba(0,0,0,.3);
+  font-family:'Oswald','Arial Narrow',system-ui,sans-serif;
+}
+body.tb-page .log-panel{border-radius:12px;}
+body.tb-page .log-panel .log-head{background:#1f4a35;color:#fffaf0;border-bottom:2px solid #2a2016;font:500 12px/1 'Oswald','Arial Narrow',system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;padding:9px 12px;}
+body.tb-page .log-panel .log{background:#f3e9d2;color:#5b4a36;font-size:13px;letter-spacing:.01em;}
+body.tb-page .log-panel .log div{border-bottom:1px dashed rgba(42,32,22,.25);}
+body.tb-page .log-panel .log div:first-child{color:#231c14;font-weight:500;}
+body.tb-page .dice-box{background:#efe3c6;border-bottom:2px solid #2a2016;}
+body.tb-page .dice-cap{font-family:'Oswald','Arial Narrow',system-ui,sans-serif;color:#231c14;letter-spacing:.02em;}
+body.tb-page .players-overview h3,body.tb-page .standings h3{font:400 18px/1.1 'Alfa Slab One',Georgia,serif;color:#1f4a35;letter-spacing:.03em;}
+body.tb-page .players-overview .pcard{background:#fffaf0;border-color:#cdbb95;}
+body.tb-page .players-overview .pcard.turn{background:color-mix(in srgb,var(--pc) 10%,#fffaf0);}
+body.tb-page .players-overview .pname{font-family:'Oswald','Arial Narrow',system-ui,sans-serif;font-weight:600;letter-spacing:.02em;}
+body.tb-page .players-overview .ppct{font-family:'Oswald','Arial Narrow',system-ui,sans-serif;font-weight:600;}
+body.tb-page .players-overview .bar,body.tb-page .standings .bar{background:#e2d4b2;}
+body.tb-page .standings td,body.tb-page .standings th{border-bottom-color:rgba(42,32,22,.2);}
+body.tb-page .standings button.primary{background:#1f4a35;border-color:#0f2a1c;box-shadow:0 3px 0 #0f2a1c;font:500 13px/1 'Oswald','Arial Narrow',system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;}
+
+/* ---------- Market panel: newspaper financial pages -------------------- */
+.side-panel.paper-news{
+  --bg:#ece6d6;--panel:#f7f3e8;--ink:#161616;--muted:#555049;--line:#bdb5a2;--accent:#161616;--accent2:#7a5a12;--good:#1d6b3f;--bad:#9b1c1c;--danger:#9b1c1c;
+  background:#f4efe2;color:#161616;font-family:'Old Standard TT',Georgia,serif;
+  background-image:radial-gradient(rgba(60,50,30,.05) 1px,transparent 1px);background-size:5px 5px;
+}
+.paper-news .news-head{position:relative;display:block;background:transparent;border-bottom:3px double #161616;padding:12px 18px 6px;}
+.paper-news .news-head>button{position:absolute;top:10px;right:14px;}
+.paper-news .news-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 8px;font:italic 400 12px/1.2 'Old Standard TT',Georgia,serif;border-bottom:1px solid #161616;padding-bottom:4px;margin-right:70px;}
+.paper-news .news-title{font:400 clamp(26px,6vw,44px)/1 'UnifrakturMaguntia','Old English Text MT',Georgia,serif;text-align:center;margin:6px 0 4px;letter-spacing:.01em;color:#161616;}
+.paper-news .news-rule{display:flex;justify-content:center;gap:22px;border-top:1px solid #161616;padding-top:4px;font:700 11px/1 'Old Standard TT',Georgia,serif;letter-spacing:.2em;text-transform:uppercase;}
+.paper-news .panel-body>.card{background:transparent;border:0;padding:4px 0 0;box-shadow:none;}
+.paper-news .subtabs{border-bottom:2px solid #161616;gap:0;margin-bottom:10px;}
+.paper-news .subtabs button{border:0;border-radius:0;background:transparent;color:#555049;font:700 13px/1 'Old Standard TT',Georgia,serif;letter-spacing:.14em;text-transform:uppercase;padding:8px 6px;}
+.paper-news .subtabs button.active{background:#161616;color:#f4efe2;}
+.paper-news table{font-family:'Old Standard TT',Georgia,serif;}
+.paper-news .mtable-wrap thead th{background:#f4efe2;border-bottom:2px solid #161616;font:700 11px/1.2 'Old Standard TT',Georgia,serif;letter-spacing:.08em;text-transform:uppercase;}
+.paper-news td{border-bottom:1px dotted #8a8172;}
+.paper-news td.num{font-family:'Courier Prime','Courier New',monospace;font-size:12.5px;}
+.paper-news tbody tr:nth-child(odd) td{background:rgba(0,0,0,.025);}
+.paper-news tr[onclick]:hover td{background:rgba(122,90,18,.1);}
+.paper-news button{border-radius:2px;font-family:'Old Standard TT',Georgia,serif;}
+.paper-news button.primary{background:#161616;border-color:#161616;color:#f4efe2;}
+.paper-news button.sell{background:#9b1c1c;border-color:#9b1c1c;}
+.paper-news .qty{border-radius:2px;border-color:#161616;font-family:'Courier Prime','Courier New',monospace;}
+.paper-news small,.paper-news .muted{color:#555049;font-style:italic;}
+/* classified ads */
+.paper-news .mgrid{gap:10px;}
+.paper-news .mcard{background:#fbf8ef;border:1.5px solid #161616;border-radius:0;box-shadow:3px 3px 0 rgba(22,22,22,.18);padding:10px 12px;}
+.paper-news .mcard .mtitle{font:700 16px/1.1 'Old Standard TT',Georgia,serif;text-transform:uppercase;letter-spacing:.04em;}
+.paper-news .mcard .tag{border-radius:0;font:700 10px/1 'Old Standard TT',Georgia,serif;letter-spacing:.14em;padding:4px 6px;background:#161616 !important;color:#f4efe2;}
+.paper-news .mstats span{background:transparent;border:0;border-bottom:1px dotted #8a8172;border-radius:0;color:#161616;font-family:'Old Standard TT',Georgia,serif;padding:2px 2px;}
+.paper-news .mheld{color:#555049;font-style:italic;}
+.paper-news .chart-box{background:#fbf8ef;border:1px solid #161616;border-radius:0;}
+
+/* ---------- Finance panel: printed statement form ---------------------- */
+.side-panel.paper-form{
+  --bg:#f3ecd9;--panel:#fffcf2;--ink:#1d2433;--muted:#5d6472;--line:#bfb7a4;--accent:#1f4a35;--accent2:#9b6a14;--good:#1c7a52;--bad:#b3261e;
+  background:#fbf6e8;color:#1d2433;font-family:'Oswald','Arial Narrow',system-ui,sans-serif;
+  background-image:linear-gradient(rgba(29,36,51,.035) 1px,transparent 1px);background-size:100% 24px;
+}
+.paper-form .form-head{background:#fbf6e8;border-bottom:3px solid #1d2433;padding:12px 18px 10px;gap:14px;}
+.paper-form .form-title small{display:block;font:500 11px/1 'Oswald','Arial Narrow',sans-serif;letter-spacing:.24em;text-transform:uppercase;color:#5d6472;}
+.paper-form .form-title h3{font:400 clamp(19px,4.5vw,26px)/1.1 'Alfa Slab One',Georgia,serif;color:#1f4a35;margin:2px 0 0;letter-spacing:.02em;}
+.paper-form .form-meta{margin-left:auto;text-align:right;font:500 12px/1.3 'Courier Prime','Courier New',monospace;color:#1d2433;border:1.5px solid #1d2433;padding:4px 10px;}
+.paper-form .form-head>button{border-radius:2px;border-color:#1d2433;}
+.paper-form .tabs button{border-radius:2px;}
+/* boxes, sections and ruled rows */
+.paper-form .fin-cash,.paper-form .fo-card,.paper-form .bank-box,.paper-form .hold-card{border:1.5px solid #1d2433;border-radius:0;background:#fffcf2;box-shadow:none;}
+.paper-form .fo-title{color:#1d2433;letter-spacing:.14em;}
+.paper-form .sheet-sec{border-radius:0;background:#1d2433;color:#fbf6e8;font:500 13px/1 'Oswald','Arial Narrow',sans-serif;letter-spacing:.14em;text-transform:uppercase;padding:6px 10px;margin:12px 0 0;}
+.paper-form .sheet-sec .num{border-radius:0;background:#fbf6e8;color:#1d2433;font-family:'Alfa Slab One',Georgia,serif;}
+.paper-form .sheet-sec .sec-total{font-family:'Courier Prime','Courier New',monospace;font-weight:700;letter-spacing:0;}
+.paper-form .sheet-table{border:1.5px solid #1d2433;border-top:0;background:#fffcf2;}
+.paper-form .sheet-table td{border-bottom:1px solid #cfc7b3;padding:4px 8px;font-size:13px;}
+.paper-form .sheet-table td.desc{border-right:1px solid #cfc7b3;}
+/* the figures look filled in on the form */
+.paper-form .sheet-table td.num,.paper-form .fin-cash b,.paper-form .fo-big,.paper-form .sbar-row b,.paper-form .fo-note b{font-family:'Courier Prime','Courier New',monospace;}
+.paper-form .sheet-table td.num{font-size:13.5px;color:#1a2a6c;}
+.paper-form .sheet-table tr.sub td{color:#5d6472;}
+.paper-form .sheet-table tr.sel td{background:rgba(155,106,20,.15);}
+.paper-form .panel-body .bank-box{background:#fffcf2;box-shadow:0 -8px 18px -6px rgba(0,0,0,.2);}
+.paper-form button,.paper-form input,.paper-form select{border-radius:2px;}
+.paper-form button.primary{background:#1f4a35;border-color:#1f4a35;}
+.paper-form button.gold{background:#9b6a14;border-color:#9b6a14;}
+.move-layer{position:fixed;z-index:48;pointer-events:none;transition:left .13s linear,top .13s linear;}
+.move-layer .ml-pawn{position:absolute;inset:0;display:block;}
+.move-layer .tb-token{width:100%;height:100%;font-size:calc(100% * 0.5);}
+.move-layer .ml-shadow{position:absolute;left:12%;right:12%;bottom:-10%;height:22%;border-radius:50%;background:rgba(0,0,0,.35);filter:blur(1px);}
+/* each square is a hop: up in an arc and down again, the shadow shrinking while the pawn is in the air */
+.move-layer.hop .ml-pawn{animation:moveHop .13s ease-in-out;}
+.move-layer.hop .ml-shadow{animation:moveShadow .13s ease-in-out;}
+@keyframes moveHop{0%{transform:translateY(0) scale(1);}50%{transform:translateY(-55%) scale(1.12);}100%{transform:translateY(0) scale(1);}}
+@keyframes moveShadow{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(.6);opacity:.55;}}
+.modal-backdrop.move-wait{visibility:hidden;}
+.prop-photo{margin:6px 0 2px;}
+.prop-img{display:block;width:100%;height:auto;}
+.evt-photo{max-width:260px;margin:6px auto 4px;box-shadow:0 3px 10px rgba(0,0,0,.3);}
+/* ---------- Letters (events and bills) ---------- */
+.letter{width:min(380px,92vw);height:min(340px,78vh);display:flex;flex-direction:column;margin:0;text-align:left;color:#1d2433;background:#fffdf5;
+  font-family:'Courier Prime','Courier New',monospace;padding:12px;border-radius:2px;
+  box-shadow:0 14px 34px rgba(0,0,0,.45);
+  background-image:repeating-linear-gradient(135deg,#b3261e 0 10px,#fffdf5 10px 16px,#1f5f8f 16px 26px,#fffdf5 26px 32px);}
+.letter-head,.letter-body{background:#fffdf5;}
+.letter-head{display:flex;justify-content:space-between;gap:10px;padding:12px 14px 8px;border-bottom:1px dashed #b9b09a;}
+.letter-addr{font-size:13px;line-height:1.45;}
+.letter-addr>span{display:inline-block;font:500 11px/1 'Oswald','Arial Narrow',sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#6b5a44;margin-bottom:4px;}
+.letter-post{display:flex;align-items:flex-start;gap:6px;flex:none;}
+.letter-mark{width:50px;height:50px;border:1.5px solid rgba(29,36,51,.55);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font:500 9px/1.1 'Oswald','Arial Narrow',sans-serif;letter-spacing:.12em;color:rgba(29,36,51,.7);transform:rotate(-12deg);}
+.letter-mark b{font:400 16px/1 'Alfa Slab One',Georgia,serif;letter-spacing:0;}
+.letter-stamp{width:46px;height:54px;display:flex;align-items:center;justify-content:center;color:#fffaf0;background:var(--sq);
+  outline:3px dotted #fffdf5;outline-offset:-4px;border:3px solid var(--sq);box-shadow:1px 2px 3px rgba(0,0,0,.25);}
+.letter-stamp .tb-icon{width:24px;height:24px;}
+.letter-body{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;padding:10px 14px 14px;font-size:14px;line-height:1.5;}
+.letter-head{flex:none;}
+.letter-body p{margin:0 0 8px;}
+.letter-due{display:flex;justify-content:space-between;align-items:baseline;border-top:1.5px solid #1d2433;border-bottom:1.5px solid #1d2433;padding:6px 0;margin:6px 0 8px;}
+.letter-due span{font:500 11px/1 'Oswald','Arial Narrow',sans-serif;letter-spacing:.2em;text-transform:uppercase;}
+.letter-due b{font-size:22px;}
+.letter-note{font-size:12.5px;color:#5d6472;}
+.letter-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:auto;padding-top:6px;}
+.letter-actions button{border-radius:2px;font:500 13px/1 'Oswald','Arial Narrow',sans-serif;letter-spacing:.1em;text-transform:uppercase;padding:9px 16px;}
+.letter-actions button.primary{background:#1f4a35;border-color:#1f4a35;color:#fffaf0;}
+/* ---------- Pawns (sprites) ---------- */
+.tb-token.tk{background:none;border:0;border-radius:0;box-shadow:none;text-shadow:none;animation:none;
+  width:max(22px,6.6cqi);height:max(22px,6.6cqi);filter:drop-shadow(0 .25cqi .2cqi rgba(0,0,0,.3));}
+/* A square with pawns on it fades its own icon so the pawns stand out. */
+.tb-sq.has-tokens .tb-sq-body .tb-icon{opacity:.18;}
+.tb-token.tk.is-active{animation:none;}
+.tb-token.tk .tk-svg,.tk-opt .tk-svg{display:block;width:100%;height:100%;}
+.tb-token.tk.tb-token--sm{width:max(16px,3.2cqi);height:max(16px,3.2cqi);filter:none;}
+.tb-token.tk.tb-token--card{width:30px;height:30px;flex:none;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35));}
+.move-layer .tb-token.tk{width:100%;height:100%;filter:drop-shadow(0 2px 2px rgba(0,0,0,.3));}
+.move-layer .ml-shadow{display:none;}
+.tk-pick{display:flex;gap:4px;flex:none;}
+.tk-opt{width:38px;height:38px;padding:3px;border-radius:8px;border:2px solid var(--line);background:var(--panel);}
+.tk-opt.sel{border-color:currentColor;box-shadow:0 0 0 2px color-mix(in srgb,currentColor 30%,transparent);}
+.tk-opt:disabled:not(.sel){opacity:.25;}
+.tk-opt:disabled.sel{opacity:1;}
+/* ---------- Flash deal: a private offer clipped from the newspaper ---------- */
+.clip{width:min(380px,92vw);max-height:88vh;overflow:auto;margin:0;text-align:left;color:#161616;background:#fbf8ef;
+  border:1.5px solid #161616;box-shadow:4px 4px 0 rgba(22,22,22,.25),0 14px 34px rgba(0,0,0,.4);padding:10px 14px 12px;
+  font-family:'Old Standard TT',Georgia,serif;
+  background-image:repeating-linear-gradient(0deg,rgba(22,22,22,.025) 0 1px,transparent 1px 3px);}
+.clip-top{display:flex;justify-content:space-between;border-bottom:1px solid #161616;padding-bottom:3px;
+  font:400 14px/1.2 'UnifrakturMaguntia','Old Standard TT',serif;}
+.clip-top span:last-child{font:700 10px/1.6 'Old Standard TT',Georgia,serif;letter-spacing:.14em;text-transform:uppercase;}
+.clip-kicker{margin-top:6px;font:700 10px/1 'Old Standard TT',Georgia,serif;letter-spacing:.2em;text-transform:uppercase;}
+.clip-title{font:700 21px/1.1 'Old Standard TT',Georgia,serif;text-transform:uppercase;letter-spacing:.03em;border-bottom:3px double #161616;padding:3px 0 5px;}
+.clip-photo{border:1px solid #161616;width:62%;margin:8px auto 4px;}
+.clip-price{display:flex;align-items:baseline;gap:8px;margin:8px 0 2px;font:700 10px/1 'Old Standard TT',Georgia,serif;letter-spacing:.16em;text-transform:uppercase;}
+.clip-price b{font:400 26px/1 'Alfa Slab One',Georgia,serif;letter-spacing:0;}
+.clip-text{margin:4px 0 6px;font-size:13.5px;line-height:1.4;}
+.clip-link{color:#161616;font-weight:700;}
+.clip .evt-stepper{justify-content:flex-start;margin:6px 0;}
+.clip .evt-stepper button,.clip .evt-qty{background:#fbf8ef;color:#161616;border:1.5px solid #161616;border-radius:0;}
+.clip .evt-stepper .evt-max{font:700 10px/1 'Old Standard TT',Georgia,serif;letter-spacing:.12em;text-transform:uppercase;padding:8px;}
+.clip .evt-qty:focus{outline:2px solid #161616;}
+.clip .flash-preview{background:none;border:0;border-top:1.5px solid #161616;border-bottom:1.5px solid #161616;border-radius:0;padding:4px 0;margin:6px 0 10px;
+  font-family:'Courier Prime','Courier New',monospace;font-size:12.5px;}
+.clip .fp-row{border-bottom:1px dotted rgba(22,22,22,.35);}
+.clip .fp-row:last-child{border-bottom:0;}
+.clip .fp-row.fp-total{font-size:14px;border-bottom:1px solid #161616;}
+.clip .fp-row.fp-warn b{color:#8a5a00;}
+.clip .fp-row.fp-bad b{color:#b3261e;}
+.clip-actions{display:flex;justify-content:flex-end;gap:8px;}
+.clip-actions button,.letter-actions button:not(.primary){border-radius:0;font:700 12px/1 'Old Standard TT',Georgia,serif;letter-spacing:.14em;text-transform:uppercase;padding:9px 16px;background:#fbf8ef;color:#161616;border:1.5px solid #161616;}
+.clip-actions button.primary{background:#161616;color:#fbf8ef;}
+.letter-actions button:not(.primary){font-family:'Oswald','Arial Narrow',sans-serif;font-weight:500;letter-spacing:.1em;border-radius:2px;color:#1d2433;border-color:#1d2433;background:#fffdf5;}
+/* ---------- Common popup size: every popup is the same box, text scrolls inside, buttons bottom-right ---------- */
+:root{--pop-w:min(380px,92vw);--pop-h:min(340px,80vh);--pop-lw:min(560px,94vw);--pop-lh:min(460px,86vh);}   /* normal + large */
+.letter{width:var(--pop-w);height:var(--pop-h);}
+.clip{width:var(--pop-lw);height:var(--pop-lh);max-height:none;overflow:hidden;display:flex;flex-direction:column;}
+.clip-top,.clip-kicker,.clip-title,.clip-actions{flex:none;}
+.clip-body{flex:1;min-height:0;overflow:auto;padding-bottom:4px;}
+.clip-deal{display:flex;gap:10px;align-items:flex-start;}
+.clip-deal>div:last-child{flex:1;min-width:0;}
+.clip-photo{width:44%;flex:none;margin:8px 0 0;}
+.clip-actions{padding-top:8px;border-top:1px solid #161616;}
+.confirm-card{width:var(--pop-lw);max-width:none;height:var(--pop-lh);display:flex;flex-direction:column;overflow:auto;}
+.confirm-card.alert-card,.clip.clip-sm{width:var(--pop-w);height:var(--pop-h);}
+/* loan / bank popup and announcements on paper, like the letters */
+.confirm-card{background:#fffdf5;color:#1d2433;border:1.5px solid #1d2433;border-top:5px solid var(--accent2);border-radius:2px;}
+.confirm-card.denied{border-top-color:#b3261e;}
+.confirm-card h3{font-family:'Alfa Slab One',Georgia,serif;font-weight:400;}
+.confirm-card .confirm-head{font-family:'Oswald','Arial Narrow',sans-serif;font-weight:500;letter-spacing:.16em;}
+.confirm-card table td{font-family:'Courier Prime','Courier New',monospace;border-bottom:1px dotted rgba(29,36,51,.3);}
+.confirm-card .muted{color:#5d6472;}
+.confirm-card .confirm-actions button{border-radius:2px;font:500 13px/1 'Oswald','Arial Narrow',sans-serif;letter-spacing:.08em;text-transform:uppercase;padding:9px 14px;}
+.confirm-card .confirm-actions button:not(.gold):not(.sell):not(.primary){background:#fffdf5;color:#1d2433;border:1.5px solid #1d2433;}
+.confirm-card .confirm-actions{margin-top:auto;padding-top:12px;}
+/* Real estate cards: same height in every row, same header lines whatever the name length */
+.mgrid{grid-auto-rows:1fr;}
+.mgrid .mcard{display:flex;flex-direction:column;min-width:0;}
+.mhead{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;}
+.mhead .mtitle{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mhead .tag{margin-top:2px;}
+.mcard .mfoot{margin-top:auto;padding-top:6px;}
 </style>
 </head>
 <body>
@@ -452,7 +885,8 @@ function pickEvent(){
   const pool=EVENTS.filter(e=>e.type===type);
   return pool[Math.floor(Math.random()*pool.length)];
 }
-const BOARD=["payday","market","doodad","event","charity","doodad","market","payday","downsized","event","doodad","baby","market","payday","doodad","event","charity","market","payday","doodad","downsized","event","baby","market"];
+// 24 squares: 4 Payday, 6 Market, 6 Doodad, 4 Event, 2 Charity, 1 Downsized, 1 Baby.
+const BOARD=["payday","market","doodad","event","charity","doodad","market","payday","downsized","event","doodad","baby","market","payday","doodad","event","charity","market","payday","doodad","market","event","doodad","market"];
 const BOARD_COORDS=(()=>{const n=7,c=[];for(let col=1;col<=n;col++)c.push([1,col]);for(let row=2;row<=n;row++)c.push([row,n]);for(let col=n-1;col>=1;col--)c.push([n,col]);for(let row=n-1;row>=2;row--)c.push([row,1]);return c;})();
 const COLORS=["var(--p0)","var(--p1)","var(--p2)","var(--p3)","var(--p4)","var(--p5)"];
 const fmt=n=>"$"+Math.round(n).toLocaleString("en-US");
@@ -475,7 +909,7 @@ function applyMarketSnapshot(arr){
   arr.forEach(s=>{const m=MARKET.find(x=>x.id===s.id); if(m){m.price=s.price;m.prevPrice=s.prevPrice;m.history=s.history;m.high52=s.high52;m.low52=s.low52;m.basePrice0=s.basePrice0;m.anchor=s.anchor;if(s.rent!=null)m.rent=s.rent;if(s.div!=null)m.div=s.div;}});
 }
 function sharedSnapshot(){
-  return {phase:state.phase==="join"?"setup":state.phase,speed:state.speed||"medium",numPlayers:state.numPlayers,names:state.names,profs:state.profs,ready:state.ready,
+  return {phase:state.phase==="join"?"setup":state.phase,speed:state.speed||"medium",numPlayers:state.numPlayers,names:state.names,profs:state.profs,ready:state.ready,tokens:state.tokens||null,
     players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,prevMortgageRate:state.prevMortgageRate||null,bankRate:state.bankRate||BANK_RATE0,prevBankRate:state.prevBankRate||null,rentRate:state.rentRate||RENT_RATE0,prevRentRate:state.prevRentRate||null,rentAdj:state.rentAdj||{},lastMarketEvent:state.lastMarketEvent||null,alert:state.alert||null,lastRoll:state.lastRoll||null,
     market:snapshotMarket(),updatedAt:Date.now()};
 }
@@ -485,6 +919,7 @@ function applyShared(data){
   if(data.numPlayers) state.numPlayers=data.numPlayers;
   if(data.speed) state.speed=data.speed;
   if(data.names) state.names=data.names;
+  if(data.tokens) state.tokens=data.tokens;
   if(data.profs) state.profs=data.profs;
   if(data.ready) state.ready=data.ready;
   if(data.players) state.players=data.players;
@@ -572,6 +1007,7 @@ function claimSeatOnHost(name){
   else { state.names=state.names.map((n,i)=>i===idx?name:n); }
   while(state.ready.length<state.numPlayers) state.ready.push(false);
   state.ready[idx]=false;
+  ensureTokens();
   return idx;
 }
 // Public STUN + free OpenRelay TURN (turn relay helps when a direct P2P
@@ -726,7 +1162,7 @@ function log(m){state.log.unshift(m); if(state.log.length>40)state.log.pop();}
 // listed files replace the generated sound for that name (one small request, no 404 spam per sound).
 // Sounds play only in the browser where they matter (your own roll, buy, payday…); wins, fire sales
 // and bankruptcies play for everyone. Mute is remembered per browser.
-const SFX_NAMES=["dice","payday","cost","buy","sell","loan","denied","deal","event","charity","paid","turn","win","firesale","bankrupt"];
+const SFX_NAMES=["step","dice","payday","cost","buy","sell","loan","denied","deal","event","charity","paid","turn","win","firesale","bankrupt"];
 let audioCtx=null;
 const sfxFiles={};   // name -> HTMLAudioElement once a sounds/<name>.mp3 file has loaded
 try{ state.muted=localStorage.getItem("cf_muted")==="1"; }catch(e){ state.muted=false; }
@@ -763,6 +1199,7 @@ function noise(c,dur,o){
   src.connect(f); f.connect(g); g.connect(c.destination); src.start(t0);
 }
 const SYNTH={
+  step:c=>{ tone(c,520,0.05,{type:"triangle",vol:0.12}); tone(c,780,0.07,{type:"triangle",at:0.04,vol:0.08}); },
   dice:c=>{
     tone(c,110,0.09,{type:"triangle",vol:0.18});
     let t=0.03, gap=0.05;
@@ -790,7 +1227,7 @@ const SYNTH={
 };
 function sfx(name){
   if(state.muted) return;
-  if(name!=="dice"&&typeof diceRolling==="function"&&diceRolling()){ setTimeout(()=>sfx(name),diceAnim.until-Date.now()+30); return; }
+  if(name!=="dice"&&name!=="step"&&typeof diceRolling==="function"&&(diceRolling()||moving())){ const until=Math.max(diceAnim.until,moveAnim?moveAnim.until:0); setTimeout(()=>sfx(name),until-Date.now()+30); return; }
   try{
     const f=sfxFiles[name];
     if(f){ const a=f.cloneNode(); a.volume=0.8; a.play().catch(()=>{}); return; }
@@ -812,10 +1249,10 @@ function diceRolling(){return Date.now()<diceAnim.until;}
 function diceCaption(r){const p=state.players[r.who]; const t=r.dice.reduce((a,b)=>a+b,0); return p?`<b>${p.name}</b> rolled ${r.dice.length>1?r.dice.join(" + ")+" = ":""}<b>${t}</b>`:"";}
 function diceBoxHTML(){
   const r=state.lastRoll;
-  if(!r) return `<div class="dice-box"><div class="dice-row">${dieHTML(1)}</div><div class="dice-cap muted">Waiting for the first roll</div></div>`;
+  if(!r) return `<div class="dice-box tb-dice-skin"><div class="dice-row">${dieHTML(1)}</div><div class="dice-cap muted">Waiting for the first roll</div></div>`;
   const rolling=diceRolling();
   const faces=rolling?r.dice.map(()=>1+Math.floor(Math.random()*6)):r.dice;
-  return `<div class="dice-box"><div class="dice-row${rolling?" rolling":""}" id="dice-row">${faces.map(dieHTML).join("")}</div><div class="dice-cap" id="dice-cap">${rolling?"Rolling…":diceCaption(r)}</div></div>`;
+  return `<div class="dice-box tb-dice-skin"><div class="dice-row${rolling?" rolling":""}" id="dice-row">${faces.map(dieHTML).join("")}</div><div class="dice-cap" id="dice-cap">${rolling?"Rolling…":diceCaption(r)}</div></div>`;
 }
 function syncDice(){
   const r=state.lastRoll, id=r?r.id:null;
@@ -824,6 +1261,7 @@ function syncDice(){
   if(!r||id===diceAnim.id) return;
   diceAnim.id=id; diceAnim.until=Date.now()+DICE_ANIM_MS;
   sfx("dice");
+  startMove(r);
   clearInterval(diceAnim.timer);
   diceAnim.timer=setInterval(()=>{
     const row=document.getElementById("dice-row"), cap=document.getElementById("dice-cap");
@@ -835,6 +1273,45 @@ function syncDice(){
     }
     if(row){ row.classList.add("rolling"); row.innerHTML=r.dice.map(()=>dieHTML(1+Math.floor(Math.random()*6))).join(""); }
   },75);
+}
+// ---- Pawn movement ----
+// After the dice settle, the rolling player's pawn hops square by square from where it was to where
+// it landed. The pawn is drawn in a fixed-position layer outside #app (render() rebuilds #app), placed
+// over each square in turn; while it travels, the real pawn and the landing popup stay hidden.
+const MOVE_STEP_MS=130, MOVE_START_MS=450;   // the pawn sets off while the dice are still settling
+let moveAnim=null;
+function moving(){return !!moveAnim&&Date.now()<moveAnim.until;}
+function squareCenter(i){
+  const el=document.querySelector('.tb-sq[data-i="'+i+'"]'); if(!el) return null;
+  const r=el.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2,w:r.width};
+}
+function startMove(r){
+  if(typeof document==="undefined"||!document.body||!document.body.appendChild) return;
+  if(r.from==null||r.to==null||r.from===r.to) return;
+  const pl=state.players[r.who]; if(!pl) return;
+  const steps=(r.to-r.from+BOARD.length)%BOARD.length;
+  const reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(reduce) return;
+  endMove();
+  const layer=document.createElement("div");
+  layer.className="move-layer"; layer.innerHTML=`<span class="ml-shadow"></span><span class="ml-pawn">${tbTokenHTML(pl,r.who,{dir:stepDir(r.from,(r.from+1)%BOARD.length)})}</span>`;
+  document.body.appendChild(layer);
+  moveAnim={who:r.who,layer,until:Date.now()+MOVE_START_MS+steps*MOVE_STEP_MS+80,timers:[]};
+  const place=i=>{const c=squareCenter(i); if(!c) return; const tk=document.querySelector(".tb-sq .tb-token.tk:not(.tb-token--sm)"), bd=document.querySelector(".gameboard.tb-board");
+    const size=tk?tk.getBoundingClientRect().width:Math.max(22,(bd?bd.clientWidth:c.w*15)*0.066);   // same size as a standing pawn
+    layer.style.width=size+"px"; layer.style.height=size+"px"; layer.style.left=(c.x-size/2)+"px"; layer.style.top=(c.y-size/2)+"px";};
+  render();               // hide the real pawn at its new square
+  place(r.from);
+  for(let k=1;k<=steps;k++){
+    moveAnim.timers.push(setTimeout(()=>{ const a=(r.from+k-1)%BOARD.length, b=(r.from+k)%BOARD.length; const pw=layer.querySelector(".ml-pawn"); if(pw) pw.innerHTML=tbTokenHTML(pl,r.who,{dir:stepDir(a,b)}); place(b); layer.classList.remove("hop"); void layer.offsetWidth; layer.classList.add("hop"); if(k===steps) sfx("step"); },MOVE_START_MS+(k-1)*MOVE_STEP_MS));
+  }
+  moveAnim.timers.push(setTimeout(()=>{ endMove(); render(); },moveAnim.until-Date.now()));
+}
+function endMove(){
+  if(!moveAnim) return;
+  moveAnim.timers.forEach(clearTimeout);
+  if(moveAnim.layer&&moveAnim.layer.parentNode) moveAnim.layer.parentNode.removeChild(moveAnim.layer);
+  moveAnim=null;
 }
 function syncSounds(){
   const a=state.alert;
@@ -1054,6 +1531,7 @@ function setPlayers(n){
   state.names=Array(n).fill("").map((_,i)=>oldNames[i]||"");
   state.profs=Array(n).fill(0).map((_,i)=>oldProfs[i]!=null?oldProfs[i]:0);
   state.ready=Array(n).fill(false).map((_,i)=>oldReady[i]||false);
+  ensureTokens();
   if(state.online){ if(state.myIdx!=null&&state.myIdx<n) state.names[state.myIdx]=state.myName; pushState(); }
   render();
 }
@@ -1108,7 +1586,7 @@ function spawnListing(){
   const qty=1;
   const price=Math.round(m.price*listingPriceFactor(kind));
   const turnsLeft=2+Math.floor(Math.random()*3);
-  state.listings.push({id:"L"+(state.listingSeq++),instId:m.id,kind,price,qty,turnsLeft,downPct:pickDownPct(),costPct:pickCostPct()});
+  state.listings.push({id:"L"+(state.listingSeq++),instId:m.id,kind,price,qty,turnsLeft,downPct:pickDownPct(),costPct:pickCostPct(),img:Math.floor(Math.random()*3)});
 }
 function tickListings(){
   // Pacing (tuned by bot simulation for ~30-minute games): each week an offer may get snapped up by
@@ -1138,7 +1616,7 @@ function startGame(){
   for(let i=0;i<4;i++) spawnListing();
   state.players=state.names.map((nm,i)=>{
     const pr=PROFESSIONS[Math.floor(Math.random()*PROFESSIONS.length)];
-    return {...professionSheet(pr),profession:pr.name,name:nm.trim()||("Player "+(i+1)),cash:pr.savings+(speedCfg().bonus||0),kids:0,holdings:{},bankLoanBal:0,bankLoanPmt:0,pos:0,escaped:false,bankrupt:false,place:null,color:COLORS[i]};
+    return {...professionSheet(pr),model:ensureTokens()[i]||TOKEN_ORDER[i%4],facing:"down",profession:pr.name,name:nm.trim()||("Player "+(i+1)),cash:pr.savings+(speedCfg().bonus||0),kids:0,holdings:{},bankLoanBal:0,bankLoanPmt:0,pos:0,escaped:false,bankrupt:false,place:null,color:COLORS[i]};
   });
   state.phase="playing"; state.alert=null; state.lastRoll=null; state.week=0; state.mortgageRate=startMortgageRate(); state.prevMortgageRate=state.mortgageRate; state.bankRate=BANK_RATE0; state.prevBankRate=BANK_RATE0; state.rentRate=speedCfg().rent||RENT_RATE0; state.prevRentRate=state.rentRate; state.rentAdj={}; refreshRents(); state.lastMarketEvent=null; state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
   log("Game started. "+state.players[0].name+" goes first. Market is open.");
@@ -1187,7 +1665,7 @@ function endTurn(){
 function rollDice(n){
   if(state.online&&state.myIdx!==state.turn) return;
   if(state.hasRolled||state.pending) return;
-  const p=state.players[state.turn];
+  const p=state.players[state.turn], from=p.pos;
   const charity=(p.charityTurns||0)>0;
   n=n===2&&charity?2:1;
   const dice=Array.from({length:n},()=>1+Math.floor(Math.random()*6));
@@ -1197,10 +1675,11 @@ function rollDice(n){
   // (landing is handled by resolveSpace).
   for(let s=1;s<roll;s++){ if(BOARD[(p.pos+s)%BOARD.length]==="payday") collectPayday(p,true); }
   p.pos=(p.pos+roll)%BOARD.length;
+  p.facing=stepDir((p.pos-1+BOARD.length)%BOARD.length,p.pos);
   const sp=BOARD[p.pos];
   log(p.name+" rolled "+(n===2?dice.join(" + ")+" = "+roll:"a "+roll)+" -> landed on "+sp+"."+(charity?" ("+p.charityTurns+" charity turn"+(p.charityTurns===1?"":"s")+" left)":""));
   state.hasRolled=true;
-  state.lastRoll={id:Date.now()+"-"+Math.random().toString(36).slice(2,7),dice,who:state.turn};
+  state.lastRoll={id:Date.now()+"-"+Math.random().toString(36).slice(2,7),dice,who:state.turn,from,to:p.pos};
   resolveSpace(p,sp);
   syncRender();
 }
@@ -1246,7 +1725,7 @@ function resolveSpace(p,sp){
     state.flashQty=1;
     sfx("deal");
     state.pending={kind:"flashdeal",p,id:m.id,dealPrice,qtyMax,// Property flash deals come with their own lease rent: market rent ±5%.
-      rent:m.type==="realestate"?Math.round(m.rent*rnd(0.95,1.05)/5)*5:null,downPct:m.type==="realestate"?pickDownPct():null,costPct:m.type==="realestate"?pickCostPct():null};
+      rent:m.type==="realestate"?Math.round(m.rent*rnd(0.95,1.05)/5)*5:null,img:m.type==="realestate"?Math.floor(Math.random()*3):null,downPct:m.type==="realestate"?pickDownPct():null,costPct:m.type==="realestate"?pickCostPct():null};
   }else if(sp==="event"){
     const ev=pickEvent();
     state.nextBill=null;
@@ -1667,6 +2146,7 @@ function render(){
   if(state.phase==="setup"){ el.classList.remove("fit-screen"); el.innerHTML=setupHTML(); }
   else { el.classList.add("fit-screen"); el.innerHTML=gameHTML(state.phase==="over"); }
   kept.forEach(k=>{ if(k.sel===".panel-body"&&k.panel!==state.panel) return; const n=el.querySelector(k.sel); if(n) n.scrollTop=k.top; });
+  if(typeof document!=="undefined"&&document.body&&document.body.classList) document.body.classList.toggle("tb-page",state.phase!=="setup");
   syncSounds();
   syncDice();
 }
@@ -1695,6 +2175,7 @@ function setupHTML(){
     <p class="muted">Solo game — escape the Rat Race in as few weeks as you can. Your profession is dealt at random; a week is one of your turns.</p>
     <div class="card">
       <div class="row"><b>Your name:</b> <input value="${state.names[0]}" oninput="state.names[0]=this.value" style="flex:1;min-width:140px;"></div>
+      <div class="row" style="margin-top:10px;"><b>Your pawn:</b> ${tokenPickerHTML(0,COLORS[0])}</div>
       <div style="margin-top:10px;"><b>Game speed</b>${speedPickerHTML()}</div>
       <p class="muted" style="margin:6px 0 0;font-size:12px;">Your best times on this device: ${bests}</p>
     </div>
@@ -1707,7 +2188,7 @@ function setupHTML(){
     const isMine=!state.online||state.myIdx===i;
     const isReady=!!state.ready[i];
     rows+=`<div class="row card" style="padding:10px;">
-      <span class="tok" style="background:${COLORS[i]}"></span>
+      ${tokenPickerHTML(i,COLORS[i])}
       <input placeholder="Player ${i+1} name" value="${state.names[i]}" ${isMine?`oninput="state.names[${i}]=this.value;if(state.online){state.myName=this.value;pushState();}"`:"disabled"} style="flex:1;">
       ${state.online?(isMine
         ?`<button class="${isReady?'primary':''}" onclick="toggleReady()">${isReady?"✓ Ready":"Ready up"}</button>`
@@ -1739,59 +2220,538 @@ const SQUARES={
   downsized:{emoji:"⚠️",label:"Downsized",color:"#5b6270",desc:"Pay a month of expenses, lose 2 turns"},
   baby:{emoji:"👶",label:"Baby",color:"#2f93b8",desc:"New child: expenses go up (max 3)"},
 };
-function playerToken(pl,i,extra){
-  return `<span class="ptok${extra||""}" style="background:${pl.color}" title="${pl.name}">${(pl.name||"?").trim().charAt(0).toUpperCase()}</span>`;
+function playerToken(pl,i){
+  return tbTokenHTML(pl,i,{size:"card"});
 }
 // Public economy overview in the board centre: market-wide numbers only (no single-offer values, so
 // judging an individual deal stays the player's job).
 function avgChange(list,cur,base){const v=list.filter(m=>base(m)>0).map(m=>cur(m)/base(m)); return v.length?v.reduce((a,b)=>a+b,0)/v.length-1:0;}
-function economyHTML(){
-  const stocks=MARKET.filter(m=>m.type==="stock"), props=MARKET.filter(m=>m.type==="realestate");
-  // Everything is compared with last week (prevPrice/prevRent/prevMortgageRate, snapshotted in updateMarket),
-  // so it includes both the weekly random move and any event since then.
-  const st=avgChange(stocks,m=>m.price,m=>m.prevPrice||m.price), pr=avgChange(props,m=>m.price,m=>m.prevPrice||m.price);
-  const rr=rentRate(), rrd=Math.round((rr-(state.prevRentRate||rr))*10)/10;
-  const pct=v=>Math.abs(v)<0.005?"0%":(v>0?"▲ ":"▼ ")+Math.abs(Math.round(v*100))+"%";
-  const cls=(v,goodUp)=>Math.abs(v)<0.005?"flat":((v>0)===goodUp?"up":"down");
-  const d=Math.round((mortgageRate()-(state.prevMortgageRate||mortgageRate()))*10)/10;
-  const bd=Math.round((bankRate()-(state.prevBankRate||bankRate()))*10)/10;
-  const item=(label,value,sub,subCls,tip)=>{const [lf,ls]=label.split("|"); return `<div class="econ-item" title="${tip}"><span><i class="lf">${lf}</i><i class="ls">${ls||lf}</i></span><b>${value}</b>${sub?`<em class="${subCls}">${sub}</em>`:""}</div>`;};
-  const ev=state.lastMarketEvent;
-  return `<div class="econ">
-    ${item("Mortgage|Mtg",mortgageRate().toFixed(1)+"%",d?(d>0?"▲ ":"▼ ")+Math.abs(d).toFixed(1)+" pts":"same as last wk",d>0?"down":d<0?"up":"flat","Mortgage rate for NEW purchases, and its change since last week. Mortgages are fixed-rate: what you already own keeps the rate you bought at. Payment = balance × rate ÷ 12, every month.")}
-    ${item("Bank loan|Loan",bankRate().toFixed(1)+"%",bd?(bd>0?"▲ ":"▼ ")+Math.abs(bd).toFixed(1)+" pts":"same as last wk",bd>0?"down":bd<0?"up":"flat","Bank loan rate: every month you pay this % of your bank loan balance. Starts at 10%; moved by interest-rate events.")}
-    ${item("Stocks",pct(st),"vs last week",cls(st,true),"Average stock price change since last week.")}
-    ${item("Property|Prop.",pct(pr),"vs last week",cls(pr,true),"Average property value change since last week.")}
-    <div onclick="toggleRentTable()" class="econ-click">${item("Rent rate|Rent",rr.toFixed(1)+"%",rrd?(rrd>0?"▲ ":"▼ ")+Math.abs(rrd).toFixed(1)+" pts":"same as last wk",rrd>0?"up":rrd<0?"down":"flat","Rent rate: properties rent for this % of their value per year (before running costs and mortgage). New leases and renewals (every "+LEASE_WEEKS+" weeks) use it. Click for each property type.")}</div>
-  </div>
-  ${state.showRentTable?`<div class="rent-table">${props.filter(m=>m.designRent>0).map(m=>{const r=typeRentRate(m), dr=r-rr; return `<span><b>${m.name.split(" ").slice(-1)[0]}</b> ${r.toFixed(1)}%${Math.abs(dr)>=0.05?`<em class="${dr>0?"up":"down"}">${dr>0?"▲":"▼"}</em>`:""}</span>`;}).join("")}</div>`:""}
-  <div class="econ-foot">${speedCfg().label} game · Week ${state.week||0}${ev?` · <b>Last:</b> ${ev.name} — ${ev.desc}`:""}</div>`;
-}
 try{ state.showLegend=localStorage.getItem("cf_legend")==="1"; }catch(e){ state.showLegend=false; }
 function toggleRentTable(){ state.showRentTable=!state.showRentTable; render(); }
 function toggleLegend(){ state.showLegend=!state.showLegend; try{localStorage.setItem("cf_legend",state.showLegend?"1":"0");}catch(e){} render(); }
-function boardHTML(){
-  const cur=state.players[state.turn];
-  const cells=BOARD.map((sp,i)=>{
-    const [r,c]=BOARD_COORDS[i], sq=SQUARES[sp];
-    const here=state.players.map((pl,pi)=>({pl,pi})).filter(x=>x.pl.pos===i);
-    const toks=here.map(x=>playerToken(x.pl,x.pi,x.pi===state.turn?" active":"")).join("");
-    const isTurnSq=cur&&cur.pos===i;
-    return `<div class="cell${isTurnSq?" here":""}" style="grid-row:${r};grid-column:${c};--sq:${sq.color};${isTurnSq?`--turncol:${cur.color};`:""}" title="${sq.label}: ${sq.desc}">
-      ${toks?`<div class="tokens">${toks}</div>`:`<span class="sq-emoji">${sq.emoji}</span>`}<span class="sq-label${sq.label.length>7?" long":""}">${sq.label}</span>
-    </div>`;
-  }).join("");
-  const legend=Object.values(SQUARES).map(sq=>`<div class="lg" style="--sq:${sq.color}"><span>${sq.emoji}</span><span><b>${sq.label}</b> ${sq.desc}</span></div>`).join("");
-  return `<div class="gameboard">${cells}
-    <div class="board-center">
-      <div class="bc-title">CASHFLOW <small>Rat Race</small></div>
-      ${cur?`<div class="bc-turn" style="--pc:${cur.color}">${playerToken(cur,state.turn)}<span><b>${cur.name}</b>'s turn · on ${SQUARES[BOARD[cur.pos]].emoji} ${SQUARES[BOARD[cur.pos]].label}</span></div>`:""}
-      ${state.phase==="over"?"":economyHTML()}
-      <button class="legend-toggle" onclick="toggleLegend()" aria-expanded="${!!state.showLegend}">${state.showLegend?"▾ Hide board guide":"▸ Board guide"}</button>
-      ${state.showLegend?`<div class="legend">${legend}</div>`:""}
+/* =====================================================================
+   Tabletop board UI for cashflow.html
+   ---------------------------------------------------------------------
+   Each component is a plain function that returns an HTML string, so it
+   fits render()'s #app.innerHTML rebuild and inline onclick handlers.
+   Components never mutate state.
+
+   Uses these globals from cashflow.html (unchanged):
+     state, BOARD, BOARD_COORDS, SQUARES, MARKET, LEASE_WEEKS,
+     mortgageRate(), bankRate(), rentRate(), typeRentRate(), avgChange(),
+     speedCfg(), toggleRentTable(), toggleLegend()
+
+   Component map (top-down):
+     tbBoardHTML()                 whole board  (replaces boardHTML())
+       tbSquareHTML(i)             one perimeter square, with tokens
+         tbIcon(type)              SVG icon for a square type
+         tbTokenHTML(pl, pi, opt)  a player's pawn
+       tbBoardCenterHTML()         everything inside the ring
+         tbTitleHTML()             CASHFLOW / RAT RACE
+         tbTurnHTML()              "<name>'s turn · on <square>"
+         tbEconomyHTML(data)       rate tiles + rent table + footer line
+           tbEconomyData()         the numbers (pure data, no markup)
+         tbDecksHTML()             Market / Doodad / Event card stacks
+         tbLegendHTML()            board guide
+   ===================================================================== */
+
+// Print colours for the squares: darker than SQUARES[].color so white text
+// on the colour band stays readable. Falls back to SQUARES[type].color.
+const TB_COLORS = {
+  payday:    "#1c7a52",
+  market:    "#1f5f8f",
+  doodad:    "#b23a2e",
+  event:     "#6a4499",
+  charity:   "#b0365f",
+  downsized: "#4a505c",
+  baby:      "#1f6f8b",
+};
+function tbColor(type){ return TB_COLORS[type] || (SQUARES[type] && SQUARES[type].color) || "#555"; }
+
+function tbEsc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ---------- Icons ------------------------------------------------------ */
+// 24×24 stroke icons; colour comes from CSS `color`.
+const TB_ICON_PATHS = {
+  payday:    '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.8"/><path d="M6 9.5v5M18 9.5v5"/>',
+  market:    '<path d="M3 20h18"/><rect x="5" y="12" width="3" height="6"/><rect x="10.5" y="7" width="3" height="11"/><rect x="16" y="9.5" width="3" height="8.5"/>',
+  doodad:    '<path d="M5.5 8h13l-1 12.5h-11z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>',
+  event:     '<rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><circle class="f" cx="8.5" cy="8.5" r="1.3"/><circle class="f" cx="12" cy="12" r="1.3"/><circle class="f" cx="15.5" cy="15.5" r="1.3"/>',
+  charity:   '<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/>',
+  baby:      '<circle cx="12" cy="13" r="7.5"/><path d="M12 5.5c0-1.8 1.6-2.6 2.8-1.9"/><path d="M9.3 15.4c1.5 1.3 3.9 1.3 5.4 0"/><circle class="f" cx="9.5" cy="12" r=".9"/><circle class="f" cx="14.5" cy="12" r=".9"/>',
+  downsized: '<path d="M3 7l6 6 4-4 8 8"/><path d="M21 11v6h-6"/>',
+};
+function tbIcon(type, cls){
+  return `<svg class="tb-icon${cls ? " " + cls : ""}" viewBox="0 0 24 24" aria-hidden="true">${TB_ICON_PATHS[type] || ""}</svg>`;
+}
+function tbArrow(dir){
+  return dir ? `<svg class="tb-arrow" viewBox="0 0 10 10" aria-hidden="true"><path d="${dir === "up" ? "M5 1l4.5 8h-9z" : "M5 9L.5 1h9z"}"/></svg>` : "";
+}
+
+/* ---------- Player token ---------------------------------------------- */
+// opt: { active: true } pulses; { size: "sm" } for the turn banner.
+
+// ---- Player pawns: four models, four directions ----
+// Each player picks a model in the lobby (state.tokens[i], unique per seat). Every model has a sprite
+// for facing down (front), up (back), left and right (side views; left is the right one mirrored).
+// Pawns are filled with the player's colour (currentColor) and outlined in dark ink. Standing pawns
+// don't animate; they face the way they last moved (player.facing). Moving pawns use the sprite for
+// the direction of travel.
+const TOKEN_MODELS={rook:"Rook",ship:"Ship",hat:"Top hat",car:"Car"};
+const TOKEN_ORDER=["rook","ship","hat","car"];
+function tokenSVG(model,dir){
+  // Shaded, slightly-from-above sprites. Colour = currentColor (the player's colour); shading is drawn
+  // on top with gradients: "cyl" = light left edge -> dark right edge (round parts), "top" = lit top
+  // faces, "dark" = faces turned away from the light.
+  const u="tk"+(++propImgSeq), K="#1b1b1b";
+  const O=`stroke="${K}" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"`;
+  const defs=`<defs>
+    <linearGradient id="${u}c" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".35" stop-color="#fff" stop-opacity=".08"/><stop offset=".7" stop-color="#000" stop-opacity=".12"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></linearGradient>
+    <linearGradient id="${u}v" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient>
+    <linearGradient id="${u}s" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#d9d2c0"/></linearGradient>
+  </defs>`;
+  const cyl=`url(#${u}c)`, vg=`url(#${u}v)`, sail=`url(#${u}s)`;
+  // body in the player's colour + a shading overlay with the same outline
+  const P=(d,shade)=>`<path d="${d}" fill="currentColor" ${O}/>`+(shade?`<path d="${d}" fill="${shade}" stroke="none"/>`:"");
+  const TOP=d=>`<path d="${d}" fill="#fff" fill-opacity=".38" stroke="none"/>`;
+  const DARK=d=>`<path d="${d}" fill="#000" fill-opacity=".32" stroke="none"/>`;
+  const shadow=`<ellipse cx="16" cy="29.2" rx="10.5" ry="2" fill="#000" fill-opacity=".28"/>`;
+  const side=dir==="left"||dir==="right";
+  let g="";
+  if(model==="rook"){
+    // base, body and crown are cylinders; the door/flag show which way it faces
+    const base=P("M7 25.5v2a9 2.6 0 0 0 18 0v-2",cyl)+P("M7 25.5a9 2.6 0 0 1 18 0a9 2.6 0 0 1 -18 0",null)+TOP("M7 25.5a9 2.6 0 0 1 18 0a9 2.6 0 0 1 -18 0");
+    const body=P("M10.5 12.5L10 25.3a6 1.8 0 0 0 12 0L21.5 12.5z",cyl);
+    const crown=P("M8 6.5v5.8a8 2.3 0 0 0 16 0V6.5",cyl)+P("M8 6.5a8 2.4 0 0 1 16 0a8 2.4 0 0 1 -16 0",null)+TOP("M8 6.5a8 2.4 0 0 1 16 0a8 2.4 0 0 1 -16 0")+`<ellipse cx="16" cy="6.5" rx="5.6" ry="1.5" fill="${K}" fill-opacity=".55"/>`
+      +[10.2,14.8,19.4].map(x=>`<rect x="${x}" y="7.6" width="2.4" height="2.6" fill="${K}" fill-opacity=".75"/>`).join("");
+    let feat="";
+    if(dir==="down") feat=`<path d="M14 25.6v-4.4a2 2 0 0 1 4 0v4.6z" fill="${K}"/>`;
+    else if(dir==="up") feat=`<rect x="15.2" y="15" width="1.6" height="4.2" rx=".8" fill="${K}"/>`;
+    else feat=`<path d="M19.2 25.4v-4a1.1 1.8 0 0 1 2 .2v3.6z" fill="${K}"/><path d="M16 4.2V.9" ${O} fill="none"/><path d="M16 .9l5.6 1.7-5.6 1.7z" fill="currentColor" ${O}/>`;
+    g=shadow+base+body+crown+feat;
+  }
+  if(model==="hat"){
+    const brim=P("M3 24.5a13 4 0 0 1 26 0a13 4 0 0 1 -26 0",null)+TOP("M3 24.5a13 4 0 0 1 26 0a13 3 0 0 0 -26 0")+DARK("M3 24.5a13 4 0 0 0 26 0a13 3 0 0 1 -26 0");
+    const crown=P("M9.8 9l-.6 15.2a6.8 2.2 0 0 0 13.6 0L22.2 9",cyl)+P("M9.8 9a6.2 2 0 0 1 12.4 0a6.2 2 0 0 1 -12.4 0",null)+TOP("M9.8 9a6.2 2 0 0 1 12.4 0a6.2 2 0 0 1 -12.4 0");
+    const band=`<path d="M9.4 19.2v3.4a6.6 2.1 0 0 0 13.2 0v-3.4a6.6 2.1 0 0 1 -13.2 0z" fill="${K}"/><path d="M9.4 19.2v3.4a6.6 2.1 0 0 0 13.2 0v-3.4a6.6 2.1 0 0 1 -13.2 0z" fill="${cyl}" opacity=".6"/>`;
+    let feat="";
+    if(dir==="down") feat=`<path d="M14.2 21.3l1.8-1 1.8 1-1.8 1z" fill="#fffaf0" fill-opacity=".8"/>`;
+    else if(side) feat=`<path d="M21.6 20l3.2-1.8v4.4l-3-1.2z" fill="${K}"/><path d="M21.6 20l3.2-1.8v4.4l-3-1.2z" fill="#fff" fill-opacity=".18"/>`;
+    g=shadow+brim+crown+band+feat;
+    if(side) g=`<g transform="rotate(-5 16 20)">${g}</g>`;
+  }
+  if(model==="ship"){
+    const waves=`<path d="M2 28.6q2.5-1.8 5 0t5 0 5 0 5 0 5 0 3 0" fill="none" stroke="${K}" stroke-width="1" stroke-opacity=".7"/>`;
+    if(side){
+      // bow to the right: hull side + visible deck, mast and two sails
+      g=shadow+P("M3.5 19.5h25l-4.3 7H7.8z",vg)+P("M3.5 19.5l2.6-2.6h19l3.4 2.6z",null)+TOP("M3.5 19.5l2.6-2.6h19l3.4 2.6z")
+        +`<circle cx="11" cy="22.6" r=".95" fill="${K}"/><circle cx="15.6" cy="22.6" r=".95" fill="${K}"/><circle cx="20.2" cy="22.6" r=".95" fill="${K}"/>`
+        +`<path d="M15.5 17V3" ${O} fill="none"/><path d="M16.3 4.2c4.8 3 6.2 7.6 5.6 11.6H16.3z" fill="${sail}" ${O}/><path d="M14.7 6.2c-3.4 2.8-4.3 6-3.8 9.6h3.8z" fill="${sail}" ${O}/>`
+        +`<path d="M15.5 3l4.8 1.4-4.8 1.4z" fill="currentColor" ${O}/>`+waves;
+    } else if(dir==="down"){
+      // bow towards you: deck seen from above, hull narrowing to the bow
+      g=shadow+P("M7 17.5h18l-9 10.5z",cyl)+P("M7 17.5l3-2.5h12l3 2.5z",null)+TOP("M7 17.5l3-2.5h12l3 2.5z")
+        +`<path d="M16 15V3" ${O} fill="none"/><path d="M9 5.2q7-1.8 14 0-1.3 4.7 0 9.3-7-1.8-14 0 1.3-4.7 0-9.3z" fill="${sail}" ${O}/><path d="M16 3l4.6 1.4-4.6 1.4z" fill="currentColor" ${O}/>`+waves;
+    } else {
+      // stern towards you: deck + transom with windows
+      g=shadow+P("M7 18.5h18l-2.8 8.5H9.8z",vg)+P("M7 18.5l2.4-3h13.2l2.4 3z",null)+TOP("M7 18.5l2.4-3h13.2l2.4 3z")
+        +`<rect x="11.2" y="20.6" width="3" height="2.4" fill="${K}"/><rect x="17.8" y="20.6" width="3" height="2.4" fill="${K}"/>`
+        +`<path d="M16 15.5V3" ${O} fill="none"/><path d="M9 5.2q7 1.8 14 0-1.3 4.7 0 9.3-7 1.8-14 0 1.3-4.7 0-9.3z" fill="${sail}" ${O}/><path d="M16 3l4.6 1.4-4.6 1.4z" fill="currentColor" ${O}/>`+waves;
+    }
+  }
+  if(model==="car"){
+    const wheel=(cx,cy,rx,ry)=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${K}"/><ellipse cx="${cx}" cy="${cy}" rx="${rx*.45}" ry="${ry*.45}" fill="#cfc8b8"/>`;
+    if(side){
+      // three-quarter view, nose to the right: side, lit roof and hood, darker front face
+      g=shadow+wheel(9.5,25.8,2.1,3.2)+P("M3 24.6v-4.2q0-2.4 2.8-2.9l4.8-4.4h9.6l4.2 4.4h1.8q2.4.4 2.4 2.9v4.2z",vg)
+        +TOP("M10.6 13.1h9.6l4.2 4.4H6.4z")+`<path d="M11.4 13.8h3.9v3.1H8.3zM16.6 13.8h3.2l3 3.1h-6.2z" fill="#eaf3f7" ${O}/>`
+        +DARK("M26.2 17.5h1.4q2.4.4 2.4 2.9v4.2h-3.8z")+`<rect x="27.6" y="18.6" width="1.8" height="1.5" rx=".5" fill="#ffe08a" stroke="${K}" stroke-width=".7"/>`
+        +`<path d="M4.8 20.4h21" stroke="#fff" stroke-opacity=".5" stroke-width=".9"/>`+wheel(22.8,25.8,2.1,3.2)+`<path d="M8 24.6h3M21.3 24.6h3" stroke="${K}" stroke-width="1"/>`;
+    } else if(dir==="down"){
+      g=shadow+`<rect x="6.2" y="23.5" width="3.8" height="4.5" rx="1" fill="${K}"/><rect x="22" y="23.5" width="3.8" height="4.5" rx="1" fill="${K}"/>`
+        +P("M5.5 25.5v-7.5q0-1.6 1.8-2L10 9h12l2.7 7q1.8.4 1.8 2v7.5z",vg)+TOP("M10 9h12l1.6 4.2H8.4z")+`<path d="M10.6 10h10.8l1.6 4.4H9z" fill="#eaf3f7" ${O}/>`
+        +TOP("M7.3 16h17.4l.7 2H6.6z")+`<circle cx="9.2" cy="20.4" r="1.8" fill="#ffe08a" stroke="${K}" stroke-width=".8"/><circle cx="22.8" cy="20.4" r="1.8" fill="#ffe08a" stroke="${K}" stroke-width=".8"/><path d="M13 19.6h6M13 21.4h6M13 23.2h6" stroke="${K}" stroke-width=".9"/>`;
+    } else {
+      g=shadow+`<rect x="6.2" y="23.5" width="3.8" height="4.5" rx="1" fill="${K}"/><rect x="22" y="23.5" width="3.8" height="4.5" rx="1" fill="${K}"/>`
+        +P("M5.5 25.5v-7.5q0-1.6 1.8-2L10 9h12l2.7 7q1.8.4 1.8 2v7.5z",vg)+TOP("M10 9h12l1.6 4.2H8.4z")+`<path d="M10.8 10.2h10.4l1.4 3.6H9.4z" fill="#eaf3f7" ${O}/>`
+        +TOP("M7.3 16h17.4l.7 2H6.6z")+`<rect x="7" y="19" width="4.2" height="2.2" rx=".7" fill="#e0453a" stroke="${K}" stroke-width=".7"/><rect x="20.8" y="19" width="4.2" height="2.2" rx=".7" fill="#e0453a" stroke="${K}" stroke-width=".7"/><rect x="13" y="20.6" width="6" height="2.6" rx=".5" fill="#fffaf0" stroke="${K}" stroke-width=".7"/>`;
+    }
+  }
+  if(dir==="left") g=`<g transform="translate(32 0) scale(-1 1)">${g}</g>`;
+  return `<svg class="tk-svg" viewBox="0 0 32 32" aria-hidden="true">${defs}${g}</svg>`;
+}
+// Direction of one step between two neighbouring board squares.
+function stepDir(from,to){
+  const [r1,c1]=BOARD_COORDS[from], [r2,c2]=BOARD_COORDS[to];
+  return c2>c1?"right":c2<c1?"left":r2>r1?"down":"up";
+}
+// Keep one model per seat, all different; missing or clashing picks get the first free model.
+function ensureTokens(){
+  const n=Math.max(1,state.numPlayers||1), cur=(state.tokens||[]).slice(0,n), used=new Set(), out=[];
+  for(let i=0;i<n;i++){ const t=cur[i]; if(TOKEN_MODELS[t]&&!used.has(t)){ out[i]=t; used.add(t); } }
+  for(let i=0;i<n;i++){ if(!out[i]){ const f=TOKEN_ORDER.find(t=>!used.has(t))||TOKEN_ORDER[i%4]; out[i]=f; used.add(f); } }
+  state.tokens=out; return out;
+}
+function setToken(i,model){
+  if(state.online&&state.myIdx!==i) return;
+  if(!TOKEN_MODELS[model]) return;
+  ensureTokens();
+  if(state.tokens.some((t,j)=>j!==i&&t===model)) return;   // taken by someone else
+  state.tokens[i]=model;
+  if(state.online) pushState(); render();
+}
+// Lobby picker for seat i: one button per model (front view), taken models greyed out.
+function tokenPickerHTML(i,color){
+  ensureTokens();
+  const mine=!state.online||state.myIdx===i;
+  return `<div class="tk-pick">${TOKEN_ORDER.map(t=>{const taken=state.tokens.some((x,j)=>j!==i&&x===t), sel=state.tokens[i]===t;
+    return `<button type="button" class="tk-opt${sel?" sel":""}" style="color:${color}" title="${TOKEN_MODELS[t]}${taken?" (taken)":""}" ${!mine||taken?"disabled":""} onclick="setToken(${i},'${t}')">${tokenSVG(t,"down")}</button>`;}).join("")}</div>`;
+}
+
+function tbTokenHTML(pl, pi, opt){
+  opt = opt || {};
+  const cls = "tb-token tk" + (opt.size ? " tb-token--" + opt.size : "");
+  const model = TOKEN_MODELS[pl.model] ? pl.model : TOKEN_ORDER[(pi || 0) % 4];
+  return `<span class="${cls}" style="--pc:${pl.color};color:${pl.color}" title="${tbEsc(pl.name)} (${TOKEN_MODELS[model]})">${tokenSVG(model, opt.dir || pl.facing || "down")}</span>`;
+}
+
+/* ---------- One perimeter square -------------------------------------- */
+// Squares 0, 6, 12, 18 are corners; the rest sit on a side. Each face is
+// rotated so its colour band points at the board centre (see CSS).
+function tbSquareSide(i){
+  const n = BOARD.length / 4;                     // 6 on a 7×7 ring
+  if(i % n === 0) return "corner tb-c" + (i / n);   // c0 TL, c1 TR, c2 BR, c3 BL
+  return ["top", "right", "bottom", "left"][Math.floor(i / n)];
+}
+function tbSquareHTML(i){
+  const type = BOARD[i], sq = SQUARES[type], [r, c] = BOARD_COORDS[i];
+  const side = tbSquareSide(i), corner = side.startsWith("corner");
+  const cur = state.players[state.turn];
+  const isTurn = !!cur && cur.pos === i;
+  const toks = state.players
+    .map((pl, pi) => ({ pl, pi }))
+    .filter(x => x.pl.pos === i && !(moving() && moveAnim.who === x.pi))
+    .map(x => tbTokenHTML(x.pl, x.pi, { active: x.pi === state.turn }))
+    .join("");
+  return `<div class="tb-sq tb-${side}${isTurn && !moving() ? " is-turn" : ""}${toks ? " has-tokens" : ""}" data-i="${i}" style="grid-row:${r};grid-column:${c};--sq:${tbColor(type)};${isTurn ? `--pc:${cur.color};` : ""}" title="${sq.label}: ${sq.desc}">
+    <div class="tb-sq-face">
+      ${corner ? "" : `<div class="tb-sq-band">${sq.label}</div>`}
+      <div class="tb-sq-body">${tbIcon(type)}${corner ? `<div class="tb-sq-name">${sq.label}</div>` : ""}</div>
     </div>
+    ${toks ? `<div class="tb-sq-tokens">${toks}</div>` : ""}
   </div>`;
 }
+
+/* ---------- Centre pieces --------------------------------------------- */
+function tbTitleHTML(){
+  return `<div class="tb-title"><div class="tb-title-main">CASHFLOW</div><div class="tb-title-sub"><i></i><span>Rat Race</span><i></i></div></div>`;
+}
+
+function tbTurnHTML(){
+  const cur = state.players[state.turn];
+  if(!cur) return "";
+  const type = BOARD[cur.pos], sq = SQUARES[type];
+  return `<div class="tb-turn" style="--pc:${cur.color}">${tbTokenHTML(cur, state.turn, { size: "sm" })}<span><b>${tbEsc(cur.name)}</b>'s turn · on <b class="tb-turn-sq" style="--sq:${tbColor(type)}">${sq.label}</b></span></div>`;
+}
+
+// Numbers only, no markup (the economy tiles in the board centre).
+// tone: "good" | "bad" | "flat" (colour); arrow: "up" | "down" | null.
+function tbEconomyData(){
+  const stocks = MARKET.filter(m => m.type === "stock"), props = MARKET.filter(m => m.type === "realestate");
+  const st = avgChange(stocks, m => m.price, m => m.prevPrice || m.price);
+  const pr = avgChange(props,  m => m.price, m => m.prevPrice || m.price);
+  const mr = mortgageRate(), br = bankRate(), rr = rentRate();
+  const pts = (now, prev) => Math.round((now - (prev || now)) * 10) / 10;
+  const rate = (key, label, short, v, d, upIsGood, tip, onclick) => ({
+    key, label, short, tip, onclick,
+    value: v.toFixed(1) + "%",
+    sub: d ? Math.abs(d).toFixed(1) + " pts" : "same as last wk",
+    subShort: d ? Math.abs(d).toFixed(1) + " pts" : "same",
+    arrow: d > 0 ? "up" : d < 0 ? "down" : null, arrowOn: "sub",
+    tone: !d ? "flat" : ((d > 0) === upIsGood ? "good" : "bad"),
+  });
+  const pct = (key, label, short, v, tip) => {
+    const flat = Math.abs(v) < 0.005;
+    return { key, label, short, tip,
+      value: flat ? "0%" : Math.abs(Math.round(v * 100)) + "%",
+      sub: "vs last week", subShort: "vs last wk",
+      arrow: flat ? null : v > 0 ? "up" : "down", arrowOn: "value",
+      tone: flat ? "flat" : v > 0 ? "good" : "bad" };
+  };
+  return {
+    items: [
+      rate("mortgage", "Mortgage", "Mtg", mr, pts(mr, state.prevMortgageRate), false,
+        "Mortgage rate for NEW purchases, and its change since last week. Mortgages are fixed-rate: what you already own keeps the rate you bought at. Payment = balance × rate ÷ 12, every month."),
+      rate("bank", "Bank loan", "Loan", br, pts(br, state.prevBankRate), false,
+        "Bank loan rate: every month you pay this % of your bank loan balance. Starts at 10%; moved by interest-rate events."),
+      pct("stocks", "Stocks", "Stocks", st, "Average stock price change since last week."),
+      pct("property", "Property", "Prop.", pr, "Average property value change since last week."),
+      rate("rent", "Rent rate", "Rent", rr, pts(rr, state.prevRentRate), true,
+        "Rent rate: properties rent for this % of their value per year (before running costs and mortgage). New leases and renewals (every " + LEASE_WEEKS + " weeks) use it. Click for each property type.",
+        "toggleRentTable()"),
+    ],
+    rentTable: state.showRentTable
+      ? props.filter(m => m.designRent > 0).map(m => { const r = typeRentRate(m); return { name: m.name.split(" ").slice(-1)[0], rate: r, diff: r - rr }; })
+      : null,
+    speed: speedCfg().label,
+    week: state.week || 0,
+    lastEvent: state.lastMarketEvent || null,
+  };
+}
+
+function tbEconomyItemHTML(it){
+  const inner = `<span class="tb-econ-label"><i class="lf">${it.label}</i><i class="ls">${it.short}</i></span>
+    <b class="tb-econ-value">${it.arrowOn === "value" ? tbArrow(it.arrow) : ""}${it.value}</b>
+    <em class="tb-econ-sub">${it.arrowOn === "sub" ? tbArrow(it.arrow) : ""}<i class="lf">${it.sub}</i><i class="ls">${it.subShort}</i></em>`;
+  return it.onclick
+    ? `<button type="button" class="tb-econ-item tone-${it.tone} is-click" title="${it.tip}" onclick="${it.onclick}" aria-expanded="${!!state.showRentTable}">${inner}</button>`
+    : `<div class="tb-econ-item tone-${it.tone}" title="${it.tip}">${inner}</div>`;
+}
+
+function tbEconomyHTML(d){
+  d = d || tbEconomyData();
+  const ev = d.lastEvent;
+  return `<div class="tb-econ">${d.items.map(tbEconomyItemHTML).join("")}</div>
+  ${d.rentTable ? `<div class="tb-rent-table">${d.rentTable.map(r =>
+      `<span><b>${r.name}</b> ${r.rate.toFixed(1)}%${Math.abs(r.diff) >= 0.05 ? tbArrow(r.diff > 0 ? "up" : "down") : ""}</span>`).join("")}</div>` : ""}
+  <div class="tb-econ-foot">${d.speed} game · Week ${d.week}${ev ? ` · <b>Last:</b> ${ev.name} — ${ev.desc}` : ""}</div>`;
+}
+
+// Decorative card stacks for the three squares that draw something.
+function tbDeckHTML(type){
+  return `<div class="tb-deck" style="--sq:${tbColor(type)}" aria-hidden="true">
+    <div class="tb-deck-card"><div class="tb-deck-band">${SQUARES[type].label}</div><div class="tb-deck-body">${tbIcon(type)}</div></div>
+  </div>`;
+}
+function tbDecksHTML(){
+  return `<div class="tb-decks">${["market", "doodad", "event"].map(tbDeckHTML).join("")}</div>`;
+}
+
+function tbLegendHTML(){
+  return `<div class="tb-legend">${Object.keys(SQUARES).map(type => {
+    const sq = SQUARES[type];
+    return `<div class="tb-lg" style="--sq:${tbColor(type)}">${tbIcon(type)}<span><b>${sq.label}</b> ${sq.desc}</span></div>`;
+  }).join("")}</div>`;
+}
+
+function tbBoardCenterHTML(){
+  const over = state.phase === "over";
+  return `<div class="tb-center"><div class="tb-center-frame">
+    ${tbTitleHTML()}
+    ${tbTurnHTML()}
+    ${over ? "" : tbEconomyHTML()}
+    ${!over && !state.showLegend && !state.showRentTable ? tbDecksHTML() : ""}
+    <button type="button" class="tb-legend-toggle" onclick="toggleLegend()" aria-expanded="${!!state.showLegend}">${state.showLegend ? "Hide board guide" : "Board guide"}</button>
+    ${state.showLegend ? tbLegendHTML() : ""}
+  </div></div>`;
+}
+
+/* ---------- The whole board ------------------------------------------- */
+// Keeps the `gameboard` class so the existing --bs sizing in .board-row still applies.
+function tbBoardHTML(){
+  return `<div class="gameboard tb-board"><div class="tb-grid">
+    ${BOARD.map((_, i) => tbSquareHTML(i)).join("")}
+    ${tbBoardCenterHTML()}
+  </div></div>`;
+}
+
+
+// ---- Property pictures (newspaper classified-ad style) ----
+// Engraving-style drawings in black ink, drawn as SVG so no image files are needed: buildings in an
+// oblique view (front face + shaded side), shingle/tile/brick/clapboard/log textures, framed glass windows,
+// shaded trees, engraved sky.
+// Three variants per property type; each offer carries its variant (listing.img / pending.img).
+let propImgSeq=0;
+function propImageSVG(id,v){
+  const u="pi"+(++propImgSeq), K="#161616", W="#fbf8ef", G="#3b3a38";
+  v=((v|0)%3+3)%3;
+  // Engraving-style fills. Every pattern has a paper background, so filled shapes cover what is behind them.
+  const pat=(n,w,h,body,rot)=>`<pattern id="${u}${n}" width="${w}" height="${h}" patternUnits="userSpaceOnUse"${rot?` patternTransform="rotate(${rot})"`:""}><rect width="${w}" height="${h}" fill="${W}"/>${body}</pattern>`;
+  const ln=(d,w)=>`<path d="${d}" stroke="${K}" stroke-width="${w||.5}" fill="none"/>`;
+  const defs=`<defs>
+    ${pat("h",2.4,2.4,ln("M0 0V2.4",.65),45)}
+    ${pat("x",2.2,2.2,ln("M0 0V2.2M0 0H2.2",.6),45)}
+    ${pat("c",4,2.3,ln("M0 2.1H4",.45))}
+    ${pat("b",6,3.6,ln("M0 .2H6M0 1.9H6M.2 .2V1.9M3.2 1.9V3.6",.4))}
+    ${pat("s",6,4.4,ln("M0 2.1H6M0 4.3H6M1 0V2.1M4 2.1V4.3",.5))}
+    ${pat("t",5,3.4,`<path d="M0 3.2Q1.25 1 2.5 3.2Q3.75 1 5 3.2" stroke="${K}" stroke-width=".45" fill="none"/>`)}
+    ${pat("d",3,3,`<circle cx="1.5" cy="1.5" r=".45" fill="${K}"/>`)}
+    ${pat("g",6,4,ln("M1 4L1.6 2.6M4 2L4.5 .8",.45))}
+    ${pat("sd",4,4,`<circle cx="1" cy="1" r=".35" fill="${K}"/><circle cx="3" cy="3" r=".3" fill="${K}"/>`)}
+    ${pat("w",12,3,`<path d="M0 2Q3 .6 6 2T12 2" stroke="${K}" stroke-width=".45" fill="none"/>`)}
+    ${pat("lg",8,3.4,ln("M0 3.1H8",.7)+`<path d="M0 1.6H8" stroke="${K}" stroke-width=".25"/>`)}
+    ${pat("vb",3,4,ln("M.3 0V4",.5))}
+    ${pat("sk",4,3.2,ln("M0 1.6H4",.22))}
+    ${pat("aw",6,4,`<rect width="3" height="4" fill="${K}"/>`)}
+  </defs>`;
+  const f=n=>`url(#${u}${n})`;
+  const S=`stroke="${K}" stroke-width=".9" stroke-linejoin="round" stroke-linecap="round"`;
+  const pts=a=>a.map(p=>(+p[0]).toFixed(1)+","+(+p[1]).toFixed(1)).join(" ");
+  const P=(a,fill,x)=>`<polygon points="${pts(a)}" fill="${fill||W}" ${S}${x||""}/>`;
+  const R=(x,y,w,h,fill,x2)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill||W}" ${S}${x2||""}/>`;
+  const L=(x1,y1,x2,y2,w,c)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c||K}" stroke-width="${w||.9}" stroke-linecap="round"/>`;
+  const C=(x,y,r,fill,x2)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${fill||W}" ${S}${x2||""}/>`;
+  const NS=` stroke="none"`;
+  // Oblique projection: depth goes up and to the right; side faces are in shade.
+  const OX=.62, OY=.32;
+  const blk=(x,y,w,h,d,front,side,top)=>{const ox=d*OX,oy=d*OY;
+    return P([[x+w,y],[x+w+ox,y-oy],[x+w+ox,y+h-oy],[x+w,y+h]],side||f("h"))+(top?P([[x,y],[x+ox,y-oy],[x+w+ox,y-oy],[x+w,y]],top):"")+R(x,y,w,h,front);};
+  const sp=(x,w,d,t,yy)=>[x+w+t*d*OX,yy-t*d*OY];
+  const swin=(x,w,d,t0,t1,y0,y1)=>P([sp(x,w,d,t0,y0),sp(x,w,d,t1,y0),sp(x,w,d,t1,y1),sp(x,w,d,t0,y1)],G);
+  // Framed window: dark glass, a light reflection, white glazing bars and a sill.
+  const win=(x,y,w,h,o)=>{o=o||{};
+    return (o.shut?R(x-3.4,y-.8,2.4,h+1.6,f("c"))+R(x+w+1,y-.8,2.4,h+1.6,f("c")):"")+R(x-.8,y-.8,w+1.6,h+1.6,W)+R(x,y,w,h,G)
+      +`<polygon points="${pts([[x+w*.12,y+h],[x+w*.5,y],[x+w*.72,y],[x+w*.34,y+h]])}" fill="#fff" opacity=".3"/>`
+      +(o.bars===0?"":L(x+w/2,y,x+w/2,y+h,.7,W)+L(x,y+h/2,x+w,y+h/2,.7,W))+(o.sill===0?"":R(x-1.6,y+h+.8,w+3.2,1.3,W));};
+  const arch=(x,y,w,h)=>`<path d="M${x} ${y+h}V${y+w/2}a${w/2} ${w/2} 0 0 1 ${w} 0V${y+h}z" fill="${G}" ${S}/>`+L(x+w/2,y+1,x+w/2,y+h,.7,W)+R(x-1.4,y+h+.6,w+2.8,1.2,W);
+  const door=(x,y,w,h)=>R(x-1,y-1.4,w+2,h+1.4,W)+R(x,y,w,h,f("c"))+R(x+w*.18,y+h*.1,w*.64,h*.32,W)+R(x+w*.18,y+h*.52,w*.64,h*.36,W)+C(x+w*.8,y+h*.55,.6,K);
+  const gableS=(x,y,w,d,rh,e,fill)=>{const ox=d*OX,oy=d*OY,rx=ox/2,ry=oy/2;
+    return P([[x+w,y],[x+w+ox,y-oy],[x+w+rx,y-rh-ry]],f("h"))+P([[x-e,y+e*.4],[x+w+e,y+e*.4],[x+w+rx+e*.5,y-rh-ry],[x+rx-e*.5,y-rh-ry]],fill||f("s"))+L(x+rx-e*.5,y-rh-ry,x+w+rx+e*.5,y-rh-ry,1.6);};
+  const gableF=(x,y,w,d,rh,e,fill,face)=>{const ox=d*OX,oy=d*OY,A=[x+w/2,y-rh];
+    return P([A,[A[0]+ox,A[1]-oy],[x+w+e+ox,y+e*.5-oy],[x+w+e,y+e*.5]],fill||f("s"))+P([[x,y],A,[x+w,y]],face||f("c"))
+      +`<polyline points="${pts([[x-e,y+e*.5],A,[x+w+e,y+e*.5]])}" fill="none" stroke="${K}" stroke-width="2"/>`;};
+  const hip=(x,y,w,d,rh,e,fill)=>{const ox=d*OX,oy=d*OY,rx=ox/2,ry=oy/2;
+    return P([[x+w+e,y+e*.4],[x+w+ox+e,y-oy+e*.4],[x+w*.78+rx,y-rh-ry]],f("h"))+P([[x-e,y+e*.4],[x+w+e,y+e*.4],[x+w*.78+rx,y-rh-ry],[x+w*.22+rx,y-rh-ry]],fill||f("s"));};
+  const cornice=(x,y,w,d)=>R(x-1.6,y-2.6,w+3.2,2.6,W)+P([[x+w+1.6,y-2.6],[x+w+1.6+d*OX,y-2.6-d*OY],[x+w+1.6+d*OX,y-d*OY],[x+w+1.6,y]],f("h"));
+  // Trees: an outlined canopy of overlapping circles (inner lines erased), stippled, shaded lower right.
+  const tree=(x,b,s)=>{s=s||1;const cs=[[0,-31,8],[-8,-26,7],[8,-27,7.5],[-11,-19,6],[11,-19,6.5],[-4,-19,7],[5,-20,7],[0,-37,6],[-6,-34,5.5],[7,-34,5]];
+    const cx=c=>x+c[0]*s, cy=c=>b+c[1]*s;
+    return P([[x-1.6*s,b],[x-.9*s,b-17*s],[x+.9*s,b-17*s],[x+1.8*s,b]],f("x"))+cs.map(c=>C(cx(c),cy(c),c[2]*s,W)).join("")+cs.map(c=>C(cx(c),cy(c),c[2]*s-.9,f("d"),NS)).join("")
+      +[[5,-22,5],[9,-17,4],[2,-16,4],[6,-30,3.5]].map(c=>C(cx(c),cy(c),c[2]*s,f("h"),NS)).join("");};
+  const bush=(x,b,s)=>{s=s||1;const cs=[[-5,-3,4],[0,-5,4.5],[5,-3,4]];
+    return cs.map(c=>C(x+c[0]*s,b+c[1]*s,c[2]*s,W)).join("")+cs.map(c=>C(x+c[0]*s,b+c[1]*s,c[2]*s-.8,f("d"),NS)).join("")+C(x+3*s,b-2*s,2.4*s,f("h"),NS);};
+  const pine=(x,b,h)=>{let o=L(x,b,x,b-h*.2,1.8);for(let i=0;i<4;i++){const y=b-h*.15-i*h*.22,w=h*(.36-i*.07),t=y-h*.34;
+      o+=P([[x-w,y],[x-w*.55,y-1.5],[x-w*.7,y-2],[x,t],[x+w*.7,y-2],[x+w*.55,y-1.5],[x+w,y]],f("d"))+P([[x,t+1],[x+w-.8,y-.5],[x+.5,y-.5]],f("h"),NS);}return o;};
+  const palm=(x,b,h)=>{const top=[x+5,b-h];let o=`<path d="M${x-1.6} ${b}Q${x+4} ${b-h/2} ${top[0]-1.2} ${top[1]}L${top[0]+1.2} ${top[1]}Q${x+6.5} ${b-h/2} ${x+1.6} ${b}z" fill="${f("c")}" ${S}/>`;
+    [[-18,6],[-14,-6],[16,5],[13,-7],[2,-12],[-4,9],[8,10]].forEach(([dx,dy])=>{o+=`<path d="M${top[0]} ${top[1]}Q${top[0]+dx*.5} ${top[1]+dy-7} ${top[0]+dx} ${top[1]+dy}Q${top[0]+dx*.45} ${top[1]+dy-3} ${top[0]} ${top[1]}z" fill="${f("h")}" ${S}/>`;});return o;};
+  const cloud=(x,y,s)=>`<path d="M${x} ${y}q${2*s} ${-6*s} ${8*s} ${-4*s}q${4*s} ${-6*s} ${11*s} ${-1*s}q${6*s} ${-2*s} ${7*s} ${4*s}q${3*s} ${1*s} ${1*s} ${3*s}H${x-1*s}q${-3*s} ${-1*s} ${1*s} ${-2*s}z" fill="${W}" ${S}/>`
+    +`<path d="M${x+4*s} ${y+.4*s}H${x+24*s}" stroke="${K}" stroke-width=".4"/>`;
+  const mtn=(pk,b)=>pk.map(([x,y,hw])=>P([[x-hw,b],[x,y],[x+hw,b]],W)+P([[x,y],[x+hw,b],[x+hw*.15,b]],f("h"),NS)+P([[x,y],[x-hw*.28,y+hw*.26],[x-hw*.1,y+hw*.2],[x+hw*.06,y+hw*.3],[x+hw*.26,y+hw*.24]],W,` stroke-width=".6"`)).join("");
+  const pickets=(x0,x1,y,h)=>{let o=L(x0,y+h*.35,x1,y+h*.35,.8)+L(x0,y+h*.75,x1,y+h*.75,.8);for(let x=x0;x<=x1;x+=4.2)o+=P([[x,y+h],[x,y+1.2],[x+1.2,y],[x+2.4,y+1.2],[x+2.4,y+h]],W,` stroke-width=".6"`);return o;};
+  const sign=(x,b)=>L(x-8,b,x-8,b-22,1.6)+L(x+8,b,x+8,b-22,1.6)+R(x-17,b-30,34,12,W)+`<text x="${x}" y="${b-22}" text-anchor="middle" font-family="Georgia,serif" font-size="5" font-weight="bold" textLength="28" lengthAdjust="spacingAndGlyphs" fill="${K}">FOR SALE</text>`;
+  const sky=`<rect width="160" height="86" fill="${f("sk")}" opacity=".55"/>`+[cloud(14,20,1)+cloud(110,14,.8),cloud(118,22,1),`<circle cx="30" cy="20" r="7" fill="${W}" ${S}/>`+cloud(104,18,.9)][v];
+  const ground=`<rect x="0" y="86" width="160" height="14" fill="${f("g")}"/>`+L(0,86,160,86,1.1);
+  const street=`<rect x="0" y="86" width="160" height="14" fill="${W}"/>`+L(0,86,160,86,1.1)+L(0,91,160,91,.7)+`<rect x="0" y="91" width="160" height="9" fill="${f("sd")}"/>`;
+  let d="", base=ground;
+  if(id==="HSE"){
+    if(v===0) d=tree(20,86,1.1)+blk(42,46,62,40,30,f("c"))+swin(42,62,30,.3,.62,54,63)+swin(42,62,30,.3,.62,70,80)+gableS(42,46,62,30,15,4)+blk(88,20,6,14,5,f("b"))
+      +win(48,52,8,10,{shut:1})+win(69,52,8,10,{shut:1})+win(90,52,8,10,{shut:1})+win(48,68,8,11,{shut:1})+win(90,68,8,11,{shut:1})
+      +P([[64,66],[73,59],[82,66]],W)+L(65.5,66,65.5,86,1.4)+L(80.5,66,80.5,86,1.4)+door(69,69,8,17)+R(63,86,20,1.6,W)+bush(47,86,.9)+bush(100,86,.9)+P([[69,87.6],[77,87.6],[84,100],[62,100]],W);
+    if(v===1) d=blk(14,64,36,22,26,f("c"))+gableS(14,64,36,26,8,2)+R(19,70,26,16,f("c"))+L(19,75.3,45,75.3,.8)+L(19,80.6,45,80.6,.8)
+      +blk(50,56,50,30,34,f("c"))+swin(50,50,34,.25,.6,64,76)+gableF(50,56,50,34,21,4)+win(71,40,8,8,{bars:0})
+      +win(56,65,10,11)+win(85,65,10,11)+door(71,66,8,18)+R(46,84,58,2.4,W)+R(52,60,2.4,24,W)+R(96,60,2.4,24,W)+L(46,60,104,60,1.6)
+      +P([[19,87],[45,87],[52,100],[10,100]],W)+tree(138,86,1.05)+bush(110,86,.8);
+    if(v===2) d=blk(22,62,98,24,24,f("b"))+swin(22,98,24,.3,.7,68,78)+hip(22,62,98,24,12,4)
+      +win(30,68,22,11)+L(37.3,68,37.3,79,.7,W)+L(44.6,68,44.6,79,.7,W)+door(62,65,9,21)+win(80,68,10,10,{shut:1})+win(101,68,10,10,{shut:1})
+      +tree(142,86,.95)+pickets(4,56,84,8)+pickets(76,136,84,8)+P([[62,92],[71,92],[74,100],[59,100]],W);
+  }
+  if(id==="CND"){
+    const floors=(x,y,w,n,fh,wx,ww)=>{let o="";for(let r=0;r<n;r++){const yy=y+3+r*fh;wx.forEach(q=>o+=win(x+q,yy,ww,fh-4.4,{bars:0,sill:0}));o+=R(x-1.2,yy+fh-3,w+2.4,1.3,W);}return o;};
+    const sfl=(x,w,d,y,n,fh)=>{let o="";for(let r=0;r<n;r++){const yy=y+3+r*fh;o+=swin(x,w,d,.15,.45,yy,yy+fh-4.4)+swin(x,w,d,.55,.85,yy,yy+fh-4.4);}return o;};
+    if(v===0){ d=blk(10,52,34,34,20,W,f("h"),f("d"))+floors(10,52,34,4,8.2,[4,14,24],6)+blk(118,58,30,28,18,W,f("h"),f("d"))+floors(118,58,30,3,8.6,[4,13,22],5)
+      +blk(56,14,42,72,26,W,f("h"),f("d"))+sfl(56,42,26,14,8,8.4)+floors(56,14,42,8,8.4,[4,15.5,27,34],5.5)+R(70,78,14,8,G)+L(77,78,77,86,.7,W)+tree(40,86,.7)+tree(118,86,.7); base=street; }
+    if(v===1){ d=blk(24,26,38,60,22,W,f("h"),f("d"))+sfl(24,38,22,26,7,8.2)+floors(24,26,38,7,8.2,[4,15,26],6)
+      +blk(78,10,42,76,24,W,f("h"),f("d"))+sfl(78,42,24,10,9,8.2);
+      for(let r=0;r<9;r++){const yy=13+r*8.2; d+=R(80,yy,38,3.6,G)+`<polygon points="${pts([[84,yy+3.6],[88,yy],[92,yy],[88,yy+3.6]])}" fill="#fff" opacity=".3"/>`+R(77,yy+5,44,1.2,W);}
+      d+=R(92,78,14,8,G)+bush(20,86,.8)+bush(70,86,.8)+bush(130,86,.8); base=street; }
+    if(v===2){ d=blk(44,70,72,16,34,W,f("h"),f("d"))+win(50,74,16,8,{bars:0,sill:0})+win(94,74,16,8,{bars:0,sill:0})+R(72,74,16,12,G)
+      +blk(58,8,40,62,24,G,f("x"),f("d"));
+      for(let i=0;i<8;i++) d+=L(58+i*5,8,58+i*5,70,.5,"#8f8a80");
+      for(let r=0;r<12;r++) d+=L(58,13+r*5,98,13+r*5,.45,"#8f8a80");
+      d+=`<polygon points="${pts([[60,70],[76,8],[84,8],[68,70]])}" fill="#fff" opacity=".22"/>`+R(56,6,44,2.2,W)
+      +L(28,86,28,52,1.6)+`<path d="M28 52q0 -4 6 -4" fill="none" stroke="${K}" stroke-width="1.4"/>`+P([[32,48],[38,48],[37,50.5],[33,50.5]],W)+tree(140,86,.9)+bush(20,86,.7); base=street; }
+  }
+  if(id==="PLX"){
+    if(v===0){ d=blk(28,40,98,46,24,f("b"),f("h"),f("d"))+cornice(28,40,98,24)+swin(28,98,24,.3,.7,48,58)+swin(28,98,24,.3,.7,66,76);
+      [36,51,66,81,96,111].forEach(x=>d+=R(x-1.2,46.4,10.4,1.8,W)+win(x,48.5,8,10));
+      [36,51,96,111].forEach(x=>d+=R(x-1.2,64.4,10.4,1.8,W)+win(x,66.5,8,10));
+      d+=door(66,67,9,19)+door(81,67,9,19)+R(64,86,28,1.6,W)+bush(24,86,.8)+tree(144,86,.9); }
+    if(v===1){ const hs=x=>blk(x,56,40,30,22,f("c"))+swin(x,40,22,.3,.7,64,74)+gableF(x,56,40,22,18,3)+win(x+16,42,8,8)+win(x+5,63,10,11,{shut:1})+door(x+25,65,8,21)+R(x+23,86,12,1.5,W);
+      d=hs(14)+hs(86)+tree(76,86,.8)+pickets(2,12,82,6)+pickets(62,82,82,6)+pickets(134,158,82,6); }
+    if(v===2){ d=blk(38,24,76,62,24,f("b"),f("h"),f("d"))+cornice(38,24,76,24);
+      for(let r=0;r<3;r++){const y=30+r*16; [44,56,68,92,104].forEach(x=>d+=win(x,y,7,10)); d+=swin(38,76,24,.3,.7,y,y+10);}
+      d+=L(88,44,114,44,.8)+L(88,60,114,60,.8)+R(88,42,26,2,W)+R(88,58,26,2,W);
+      for(let x=88;x<=114;x+=3) d+=L(x,38,x,42,.5)+L(x,54,x,58,.5);
+      d+=L(88,38,114,38,.7)+L(88,54,114,54,.7)+L(96,44,104,58,.9)+L(98,44,106,58,.9)
+      +door(70,68,10,18)+P([[66,86],[84,86],[84,88],[66,88]],W)+P([[62,88],[88,88],[88,91],[62,91]],W)+bush(30,86,.8)+tree(140,86,.9); }
+  }
+  if(id==="LND"){
+    if(v===0){ d=`<path d="M0 64Q20 58 40 62T80 60T120 61T160 58V86H0Z" fill="${f("d")}" ${S}/>`;
+      for(let i=0;i<12;i++) d+=C(6+i*14,60+(i%3),4.5+(i%2),W)+C(6+i*14,60+(i%3),3.6+(i%2),f("h"),NS);
+      d+=`<path d="M0 66Q80 60 160 66V100H0Z" fill="${W}" ${S}/>`;
+      for(let i=-6;i<=14;i++) d+=L(80+i*1.6,66,80+i*16,100,.45);
+      for(let i=0;i<7;i++){const x=6+i*i*1.6+i*6, y=100-i*5, h=14-i*1.6; d+=L(x,y,x,y-h,1.4-i*.12);}
+      d+=`<path d="M6 89Q40 80 90 69" fill="none" stroke="${K}" stroke-width=".6"/><path d="M6 93Q40 84 90 72" fill="none" stroke="${K}" stroke-width=".6"/>`+sign(128,92); base=""; }
+    if(v===1){ d=`<path d="M0 72H160V100H0Z" fill="${f("g")}"/>`+L(0,72,160,72,.8)+P([[84,72],[92,72],[126,100],[46,100]],f("sd"));
+      [[10,76,40],[26,80,50],[48,74,28],[62,72,18],[104,72,20],[118,74,30],[138,80,48],[152,76,38]].forEach(([x,b,h])=>d+=pine(x,b,h));
+      d+=sign(30,96); base=""; }
+    if(v===2){ d=mtn([[40,22,40],[92,14,44],[140,26,34]],62)+`<path d="M0 62Q40 52 80 60T160 56V86H0Z" fill="${f("h")}" ${S}/>`+`<path d="M0 72Q60 62 160 70V100H0Z" fill="${W}" ${S}/>`;
+      for(let i=0;i<10;i++) d+=`<path d="M${-10+i*20} 100Q${40+i*8} 80 ${60+i*6} 70" fill="none" stroke="${K}" stroke-width=".45"/>`;
+      d+=tree(40,78,.9)+sign(124,94); base=""; }
+  }
+  if(id==="BCH"){
+    const sea=`<rect x="0" y="70" width="160" height="16" fill="${f("w")}"/>`+L(0,70,160,70,.9);
+    base=`<rect x="0" y="86" width="160" height="14" fill="${f("sd")}"/>`+`<path d="M0 86Q40 83 80 86T160 85" fill="none" stroke="${K}" stroke-width="1"/>`;
+    if(v===0){ d=sea;
+      for(let x=48;x<=108;x+=12) d+=R(x,66,2.2,20,W);
+      d+=blk(42,40,72,26,24,W,f("h"),f("d"))+R(40,37.6,76,2.4,W)+swin(42,72,24,.2,.8,45,60)
+      +R(46,44,40,16,G)+`<polygon points="${pts([[50,60],[60,44],[66,44],[56,60]])}" fill="#fff" opacity=".3"/>`+L(59,44,59,60,.8,W)+L(72,44,72,60,.8,W)+win(92,46,16,10,{bars:0})
+      +R(40,64,76,2,W);for(let x=41;x<=115;x+=3) d+=L(x,60,x,64,.5);d+=L(40,60,116,60,.8)
+      +P([[118,66],[122,66],[134,86],[130,86]],W)+palm(14,86,40)+palm(142,86,34); }
+    if(v===1){ d=sea+palm(16,86,44)+blk(38,50,74,34,24,W)+swin(38,74,24,.25,.7,58,72)+hip(38,50,74,24,14,4,f("t"))
+      +[46,62,86,98].map(x=>arch(x,58,9,18)).join("")+`<path d="M73 84V64a4.5 4.5 0 0 1 9 0V84z" fill="${f("c")}" ${S}/>`+R(34,84,82,2,W)+palm(136,86,40)+bush(120,86,.7); }
+    if(v===2){ d=sea+blk(26,62,92,22,24,W,f("h"),f("d"))+swin(26,92,24,.2,.8,66,78)+blk(44,40,58,22,18,W,f("h"),f("d"));
+      d+=R(48,44,30,14,G)+L(58,44,58,58,.8,W)+L(68,44,68,58,.8,W)+win(84,45,12,10,{bars:0})+R(30,66,34,14,G)+L(41,66,41,80,.8,W)+L(52,66,52,80,.8,W)+door(72,66,10,18)+win(90,67,20,10);
+      for(let x=26;x<=118;x+=3) d+=L(x,58,x,62,.5);d+=L(26,58,118,58,.8)
+      +L(110,40,110,58,1)+`<path d="M98 42Q110 32 122 42z" fill="${f("aw")}" ${S}/>`+palm(140,86,36); }
+  }
+  if(id==="IND"){
+    if(v===0){ d=blk(134,12,8,74,6,f("b"))+R(133,12,10,2.4,W)+R(133,30,10,1.6,W)+`<path d="M138 10q-6 -4 0 -7q6 -3 12 0q8 -2 10 4q-4 5 -12 3q-6 4 -10 0z" fill="${W}" ${S}/>`
+      +blk(14,50,110,36,28,f("b"),f("h"));
+      for(let i=0;i<5;i++){const x=14+i*22; d+=P([[x,50],[x,38],[x+22,50]],G)+P([[x,38],[x+17.4,38-9],[x+17.4+22,50-9],[x+22,50]],f("s"));}
+      d+=P([[124,50],[124+17.4,41],[124+17.4,86-9],[124,86]],f("h"));
+      [24,54,84].forEach(x=>{d+=R(x,62,20,24,f("c"))+R(x-1.4,60.6,22.8,1.8,W);});d+=door(108,68,9,18); }
+    if(v===1){ const ox=30*OX,oy=30*OY;
+      d=`<path d="M${30+ox} ${48-oy}Q${78+ox} ${24-oy} ${126+ox} ${48-oy}L${126+ox} ${86-oy}L126 86L126 48Q78 24 30 48z" fill="${f("s")}" ${S}/>`+P([[126,48],[126+ox,48-oy],[126+ox,86-oy],[126,86]],f("h"))
+      +`<path d="M30 86V48Q78 24 126 48V86z" fill="${f("c")}" ${S}/>`+`<path d="M30 48Q78 24 126 48" fill="none" stroke="${K}" stroke-width="2"/>`
+      +R(40,58,34,28,f("c"))+R(38.6,56.6,36.8,1.8,W)+R(84,58,34,28,f("c"))+R(82.6,56.6,36.8,1.8,W)+win(72,40,12,6,{sill:0})
+      +R(4,62,30,20,W)+P([[34,68],[46,68],[50,74],[50,82],[34,82]],W)+R(38,70,6,5,G)+C(12,84,4,G)+C(12,84,1.6,W)+C(42,84,4,G)+C(42,84,1.6,W); }
+    if(v===2){ d=L(128,86,132,44,1.2)+L(150,86,146,44,1.2)+L(129,70,149,70,.7)+L(130,58,148,58,.7)+L(128,86,148,58,.5)+L(150,86,130,58,.5)
+      +`<path d="M128 44V28a11 3 0 0 0 22 0V44a11 3 0 0 1 -22 0z" fill="${f("c")}" ${S}/>`+`<ellipse cx="139" cy="28" rx="11" ry="3" fill="${W}" ${S}/>`+P([[128,28],[139,18],[150,28]],f("h"))
+      +blk(14,50,100,36,30,W,f("h"),f("d"))+R(12,47.6,104,2.6,W);
+      [20,42,64,86].forEach(x=>{d+=R(x,62,18,21,f("c"))+R(x+2,83,3,3,G)+R(x+13,83,3,3,G);});d+=win(22,53,70,4,{bars:0,sill:0}); }
+  }
+  if(id==="MXD"){
+    const awn=(x,y,w)=>`<path d="M${x} ${y}h${w}l3 7h-${w+6}z" fill="${f("aw")}" ${S}/>`+`<path d="M${x-3} ${y+7}h${w+6}" stroke="${K}" stroke-width="1"/>`;
+    const shop=(x,y,w)=>R(x,y,w,86-y,G)+`<polygon points="${pts([[x+w*.1,86],[x+w*.45,y],[x+w*.6,y],[x+w*.25,86]])}" fill="#fff" opacity=".28"/>`+L(x+w/2,y,x+w/2,86,.8,W);
+    if(v===0){ d=blk(30,26,88,60,26,f("b"),f("h"),f("d"))+cornice(30,26,88,26)+L(30,64,118,64,1.4);
+      for(let r=0;r<2;r++){const y=32+r*15; [37,52,67,82,97].forEach(x=>d+=win(x,y,8,11)); d+=swin(30,88,26,.3,.7,y,y+11);}
+      d+=shop(35,70,34)+door(73,68,10,18)+shop(88,70,26)+awn(35,64,34)+awn(88,64,26)+L(20,86,20,58,1.5)+C(20,56,3,W)+bush(128,86,.8); base=street; }
+    if(v===1){ d=blk(80,16,50,70,24,W,f("h"),f("d"))+cornice(80,16,50,24)+blk(18,34,62,52,4,f("b"),f("h"),f("d"))+cornice(18,34,62,2);
+      for(let r=0;r<2;r++){const y=40+r*13; [25,40,55,68].forEach(x=>d+=win(x,y,7,9));}
+      for(let r=0;r<3;r++){const y=22+r*14; [86,100,114].forEach(x=>d+=win(x,y,9,10)); d+=swin(80,50,24,.3,.7,y,y+10);}
+      d+=shop(22,70,32)+door(58,68,9,18)+shop(84,70,26)+door(114,68,9,18)+awn(22,64,32)+awn(84,64,26); base=street; }
+    if(v===2){ d=blk(40,14,78,72,26,W,f("h"),f("d"))+cornice(40,14,78,26)+R(40,62,78,6,K)+`<text x="79" y="66.7" text-anchor="middle" font-family="Georgia,serif" font-size="4.6" letter-spacing="1.2" fill="${W}">SHOPS &amp; OFFICES</text>`;
+      for(let r=0;r<4;r++){const y=19+r*10.8; [46,60,74,88,102].forEach(x=>d+=win(x,y,8,7.5)); d+=swin(40,78,26,.3,.7,y,y+7.5);}
+      d+=shop(44,70,30)+door(78,68,10,18)+shop(92,70,22)+L(24,86,24,54,1.6)+`<path d="M24 54q0 -4 6 -4" fill="none" stroke="${K}" stroke-width="1.4"/>`+P([[28,46],[34,46],[33,49],[29,49]],W)+tree(142,86,.85); base=street; }
+  }
+  if(id==="CBN"){
+    if(v===0){ d=mtn([[30,26,34],[88,16,42],[140,30,30]],64)+pine(10,86,40)+pine(150,86,44)+pine(124,80,30);
+      const A=[78,32], ox=30*OX, oy=30*OY;
+      d+=P([A,[A[0]+ox,A[1]-oy],[106+ox,86-oy],[106,86]],f("s"))+P([[50,86],A,[106,86]],f("vb"))+`<polyline points="${pts([[48,88],A,[108,88]])}" fill="none" stroke="${K}" stroke-width="2.4"/>`
+      +P([[64,84],[78,50],[92,84]],G)+`<polygon points="${pts([[68,84],[78,56],[81,56],[72,84]])}" fill="#fff" opacity=".3"/>`+L(78,50,78,84,.8,W)+L(70,70,86,70,.8,W)+R(44,84,68,2.4,W)+pine(30,86,34); }
+    if(v===1){ d=pine(14,86,46)+pine(148,86,50)+blk(40,58,72,28,28,f("lg"),f("h"))+gableS(40,58,72,28,14,4)
+      +blk(92,26,8,16,6,f("b"))+`<path d="M96 24q-4 -5 2 -8q2 -6 9 -4q7 0 6 6q-3 4 -9 3z" fill="${W}" ${S}/>`
+      +win(48,64,10,10,{shut:1})+win(94,64,10,10,{shut:1})+door(70,64,10,22)+L(40,62,112,62,1.4)+R(44,62,2.4,24,W)+R(106,62,2.4,24,W)+R(38,86,76,1.6,W)+R(126,78,16,8,f("lg")); }
+    if(v===2){ d=mtn([[40,30,34],[110,22,42]],62)+`<rect x="0" y="62" width="160" height="24" fill="${f("w")}"/>`+L(0,62,160,62,.8)
+      +pine(8,66,26)+pine(22,64,20)+pine(150,66,28)
+      +`<path d="M0 86V66H64L80 86z" fill="${f("g")}" ${S}/>`+blk(8,52,34,20,20,f("lg"),f("h"))+gableF(8,52,34,20,14,3,f("s"),f("vb"))+win(14,58,8,8)+door(28,56,7,16)
+      +P([[60,74],[150,74],[150,77],[60,77]],f("vb"))+[70,90,110,130,148].map(x=>L(x,77,x,86,1.2)).join("")+`<path d="M122 71q10 -3 20 0l-3 3h-14z" fill="${W}" ${S}/>`; base=`<rect x="0" y="86" width="160" height="14" fill="${f("w")}"/>`+L(0,86,160,86,.6); }
+  }
+  return `<svg class="prop-img" viewBox="0 0 160 100" role="img" aria-label="Picture of the property">${defs}<rect width="160" height="100" fill="${W}"/>${sky}${base}${d}<rect x=".5" y=".5" width="159" height="99" fill="none" stroke="${K}" stroke-width="1"/></svg>`;
+}
+// Variant for an offer: stored on new offers; older ones fall back to a stable pick from their id.
+function propImgVariant(o){ if(o&&o.img!=null) return o.img; const s=String((o&&o.id)||""); let h=0; for(const ch of s) h=(h*31+ch.charCodeAt(0))|0; return Math.abs(h)%3; }
 function realEstateListingsHTML(){
   const p=state.players[actingIdx()];
   if(state.listings.length===0) return `<p class="muted">No live listings right now — new ones appear each turn.</p>`;
@@ -1807,10 +2767,12 @@ function realEstateListingsHTML(){
     // For a WANTED offer: what the player would actually pocket after the mortgage is paid off.
     const sellQty=Math.min(l.qty,free), net=sellQty*l.price-mortgageShare(p,l.instId,sellQty);
     return `<div class="mcard">
-      <div class="between">
-        <div><div class="mtitle">${m.name}</div><small class="muted">expires in ${l.turnsLeft} turn${l.turnsLeft>1?"s":""}</small></div>
+      <div class="mhead">
+        <div class="mtitle" title="${m.name}">${m.name}</div>
+        <small class="muted">expires in ${l.turnsLeft} turn${l.turnsLeft>1?"s":""}</small>
         <span class="tag" style="background:${isAsk?'var(--good)':'var(--accent2)'}">${isAsk?"FOR SALE":"WANTED"}</span>
       </div>
+      <div class="prop-photo">${propImageSVG(m.id,propImgVariant(l))}</div>
       ${sparklineSVG(m.history,260,40)}
       <div class="mstats">
         <span><b>Price ${fmt(l.price)}</b></span>
@@ -1822,7 +2784,7 @@ function realEstateListingsHTML(){
       ${isAsk
         ?`<div class="mstats" style="margin-top:-2px;"><span><b>Cash down ${fmt(down)}</b> (${dp}%)</span><span>Mortgage ${fmt(cost-down)}</span><span>Costs −${fmt(costs)}/mo (${l.costPct==null?25:l.costPct}%)</span><span>Mortgage pmt −${fmt(mPmt)}/mo (${mortgageRate().toFixed(1)}%)</span><span class="${cfl>=0?"up":"down"}"><b>Cash flow ${sgn(cfl)}/mo</b></span><span>ROI ${roi}</span></div>`
         :sellQty?`<div class="mstats" style="margin-top:-2px;"><span>Sale ${fmt(sellQty*l.price)}</span><span>− Mortgage ${fmt(mortgageShare(p,l.instId,sellQty))}</span><span class="${net>=0?"up":"down"}">You get ${fmt(net)}</span></div>`:""}
-      <div class="mactions">
+      <div class="mactions mfoot">
         <button class="${isAsk?'primary':'sell'}" style="margin-left:auto;" ${canAct?"":"disabled"} onclick="${isAsk?"buyListing":"sellListing"}('${l.id}')">${isAsk?"Buy now":"Sell into it"}</button>
       </div>
       <div class="mheld" style="margin-top:4px;">Held: ${held}${held>free?` · ${held-free} locked (${lockTurnsLeft(p,l.instId)} turn${lockTurnsLeft(p,l.instId)===1?"":"s"})`:""}</div>
@@ -2006,34 +2968,53 @@ function statementHTML(p,idx){
    </div>
   </div>`;
 }
+// Events and bills arrive as a letter: airmail border, stamp, postmark with the week, addressed to the
+// player whose turn it is. It simply appears (no opening animation).
+function letterHTML(p,subject,kind,body){
+  const sq=SQUARES[BOARD[(p&&p.pos)||0]]?BOARD[(p&&p.pos)||0]:"event";
+  return `<div class="letter" role="dialog" aria-label="${kind}: ${subject}">
+    <div class="letter-head">
+      <div class="letter-addr"><span>${kind}</span><div>To: <b>${p?p.name:""}</b></div><div>Re: <b>${subject}</b></div></div>
+      <div class="letter-post"><div class="letter-mark">WEEK<br><b>${state.week||0}</b></div><div class="letter-stamp" style="--sq:${tbColor(sq)}">${tbIcon(sq)}</div></div>
+    </div>
+    <div class="letter-body">${body}</div>
+  </div>`;
+}
 function pendingHTML(){
   if(!state.pending) return "";
   const myTurn=!state.online||state.myIdx===state.turn;
   let inner="";
   if(state.pending.kind==="charity"){
     const p=state.pending.p;
-    inner=myTurn?`<div class="card" style="margin:0;max-width:360px;width:100%;"><h3>Charity — ${p.name}</h3>
-     <p>Donate 10% of your total income (<b>${fmt(charityAmount(state.players[state.turn]))}</b>)?</p>
-     <p class="muted" style="margin-top:-4px;">Benefit: for your next ${CHARITY_TURNS} turns you may roll <b>1 or 2 dice</b>. More Paydays and deals.</p>
-     <div class="row"><button class="primary" onclick="charityPay()">Donate</button><button onclick="charitySkip()">Skip</button></div></div>`
-     :`<div class="card" style="margin:0;max-width:360px;width:100%;"><h3>Charity — ${p.name}</h3><p class="muted">Waiting for ${p.name} to decide…</p></div>`;
+    inner=letterHTML(state.players[state.turn],"Donation request","Appeal",`<p>The community fund asks for 10% of your total income.</p>
+      <div class="letter-due"><span>Donation</span><b>${fmt(charityAmount(state.players[state.turn]))}</b></div>
+      <p class="letter-note">If you donate, for your next ${CHARITY_TURNS} turns you may roll 1 or 2 dice.</p>
+      ${myTurn?`<div class="letter-actions"><button onclick="charitySkip()">Skip</button><button class="primary" onclick="charityPay()">Donate</button></div>`
+      :`<p class="letter-note">Waiting for ${p.name} to decide…</p>`}`);
   }else if(state.pending.kind==="bill"){
     const b=state.pending, p=state.players[state.turn];
-    inner=`<div class="evt bill-card" style="margin:0;max-width:360px;width:100%;"><h3>${b.title}</h3><p>${b.desc}</p>
-      <div class="bill-amt">${fmt(b.amt)}</div>
-      ${myTurn?`<p class="bill-cash">Cash on hand: <b>${fmt(p.cash)}</b>${p.cash<b.amt?" — not enough, you'll need a loan":""}</p>
-      <button class="bill-pay" onclick="payPendingBill()">Pay ${fmt(b.amt)}</button>`
-      :`<p style="opacity:.85;">Waiting for ${p.name} to pay…</p>`}</div>`;
+    inner=letterHTML(p,b.title,"Invoice",`<p>${b.desc}</p>
+      <div class="letter-due"><span>Amount due</span><b>${fmt(b.amt)}</b></div>
+      ${myTurn?`<p class="letter-note">Cash on hand: ${fmt(p.cash)}${p.cash<b.amt?" — not enough, you'll need a loan":""}</p>
+      <div class="letter-actions"><button class="primary" onclick="payPendingBill()">Pay ${fmt(b.amt)}</button></div>`
+      :`<p class="letter-note">Waiting for ${p.name} to pay…</p>`}`);
   }else if(state.pending.kind==="eventinfo"){
     const ev=state.pending.ev;
-    inner=`<div class="evt" style="margin:0;max-width:360px;width:100%;"><h3>${ev.name}</h3><p>${ev.desc}</p>
-     ${myTurn?`<button onclick="continueEvent()" style="background:#fff;color:#333;">Continue</button>`:`<p style="opacity:.85;">Waiting for the current player to continue…</p>`}</div>`;
+    inner=letterHTML(state.players[state.turn],ev.name,"Notice",`<p>${ev.desc}</p>
+     ${myTurn?`<div class="letter-actions"><button class="primary" onclick="continueEvent()">Continue</button></div>`:`<p class="letter-note">Waiting for the current player to continue…</p>`}`);
   }else if(state.pending.kind==="flashdeal"){
     const pd=state.pending, m=MARKET.find(x=>x.id===pd.id), p=pd.p;
-    inner=myTurn?`<div class="evt" style="margin:0;max-width:360px;width:100%;"><h3>Flash Deal — ${p.name}</h3>
-     <p>Private offer on <b>${m.name}</b> at <b>${fmt(pd.dealPrice)}</b>/unit.
-     ${m.type==="realestate"?`<br><span class="evt-mv">Current market value: <b>${fmt(m.price)}</b></span><br>Terms: <b>${pd.downPct}% down</b>; the rest becomes a mortgage.`
-       :`<a href="#" class="evt-link" onclick="togglePanel('market');return false;">Check the Market</a><br><small class="evt-note">Shares bought here are locked for your next ${FLASH_LOCK_TURNS} turns.</small>`}</p>
+    const re=m.type==="realestate";
+    const head=`<div class="clip-top"><span>The Rat Race Times</span><span>Week ${state.week||0}</span></div>
+      <div class="clip-kicker">Private offer · ${re?"Real estate":"Shares"}</div>
+      <div class="clip-title">${m.name}</div>`;
+    inner=myTurn?`<div class="clip${re?"":" clip-sm"}" role="dialog" aria-label="Private offer: ${m.name}">${head}
+     <div class="clip-body">
+     <div class="clip-deal">${re?`<div class="prop-photo clip-photo">${propImageSVG(m.id,propImgVariant(pd))}</div>`:""}
+      <div><div class="clip-price"><span>Asking</span><b>${fmt(pd.dealPrice)}</b><span>${re?"per unit":"per share"}</span></div>
+      <p class="clip-text">For ${p.name} only, this turn.
+      ${re?`Market value ${fmt(m.price)}. ${pd.downPct}% down, the rest becomes a mortgage.`
+        :`Compare with the <a href="#" class="clip-link" onclick="togglePanel('market');return false;">stock table</a>. Shares bought here are locked for your next ${FLASH_LOCK_TURNS} turns.`}</p></div></div>
      ${pd.qtyMax!==1?`<div class="evt-stepper">
       <button onclick="setFlashQty(state.flashQty-1,true)" aria-label="One less">−</button>
       <input class="evt-qty" type="number" min="1" value="${state.flashQty}" oninput="setFlashQty(this.value)" onchange="setFlashQty(this.value,true)" aria-label="Quantity">
@@ -2041,13 +3022,11 @@ function pendingHTML(){
       <button class="evt-max" onclick="setFlashQty(flashMaxCash(),true)" title="Most you can buy with cash, no loan">Max cash</button>
      </div>`:""}
      <div class="flash-preview" id="flash-preview">${flashPreviewHTML()}</div>
-     <div class="row" style="justify-content:center;">
-      <button onclick="buyFlashDeal()" style="background:#fff;color:#333;">Buy Now</button>
-      <button onclick="passFlash()" style="background:transparent;color:#fff;border-color:#fff;">Pass</button>
-     </div></div>`
-     :`<div class="evt" style="margin:0;max-width:360px;width:100%;"><h3>Flash Deal — ${p.name}</h3><p>Waiting for ${p.name} to decide…</p></div>`;
+     </div>
+     <div class="clip-actions"><button onclick="passFlash()">Pass</button><button class="primary" onclick="buyFlashDeal()">Buy</button></div></div>`
+     :`<div class="clip" role="dialog" aria-label="Private offer">${head}<div class="clip-body"><p class="clip-text">A private offer for ${p.name}. Waiting for ${p.name} to decide…</p></div></div>`;
   }
-  return `<div class="modal-backdrop">${inner}</div>`;
+  return `<div class="modal-backdrop${moving()?" move-wait":""}">${inner}</div>`;
 }
 function playersOverviewHTML(){
   // Only public info here (profession, board square, family, progress %) — cash and the full
@@ -2064,7 +3043,7 @@ function playersOverviewHTML(){
         ${playerToken(pl,i,isTurn?" active":"")}
         <div style="min-width:0;">
           <div class="pname">${pl.name}${isMe?` <span class="badge soft">You</span>`:""}${isTurn?` <span class="badge">Turn</span>`:""}</div>
-          <div class="pmeta">${pl.profession} · on ${sq.emoji} ${sq.label}</div>
+          <div class="pmeta">${pl.profession} · on <span class="pmeta-sq" style="--sq:${tbColor(BOARD[pl.pos])}">${tbIcon(BOARD[pl.pos])}${sq.label}</span></div>
         </div>
         <div class="ppct ${done?"up":""}">${rawPct}%</div>
       </div>
@@ -2113,8 +3092,12 @@ function gameHTML(over){
   const tabs=state.players.map((pl,i)=>`<button class="${state.viewTab===i?'active':''}" onclick="setTab(${i})" style="border-left:3px solid ${pl.color}">${pl.name}${pl.escaped?" ✓":""}</button>`).join("");
   const myIdx=state.online?state.myIdx:state.viewTab;
   const financePanel=state.panel==="finance"?`<div class="panel-backdrop left" onclick="if(event.target===this)closePanel()">
-      <div class="side-panel wide xwide">
-        <div class="panel-head"><h3 style="margin:0;">${state.online?"Your":""} Financial Statement</h3><button onclick="closePanel()">✕ Close</button></div>
+      <div class="side-panel wide xwide paper-form">
+        <div class="panel-head form-head">
+          <div class="form-title"><small>Cashflow · Rat Race</small><h3>Financial Statement</h3></div>
+          <div class="form-meta">${speedCfg().label} game<br>Week ${state.week||0}</div>
+          <button onclick="closePanel()">Close</button>
+        </div>
         <div class="panel-body">
           ${state.online?`<p class="muted" style="margin-top:0;">Only you can see your full statement. Everyone sees the shared Rat Race Progress bars below the board.</p>`:`<div class="tabs">${tabs}</div>`}
           ${statementHTML(state.players[myIdx], myIdx)}
@@ -2122,8 +3105,15 @@ function gameHTML(over){
       </div>
     </div>`:"";
   const marketPanel=state.panel==="market"&&!over?`<div class="panel-backdrop right" onclick="if(event.target===this)closePanel()">
-      <div class="side-panel wide">
-        <div class="panel-head"><h3 style="margin:0;">Market</h3><button onclick="closePanel()">✕ Close</button></div>
+      <div class="side-panel wide paper-news">
+        <div class="panel-head news-head">
+          <div class="news-mast">
+            <div class="news-top"><span>Week ${state.week||0}</span><span>Market edition</span><span>Mortgages ${mortgageRate().toFixed(1)}% · Bank loans ${bankRate().toFixed(1)}%</span></div>
+            <h3 class="news-title">The Rat Race Times</h3>
+            <div class="news-rule"><span>Stocks</span><span>Real Estate</span><span>Offers &amp; Wanted</span></div>
+          </div>
+          <button onclick="closePanel()">Close</button>
+        </div>
         <div class="panel-body">
           ${marketHTML()}
         </div>
@@ -2145,7 +3135,7 @@ function gameHTML(over){
             :`<button class="primary" onclick="rollDice(1)">Roll Dice</button>`)):""}
       </div>
       <div class="board-area"><div class="board-row">
-        ${boardHTML()}
+        ${tbBoardHTML()}
         <div class="log-panel">${diceBoxHTML()}<div class="log-head">Game Log</div><div class="log">${state.log.map(l=>`<div>${l}</div>`).join("")}</div></div>
       </div></div>
     </div>
