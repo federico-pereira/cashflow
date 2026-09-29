@@ -110,6 +110,7 @@ small,.muted{color:var(--muted);font-size:12.5px;}
 .bc-title{font-weight:bold;font-size:clamp(12px,2.6vmin,20px);letter-spacing:.06em;color:var(--accent);}
 .bc-title small{display:block;font-size:.55em;letter-spacing:.2em;text-transform:uppercase;color:var(--accent2);}
 .bc-turn{font-size:clamp(8px,1.5vmin,12px);padding:3px 10px;border-radius:999px;background:color-mix(in srgb,var(--pc) 14%,var(--bg));border:1px solid var(--pc);display:inline-flex;align-items:center;gap:5px;}
+.lobby-back{display:flex;align-items:center;gap:8px;margin:-2px 0 8px;}
 .mode-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 @media (max-width:560px){.mode-buttons{grid-template-columns:1fr;}}
 .mode-btn{display:flex;align-items:center;gap:12px;text-align:left;padding:14px 16px;border:2px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);white-space:normal;}
@@ -1690,13 +1691,14 @@ function setupHTML(){
   if(state.solo){
     const bests=Object.entries(SPEEDS).map(([k,v])=>{const b=soloBest(k); return `${v.label} <b>${b==null?"—":b+" wk"}</b>`;}).join(" · ");
     return `<h1>Cashflow: Rat Race ${muteButtonHTML()}</h1>
+  <div class="lobby-back"><button onclick="backToMainLobby()">‹ Back</button>${state.online?`<small class="muted">Leaves the online lobby${state.isHost?" and closes it for everyone":""}</small>`:""}</div>
     <p class="muted">Solo game — escape the Rat Race in as few weeks as you can. Your profession is dealt at random; a week is one of your turns.</p>
     <div class="card">
       <div class="row"><b>Your name:</b> <input value="${state.names[0]}" oninput="state.names[0]=this.value" style="flex:1;min-width:140px;"></div>
       <div style="margin-top:10px;"><b>Game speed</b>${speedPickerHTML()}</div>
       <p class="muted" style="margin:6px 0 0;font-size:12px;">Your best times on this device: ${bests}</p>
     </div>
-    <div class="row"><button class="primary" onclick="startGame()">Start Solo Game</button> <a href="#" style="font-size:12.5px;" onclick="chooseLocalMode();return false;">or play pass-and-play</a></div>`;
+    <div class="row"><button class="primary" onclick="startGame()">Start Solo Game</button></div>`;
   }
   let rows="";
   const seatsFilled=state.names.slice(0,state.numPlayers).every(n=>n&&n.trim());
@@ -1714,8 +1716,9 @@ function setupHTML(){
     </div>`;
   }
   return `<h1>Cashflow: Rat Race ${muteButtonHTML()}</h1>
+  <div class="lobby-back"><button onclick="backToMainLobby()">‹ Back</button>${state.online?`<small class="muted">Leaves the online lobby${state.isHost?" and closes it for everyone":""}</small>`:""}</div>
   ${state.online?`<p class="muted">Lobby — you are <b>${state.myName}</b>${state.isHost?" (host)":""}. Professions are dealt at random when the game starts. Everyone ready up, then ${state.isHost?"hit Start.":"wait for the host to start."}</p>`
-    :`<p class="muted">Pass-and-play, 2–4 players. Professions are dealt at random when the game starts. A shared stock & real-estate market fluctuates every turn, random events shake things up, and you can take or pay off bank loans anytime on your turn. Escape the Rat Race when passive income covers your expenses.</p>`}
+    :`<p class="muted">Pass-and-play: 2–4 players take turns on this device. Professions are dealt at random when the game starts. You escape the Rat Race when your passive income covers your expenses.</p>`}
   <div class="card">
     <div class="row"><b>Players:</b> ${[2,3,4].map(n=>`<button class="${state.numPlayers===n?'primary':''}" onclick="setPlayers(${n})" ${state.online&&!state.isHost?"disabled":""}>${n}</button>`).join("")}</div>
     <div style="margin-top:10px;"><b>Game speed</b>${speedPickerHTML()}</div>
