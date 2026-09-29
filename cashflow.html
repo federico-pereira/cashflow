@@ -78,7 +78,8 @@ html,body{height:100%;}
 .panel-backdrop.left{justify-content:flex-start;}
 .panel-backdrop.right{justify-content:flex-end;}
 .side-panel{background:var(--panel);width:auto;max-width:420px;max-height:92vh;overflow:hidden;padding:0;box-shadow:0 10px 40px rgba(0,0,0,.35);margin:0 10px;border-radius:14px;display:flex;flex-direction:column;}
-.side-panel.wide{width:min(94vw,860px);max-width:min(94vw,860px);}
+.side-panel.wide{width:min(94vw,860px);max-width:min(94vw,860px);height:92vh;}
+/* Fixed height: the panel no longer grows/shrinks and re-centres when rows appear or disappear. */
 .side-panel.xwide{width:min(96vw,1120px);max-width:min(96vw,1120px);}
 .panel-backdrop.left .side-panel{border-radius:0 14px 14px 0;margin-left:0;}
 .panel-backdrop.right .side-panel{border-radius:14px 0 0 14px;margin-right:0;}
@@ -109,6 +110,13 @@ small,.muted{color:var(--muted);font-size:12.5px;}
 .bc-title{font-weight:bold;font-size:clamp(12px,2.6vmin,20px);letter-spacing:.06em;color:var(--accent);}
 .bc-title small{display:block;font-size:.55em;letter-spacing:.2em;text-transform:uppercase;color:var(--accent2);}
 .bc-turn{font-size:clamp(8px,1.5vmin,12px);padding:3px 10px;border-radius:999px;background:color-mix(in srgb,var(--pc) 14%,var(--bg));border:1px solid var(--pc);display:inline-flex;align-items:center;gap:5px;}
+.mode-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media (max-width:560px){.mode-buttons{grid-template-columns:1fr;}}
+.mode-btn{display:flex;align-items:center;gap:12px;text-align:left;padding:14px 16px;border:2px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);white-space:normal;}
+.mode-btn:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--panel));}
+.mode-btn .mb-icon{font-size:28px;line-height:1;}
+.mode-btn b{display:block;font-size:16px;}
+.mode-btn small{display:block;margin-top:2px;}
 .speed-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px;}
 @media (max-width:640px){.speed-cards{grid-template-columns:1fr;}}
 .speed-card{text-align:left;display:flex;flex-direction:column;gap:4px;padding:10px 12px;border:2px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);white-space:normal;}
@@ -229,7 +237,8 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
 .confirm-card td.num{white-space:nowrap;}
 .confirm-card tr.big td{font-size:15px;font-weight:bold;border-bottom:2px solid var(--line);}
 .confirm-warn{background:rgba(179,38,30,.1);border:1px solid rgba(179,38,30,.35);color:var(--bad);border-radius:8px;padding:7px 10px;font-size:12.5px;margin-top:10px;}
-.sheet-table tr.sub td{font-size:11.5px;color:var(--muted);padding-left:18px;}
+.sheet-table tr.sub td{font-size:11.5px;color:var(--muted);padding-left:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help;}
+.sheet-table tr.sub .sub-meta{font-size:10.5px;opacity:.8;}
 .sheet-table tr.liab{cursor:pointer;}
 .sheet-table tr.liab:hover td{background:var(--bg);}
 .sheet-table tr.sel td{background:rgba(184,134,11,.14);font-weight:bold;}
@@ -259,6 +268,8 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
 .pay-hint{font-size:10.5px;color:var(--accent2);opacity:0;transition:opacity .15s;}
 .sheet-table tr.liab:hover .pay-hint,.sheet-table tr.sel .pay-hint{opacity:1;}
 .bank-box{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);}
+/* Borrow / pay-off box stays pinned to the bottom of the finance panel, however long the sheet gets. */
+.panel-body .bank-box{position:sticky;bottom:0;z-index:3;background:var(--panel);box-shadow:0 -8px 18px -6px rgba(0,0,0,.18);}
 .bank-col{display:flex;flex-direction:column;gap:5px;}
 .bank-col.grow{flex:1;min-width:260px;}
 .bank-col select{flex:1;min-width:180px;}
@@ -359,7 +370,7 @@ function nextLeaseRenewal(p,id){const ls=leaseList(p,id); return ls.length?Math.
 function renewLeases(){
   (state.players||[]).forEach(p=>{ if(!isRacing(p)) return; Object.keys(p.leases||{}).forEach(id=>{ const m=MARKET.find(x=>x.id===id);
     p.leases[id].forEach(l=>{ if(l.until<=(state.week||0)){ const old=l.rent; l.rent=m.rent; l.until=(state.week||0)+LEASE_WEEKS;
-      if(old!==l.rent) log("🏠 "+p.name+"'s "+m.name+" lease renewed: rent "+fmt(old)+" → "+fmt(l.rent)+"/mo"+(l.qty>1?" ×"+l.qty:"")+"."); } }); }); });
+      if(old!==l.rent) log(""+p.name+"'s "+m.name+" lease renewed: rent "+fmt(old)+" → "+fmt(l.rent)+"/mo"+(l.qty>1?" ×"+l.qty:"")+"."); } }); }); });
 }
 function addDiv(id,d){const m=MARKET.find(x=>x.id===id); m.div=Math.max(0,Math.round((m.div+d)*100)/100);}
 // Bank loan rate: % of the balance paid every month (starts at 10%, the real-game rule). It's shared
@@ -528,6 +539,14 @@ function chooseLocalMode(){
 }
 // Solo: one player on this device, racing the clock. The game ends when you escape (or go bankrupt);
 // best times per game speed are kept on this device (localStorage cf_best_<speed>).
+// Leave a finished game and go back to the first screen (online this disconnects from the room).
+function backToMainLobby(){
+  if(peer){try{peer.destroy();}catch(e){}}
+  peer=null; hostConns={}; hostConn=null;
+  Object.assign(state,{online:false,isHost:false,myIdx:null,mode:null,solo:false,phase:"setup",players:[],pending:null,confirm:null,panel:null,
+    numPlayers:2,names:["",""],ready:[false,false],joinError:"",alert:null,lastRoll:null});
+  render();
+}
 function chooseSoloMode(){
   chooseLocalMode();
   state.solo=true; state.numPlayers=1; state.names=[(state.joinName||"").trim()||"You"]; state.ready=[true];
@@ -849,13 +868,13 @@ function payBill(p,amt,what){
   const lines=fireSale(p,amt-p.cash);
   if(p.cash>=amt){
     p.cash-=amt;
-    raiseAlert("🔥 Fire sale — "+p.name,[p.name+" couldn't cover "+what+" ("+fmt(amt)+") and the bank wouldn't lend more, so assets were sold:",...lines]);
+    raiseAlert("Fire sale — "+p.name,[p.name+" couldn't cover "+what+" ("+fmt(amt)+") and the bank wouldn't lend more, so assets were sold:",...lines]);
     return;
   }
   if(monthlyCashflow(p)<0){ goBankrupt(p,what,amt,lines); return; }
   payCash(p,amt);
-  log("🏦 Emergency loan: "+p.name+" had nothing left to sell, so the bank covered "+what+".");
-  if(lines.length) raiseAlert("🔥 Fire sale — "+p.name,[p.name+" couldn't cover "+what+" ("+fmt(amt)+"), so assets were sold:",...lines,"The bank covered the rest with an emergency loan."]);
+  log("Emergency loan: "+p.name+" had nothing left to sell, so the bank covered "+what+".");
+  if(lines.length) raiseAlert("Fire sale — "+p.name,[p.name+" couldn't cover "+what+" ("+fmt(amt)+"), so assets were sold:",...lines,"The bank covered the rest with an emergency loan."]);
 }
 function fireSellable(p){return MARKET.some(m=>(p.holdings[m.id]||0)>0);}
 // Removes units from a holding and keeps all per-holding bookkeeping (mortgage, cost basis, buy marks,
@@ -878,24 +897,24 @@ function fireSale(p,need){
     if(need<=0) return;
     const qty=Math.min(p.holdings[m.id],Math.ceil(need/m.price)), got=qty*m.price;
     removeUnits(p,m,qty); p.cash+=got; need-=got;
-    lines.push("📈 Sold "+qty+"x "+m.name+" at "+fmt(m.price)+" = "+fmt(got));
+    lines.push("Sold "+qty+"x "+m.name+" at "+fmt(m.price)+" = "+fmt(got));
   });
   // Then properties at half value, worst cash flow per unit first.
   const props=()=>MARKET.filter(m=>m.type==="realestate"&&(p.holdings[m.id]||0)>0).sort((a,b)=>propNet(p,a)/p.holdings[a.id]-propNet(p,b)/p.holdings[b.id]);
   while(need>0&&props().length){
     const m=props()[0], sale=Math.round(m.price*FIRE_SALE_RE), payoff=removeUnits(p,m,1), got=Math.max(0,sale-payoff);
     p.cash+=got; need-=got;
-    lines.push("🏠 Sold "+m.name+" at half value "+fmt(sale)+" − mortgage "+fmt(payoff)+" = "+fmt(got)+(sale<payoff?" (bank forgave the rest)":""));
+    lines.push("Sold "+m.name+" at half value "+fmt(sale)+" − mortgage "+fmt(payoff)+" = "+fmt(got)+(sale<payoff?" (bank forgave the rest)":""));
   }
-  lines.forEach(l=>log("🔥 "+p.name+": "+l.replace(/^\S+ /,"")));
+  lines.forEach(l=>log(""+p.name+": "+l.replace(/^\S+ /,"")));
   return lines;
 }
 function goBankrupt(p,what,amt,lines){
   p.bankrupt=true; p.cash=0;
   const n=state.players.length, gone=state.players.filter(x=>x.bankrupt&&x!==p).length;
   p.place=n-gone; p.finishWeek=state.week||0;
-  log("💀 "+p.name+" is BANKRUPT — couldn't pay "+what+" with negative cash flow and nothing left to sell. Out of the game (#"+p.place+").");
-  raiseAlert("💀 "+p.name+" is bankrupt",[...(lines.length?[p.name+"'s assets were sold in a fire sale:",...lines]:[]),"It still wasn't enough to cover "+what+" ("+fmt(amt)+"), the cash flow is negative and the bank won't lend more.",p.name+" is out of the game and finishes #"+p.place+"."]);
+  log(""+p.name+" is BANKRUPT — couldn't pay "+what+" with negative cash flow and nothing left to sell. Out of the game (#"+p.place+").");
+  raiseAlert(""+p.name+" is bankrupt",[...(lines.length?[p.name+"'s assets were sold in a fire sale:",...lines]:[]),"It still wasn't enough to cover "+what+" ("+fmt(amt)+"), the cash flow is negative and the bank won't lend more.",p.name+" is out of the game and finishes #"+p.place+"."]);
   checkGameOver();
 }
 
@@ -934,13 +953,12 @@ function checkWin(p){
     if(state.players.length===1){
       const wk=state.week||0, record=saveSoloBest(state.speed||"medium",wk), best=soloBest(state.speed||"medium");
       p.newRecord=record;
-      log("🏁 "+p.name+" escaped the Rat Race in "+wk+" weeks"+(record?" — new best!":"")+".");
-      raiseAlert("🏁 You escaped the Rat Race!",["Escaped in "+wk+" weeks ("+speedCfg().label+" game).",record?"🎉 New best time on this device!":"Your best: "+best+" weeks."]);
+      log(p.name+" escaped the Rat Race in "+wk+" weeks"+(record?" (new best time)":"")+".");
+      raiseAlert("You escaped the Rat Race",["Escaped in "+wk+" weeks ("+speedCfg().label+" game).",record?"New best time on this device.":"Your best: "+best+" weeks."]);
       checkGameOver(); return;
     }
-    const medal=["🥇","🥈","🥉"][p.place-1]||"🏁";
-    log(medal+" "+p.name+" escaped the Rat Race"+(p.place===1?" and WINS!":" — finishes #"+p.place+".")+" Passive income now covers all expenses.");
-    raiseAlert(medal+" "+p.name+(p.place===1?" wins!":" finishes #"+p.place),[p.name+" escaped the Rat Race: passive income "+fmt(passiveIncome(p))+"/mo now covers expenses of "+fmt(totalExpenses(p))+"/mo.",p.place===1?"Everyone else keeps playing for the other places.":""].filter(Boolean));
+    log(p.name+" escaped the Rat Race"+(p.place===1?" and wins.":" — finishes #"+p.place+".")+" Passive income now covers all expenses.");
+    raiseAlert(p.name+(p.place===1?" wins":" finishes #"+p.place),[p.name+" escaped the Rat Race: passive income "+fmt(passiveIncome(p))+"/mo now covers expenses of "+fmt(totalExpenses(p))+"/mo.",p.place===1?"Everyone else keeps playing for the other places.":""].filter(Boolean));
     checkGameOver();
   }
 }
@@ -955,10 +973,10 @@ function checkGameOver(){
     const taken=new Set(state.players.map(x=>x.place).filter(Boolean));
     let pl=1; while(taken.has(pl)) pl++;
     p.place=pl; p.finishWeek=state.week||0;
-    log("🏁 "+p.name+" is the last one in the Rat Race and finishes #"+pl+".");
+    log(""+p.name+" is the last one in the Rat Race and finishes #"+pl+".");
   });
   state.phase="over"; state.pending=null;
-  log("🏁 Game over! Final standings are in.");
+  log("Game over. Final standings are in.");
 }
 // Shared announcements (fire sale, bankruptcy, a win). Everyone sees them once; each browser
 // dismisses them locally (state.alertSeen), so one player closing it doesn't hide it for others.
@@ -1001,9 +1019,9 @@ function professionSheet(pr){
 // Lobby picker: one card per speed with its description, expected length and the values that
 // define it; values that differ from Medium are highlighted so the trade-offs are easy to see.
 const SPEED_INFO={
-  fast:"Lots of property deals, higher rents and a little extra cash at the start. Quick games with plenty of action.",
-  medium:"The standard game: a steady flow of deals and normal rents.",
-  slow:"Deals are scarce and more get snapped up by others. A longer, more strategic game where every purchase counts.",
+  fast:"More property offers, 12% starting rent and $800 extra starting cash per player.",
+  medium:"Standard number of property offers and 10% starting rent.",
+  slow:"Fewer property offers, and more of them are taken by other buyers.",
 };
 function speedPickerHTML(){
   const locked=state.online&&!state.isHost, base=SPEEDS.medium, cur=state.speed||"medium";
@@ -1154,7 +1172,7 @@ function nextTurn(){
     np.skipTurns--;
     // Alone, a skipped turn still costs a week: the market moves on without you.
     if(state.players.length===1){ updateMarket(); renewLeases(); }
-    log("⚠️ "+np.name+" is downsized and sits out this turn"+(np.skipTurns?" ("+np.skipTurns+" more to go).":" — back next round."));
+    log(""+np.name+" is downsized and sits out this turn"+(np.skipTurns?" ("+np.skipTurns+" more to go).":" — back next round."));
   }
   state.pending=null; syncRender();
 }
@@ -1208,11 +1226,11 @@ function resolveSpace(p,sp){
   }else if(sp==="downsized"){
     const loss=totalExpenses(p);
     p.skipTurns=DOWNSIZED_SKIPS;
-    log(p.name+" got downsized! Owes "+fmt(loss)+" (a month of expenses) and loses the next "+DOWNSIZED_SKIPS+" turns.");
+    log(p.name+" got downsized. Owes "+fmt(loss)+" (a month of expenses) and loses the next "+DOWNSIZED_SKIPS+" turns.");
     sfx("event");
-    state.pending={kind:"bill",amt:loss,what:"a month of expenses after being downsized",title:"Downsized!",desc:"You lost your job for a while: pay one month of expenses and sit out your next "+DOWNSIZED_SKIPS+" turns."};
+    state.pending={kind:"bill",amt:loss,what:"a month of expenses after being downsized",title:"Downsized",desc:"You lost your job for a while: pay one month of expenses and sit out your next "+DOWNSIZED_SKIPS+" turns."};
   }else if(sp==="baby"){
-    if(p.kids<3){p.kids++; log(p.name+" had a baby! Monthly expenses up "+fmt(p.childExp)+".");}
+    if(p.kids<3){p.kids++; log(p.name+" had a baby. Monthly expenses up "+fmt(p.childExp)+".");}
     else log(p.name+" landed on Baby but already has 3 kids.");
     checkWin(p);
   }else if(sp==="charity"){
@@ -1232,7 +1250,7 @@ function resolveSpace(p,sp){
     const ev=pickEvent();
     state.nextBill=null;
     const desc=ev.run(state.players,p);
-    log("🎲 Event — "+ev.name+": "+desc);
+    log("Event — "+ev.name+": "+desc);
     checkAllWins();
     sfx("event");
     if(ev.type!=="personal") state.lastMarketEvent={name:ev.name,desc,week:state.week||0};
@@ -1490,7 +1508,7 @@ function confirmHTML(){
   doomed=fire&&fireValue<c.due-p.cash&&cf<0;
   return `<div class="confirm-backdrop" onclick="if(event.target===this)confirmNo()">
     <div class="confirm-card${chk.ok?"":" denied"}" role="dialog" aria-modal="true">
-      <div class="confirm-head">${!chk.ok&&c.bill?"The bank won't lend — fire sale":!chk.ok?"🚫 Loan denied by the bank":c.due!=null?"Not enough cash — you need a bank loan":"🏦 Heads up — this takes a bank loan"}</div>
+      <div class="confirm-head">${!chk.ok&&c.bill?"The bank won't lend — fire sale":!chk.ok?"Loan denied by the bank":c.due!=null?"Not enough cash — you need a bank loan":"Heads up — this takes a bank loan"}</div>
       <h3 style="margin-bottom:8px;">${c.title}</h3>
       ${fire?`<table>
         <tr><td>Total to pay now</td><td class="num"><b>${fmt(c.due)}</b></td></tr>
@@ -1620,7 +1638,7 @@ function holdingsTrendsHTML(p){
   const tValue=owned.reduce((s,m)=>s+p.holdings[m.id]*m.price,0), tGain=tValue-tBasis;
   const tCls=tGain>0?"up":tGain<0?"down":"flat";
   return `<div class="trends">
-    <div class="sheet-sec"><span class="num">📈</span>My Holdings vs Buy Price</div>
+    <div class="sheet-sec">My Holdings vs Buy Price</div>
     ${owned.length?`<div class="between" style="font-size:12.5px;margin:4px 0;"><span>Paid ${fmt(tBasis)} → worth ${fmt(tValue)}</span><b class="${tCls}">${tGain>=0?"+":"−"}${fmt(Math.abs(tGain))}</b></div>
       <small class="muted" style="display:block;margin-bottom:6px;">Click a holding to chart it against what you paid.</small>${cards}`
     :`<p class="muted" style="font-size:12px;">Buy stocks or real estate and they'll show up here, charted against the price you paid.</p>`}
@@ -1641,29 +1659,37 @@ function render(){
   // Defensive: any phase other than "setup" needs real player data — anything else (an unrecognized
   // phase, or missing/incomplete player data) falls back to the lobby instead of crashing.
   if(state.phase!=="setup"&&!validGamePhase) state.phase="setup";
+  // Keep scroll positions across the full re-render (the finance sheet, market and log would otherwise
+  // jump back to the top every time a number changes, e.g. while paying off debt).
+  const scrollKeys=[".panel-body",".log-panel .log",".mtable-wrap"];
+  const kept=!el.querySelector?[]:scrollKeys.map(sel=>{const n=el.querySelector(sel); return n?{sel,top:n.scrollTop,panel:state.panel}:null;}).filter(Boolean);
   if(state.phase==="setup"){ el.classList.remove("fit-screen"); el.innerHTML=setupHTML(); }
   else { el.classList.add("fit-screen"); el.innerHTML=gameHTML(state.phase==="over"); }
+  kept.forEach(k=>{ if(k.sel===".panel-body"&&k.panel!==state.panel) return; const n=el.querySelector(k.sel); if(n) n.scrollTop=k.top; });
   syncSounds();
   syncDice();
 }
 function setupHTML(){
   const joined=state.online||state.mode==="local";
   if(!joined){
-    return `<h1>💰 Cashflow: Rat Race ${muteButtonHTML()}</h1>
+    return `<h1>Cashflow: Rat Race ${muteButtonHTML()}</h1>
     <div class="card">
       <h3>Lobby</h3>
-      <p class="muted">Type your name to pop into the shared lobby — connects browser-to-browser, no account or sign-in needed on either side. Keep this tab open during the game.</p>
+      <p class="muted">Enter your name to join the online lobby. It connects browser-to-browser; no account is needed. Keep this tab open during the game.</p>
       <div class="row" style="margin-bottom:8px;">
         <input placeholder="Your name" value="${state.joinName}" oninput="setJoinField('joinName',this.value)" style="flex:1;min-width:160px;" onkeydown="if(event.key==='Enter')joinRoomFlow()">
         <button class="primary" onclick="joinRoomFlow()">Join Lobby</button>
       </div>
       ${state.joinError?`<p style="${state.joinError.startsWith('Connecting')?'':'color:var(--danger);'}font-size:13px;">${state.joinError}</p>`:""}
-      <p class="muted" style="font-size:11.5px;">Or skip online play: <a href="#" onclick="chooseSoloMode();return false;">play solo</a> · <a href="#" onclick="chooseLocalMode();return false;">pass-and-play on this device</a>.</p>
+    </div>
+    <div class="mode-buttons">
+      <button class="mode-btn" onclick="chooseSoloMode()"><span><b>Play Solo</b><small>One player on this device. Best times are saved.</small></span></button>
+      <button class="mode-btn" onclick="chooseLocalMode()"><span><b>Pass-and-play</b><small>2–4 players on this device.</small></span></button>
     </div>`;
   }
   if(state.solo){
     const bests=Object.entries(SPEEDS).map(([k,v])=>{const b=soloBest(k); return `${v.label} <b>${b==null?"—":b+" wk"}</b>`;}).join(" · ");
-    return `<h1>💰 Cashflow: Rat Race ${muteButtonHTML()}</h1>
+    return `<h1>Cashflow: Rat Race ${muteButtonHTML()}</h1>
     <p class="muted">Solo game — escape the Rat Race in as few weeks as you can. Your profession is dealt at random; a week is one of your turns.</p>
     <div class="card">
       <div class="row"><b>Your name:</b> <input value="${state.names[0]}" oninput="state.names[0]=this.value" style="flex:1;min-width:140px;"></div>
@@ -1687,7 +1713,7 @@ function setupHTML(){
         :""}
     </div>`;
   }
-  return `<h1>💰 Cashflow: Rat Race ${muteButtonHTML()}</h1>
+  return `<h1>Cashflow: Rat Race ${muteButtonHTML()}</h1>
   ${state.online?`<p class="muted">Lobby — you are <b>${state.myName}</b>${state.isHost?" (host)":""}. Professions are dealt at random when the game starts. Everyone ready up, then ${state.isHost?"hit Start.":"wait for the host to start."}</p>`
     :`<p class="muted">Pass-and-play, 2–4 players. Professions are dealt at random when the game starts. A shared stock & real-estate market fluctuates every turn, random events shake things up, and you can take or pay off bank loans anytime on your turn. Escape the Rat Race when passive income covers your expenses.</p>`}
   <div class="card">
@@ -1703,7 +1729,7 @@ function setupHTML(){
 // Board square types: icon, short label, colour and what landing there does (shown on the board legend).
 const SQUARES={
   payday:{emoji:"💵",label:"Payday",color:"#1f9d6e",desc:"Collect your monthly cash flow"},
-  market:{emoji:"📊",label:"Market",color:"#2471a3",desc:"Private offer — a bargain, or a trap"},
+  market:{emoji:"📊",label:"Market",color:"#2471a3",desc:"Private offer for the player who lands here"},
   doodad:{emoji:"🛍",label:"Doodad",color:"#d1453b",desc:"Surprise expense you must pay"},
   event:{emoji:"🎲",label:"Event",color:"#7d4fb3",desc:"Random market or life event"},
   charity:{emoji:"❤️",label:"Charity",color:"#d6457a",desc:"Give 10% of income → 1 or 2 dice for 3 turns"},
@@ -1755,9 +1781,9 @@ function boardHTML(){
   const legend=Object.values(SQUARES).map(sq=>`<div class="lg" style="--sq:${sq.color}"><span>${sq.emoji}</span><span><b>${sq.label}</b> ${sq.desc}</span></div>`).join("");
   return `<div class="gameboard">${cells}
     <div class="board-center">
-      <div class="bc-title">🎩 CASHFLOW <small>Rat Race</small></div>
+      <div class="bc-title">CASHFLOW <small>Rat Race</small></div>
       ${cur?`<div class="bc-turn" style="--pc:${cur.color}">${playerToken(cur,state.turn)}<span><b>${cur.name}</b>'s turn · on ${SQUARES[BOARD[cur.pos]].emoji} ${SQUARES[BOARD[cur.pos]].label}</span></div>`:""}
-      ${economyHTML()}
+      ${state.phase==="over"?"":economyHTML()}
       <button class="legend-toggle" onclick="toggleLegend()" aria-expanded="${!!state.showLegend}">${state.showLegend?"▾ Hide board guide":"▸ Board guide"}</button>
       ${state.showLegend?`<div class="legend">${legend}</div>`:""}
     </div>
@@ -1796,7 +1822,7 @@ function realEstateListingsHTML(){
       <div class="mactions">
         <button class="${isAsk?'primary':'sell'}" style="margin-left:auto;" ${canAct?"":"disabled"} onclick="${isAsk?"buyListing":"sellListing"}('${l.id}')">${isAsk?"Buy now":"Sell into it"}</button>
       </div>
-      <div class="mheld" style="margin-top:4px;">Held: ${held}${held>free?` · 🔒 ${held-free} locked (${lockTurnsLeft(p,l.instId)} turn${lockTurnsLeft(p,l.instId)===1?"":"s"})`:""}</div>
+      <div class="mheld" style="margin-top:4px;">Held: ${held}${held>free?` · ${held-free} locked (${lockTurnsLeft(p,l.instId)} turn${lockTurnsLeft(p,l.instId)===1?"":"s"})`:""}</div>
     </div>`;
   }).join("");
   return `<div class="mgrid">${cards}</div>`;
@@ -1815,7 +1841,7 @@ function marketHTML(){
       <td class="num">${fmt(m.price)}</td><td class="num ${cls}">${arrow} ${Math.abs(chg)}%</td>
       <td class="num">${fmt(m.low52)}–${fmt(m.high52)}</td>
       <td class="num">${pe}</td><td class="num">${yld}</td>
-      <td class="num">${held}${held>sellableQty(p,m.id)?`<br><small class="muted" title="Flash-deal shares unlock in ${lockTurnsLeft(p,m.id)} turn(s)">🔒${held-sellableQty(p,m.id)}</small>`:""}</td>
+      <td class="num">${held}${held>sellableQty(p,m.id)?`<br><small class="muted" title="Flash-deal shares unlock in ${lockTurnsLeft(p,m.id)} turn(s)">${held-sellableQty(p,m.id)}</small>`:""}</td>
       <td onclick="event.stopPropagation()"><input class="qty" type="number" min="1" value="${state.qty[m.id]}" oninput="setQty('${m.id}',this.value)"><div class="qty-cost" id="cost-${m.id}">= ${fmt(m.price*(state.qty[m.id]||1))}</div></td>
       <td onclick="event.stopPropagation()"><div class="row" style="flex-wrap:nowrap;"><button class="primary" onclick="buyUnit('${m.id}')">Buy</button> <button class="sell" onclick="sellUnit('${m.id}')" ${sellableQty(p,m.id)?"":"disabled"}>Sell</button></div></td>
     </tr>`;
@@ -1838,7 +1864,7 @@ function marketHTML(){
           <span>52wk Range ${fmt(m.low52)}–${fmt(m.high52)}</span>
           <span>P/E ${pe}</span>
           <span>Div Yield ${yld}</span>
-          <span>Held ${held} (${fmt(held*m.price)})${held>sellableQty(p,m.id)?` · 🔒 ${held-sellableQty(p,m.id)} locked ${lockTurnsLeft(p,m.id)} more turn(s)`:""}</span>
+          <span>Held ${held} (${fmt(held*m.price)})${held>sellableQty(p,m.id)?` · ${held-sellableQty(p,m.id)} locked ${lockTurnsLeft(p,m.id)} more turn(s)`:""}</span>
         </div>
       </div>
     </td></tr>`;
@@ -1846,8 +1872,8 @@ function marketHTML(){
   const stockTable=`<div class="mtable-wrap"><table><thead><tr><th>Stock (sector)</th><th>15w Trend</th><th class="num">Price</th><th class="num">Chg</th><th class="num">52wk Range</th><th class="num">P/E</th><th class="num">Div Yld</th><th class="num">Held</th><th>Qty</th><th></th></tr></thead><tbody>${stockRows}</tbody></table></div>`;
   return `<div class="card" style="margin-bottom:0;">
   <div class="subtabs">
-    <button class="${state.marketTab==='stock'?'active':''}" onclick="setMarketTab('stock')">📈 Stocks</button>
-    <button class="${state.marketTab==='realestate'?'active':''}" onclick="setMarketTab('realestate')">🏠 Real Estate</button>
+    <button class="${state.marketTab==='stock'?'active':''}" onclick="setMarketTab('stock')">Stocks</button>
+    <button class="${state.marketTab==='realestate'?'active':''}" onclick="setMarketTab('realestate')">Real Estate</button>
   </div>
   ${state.marketTab==='stock'
     ?`${stockTable}<small>Click a row to expand its 15-week history and details. Always-open trades at the live market price. A purchase you can't fully cover asks you to confirm a bank loan (in $1,000 steps) for the shortfall. Hover the chart dots for weekly prices.</small>`
@@ -1892,24 +1918,24 @@ function statementHTML(p,idx){
   const expRow=(k,name,v)=>`<tr><td class="desc">${finDot(k)}${name}</td><td class="num">${fmt(v)}</td></tr>`;
   return `
   <div class="fin-head">
-    <div><b style="font-size:16px;">${p.name}</b> <span class="muted">· ${p.profession}</span>${p.escaped?' <span class="tag" style="background:var(--good)">Escaped the Rat Race!</span>':""}</div>
+    <div><b style="font-size:16px;">${p.name}</b> <span class="muted">· ${p.profession}</span>${p.escaped?' <span class="tag" style="background:var(--good)">Escaped the Rat Race</span>':""}</div>
     <div class="fin-cash"><small>Cash on hand</small><b>${fmt(p.cash)}</b></div>
   </div>
 
   <div class="fin-overview">
     <div class="fo-card">
-      <div class="fo-title">💵 Monthly cash flow</div>
+      <div class="fo-title">Monthly cash flow</div>
       <div class="fo-big ${cls(cashflow)}">${sign(cashflow)}<small> every Payday</small></div>
       <div class="sbar-row"><span>Income</span>${stackBar(incomeParts,flowScale)}<b>${fmt(totalIncome)}</b></div>
       <div class="sbar-row"><span>Expenses</span>${stackBar(expParts,flowScale)}<b>${fmt(totalExp)}</b></div>
       <div class="fo-legend">${[...incomeParts,...expParts].filter(x=>x.v>0).map(x=>`<span>${finDot(x.k)}${x.label}</span>`).join("")}</div>
     </div>
     <div class="fo-card">
-      <div class="fo-title">🎯 Escape the Rat Race</div>
+      <div class="fo-title">Escape the Rat Race</div>
       <div class="fo-big ${escapedNow?"up":""}">${rawPct}%<small> of expenses covered by passive income</small></div>
-      <div class="escape-bar"><div style="width:${Math.min(100,rawPct)}%;background:${escapedNow?"var(--good)":"var(--accent2)"}"></div><span>🏁</span></div>
+      <div class="escape-bar"><div style="width:${Math.min(100,rawPct)}%;background:${escapedNow?"var(--good)":"var(--accent2)"}"></div><span></span></div>
       <div class="fo-note">Passive income <b>${fmt(pi)}</b> / expenses <b>${fmt(totalExp)}</b></div>
-      <div class="fo-note">${escapedNow?"✅ Your assets pay for your life — you're out!":`You need <b>${fmt(totalExp-pi)}/mo</b> more passive income (dividends or rent).`}</div>
+      <div class="fo-note">${escapedNow?"Passive income covers your expenses.":`You need <b>${fmt(totalExp-pi)}/mo</b> more passive income (dividends or rent).`}</div>
     </div>
   </div>
 
@@ -1920,7 +1946,8 @@ function statementHTML(p,idx){
      ${expRow("salary","Salary",p.salary)}
      ${expRow("div","Interest / Dividends",dividends)}
      ${expRow("rent","Real Estate (net rent)",reIncome)}
-     ${props.map(m=>`<tr class="sub"><td class="desc">🏠 ${m.name}: rent ${fmt(propRent(p,m))} (renews in ${nextLeaseRenewal(p,m.id)} wk) − costs ${fmt(propCosts(p,m))} − mortgage ${fmt(propMortgagePmt(p,m.id))} (${lockedRate(p,m.id).toFixed(1)}% fixed)</td><td class="num ${propNet(p,m)<0?"down":""}">${sgn(propNet(p,m))}</td></tr>`).join("")}
+     ${props.map(m=>{const q=p.holdings[m.id], net=propNet(p,m), tip=`Rent ${fmt(propRent(p,m))} − running costs ${fmt(propCosts(p,m))} − mortgage ${fmt(propMortgagePmt(p,m.id))} (${lockedRate(p,m.id).toFixed(1)}% fixed). Lease renews in ${nextLeaseRenewal(p,m.id)} wk.`;
+       return `<tr class="sub" title="${tip}"><td class="desc">${m.name}${q>1?" ×"+q:""} <span class="sub-meta">· renews ${nextLeaseRenewal(p,m.id)} wk</span></td><td class="num ${net<0?"down":""}">${sgn(net)}</td></tr>`;}).join("")}
     </table>
 
     <div class="sheet-sec"><span class="num">2</span>Expenses <span class="sec-total">${fmt(totalExp)}</span></div>
@@ -1938,9 +1965,9 @@ function statementHTML(p,idx){
    <div>
     <div class="sheet-sec"><span class="num">3</span>Assets <span class="sec-total">${fmt(totalAssets)}</span></div>
     <table class="sheet-table">
-     <tr><td class="desc">💰 Cash on hand</td><td class="num">${fmt(p.cash)}</td></tr>
-     ${stocks.map(m=>`<tr><td class="desc">📈 ${m.name} <span class="muted">${p.holdings[m.id]} sh @ ${fmt(m.price)}</span></td><td class="num">${fmt((p.holdings[m.id]||0)*m.price)}</td></tr>`).join("")}
-     ${props.map(m=>`<tr><td class="desc">🏠 ${m.name}${p.holdings[m.id]>1?" ×"+p.holdings[m.id]:""}</td><td class="num">${fmt((p.holdings[m.id]||0)*m.price)}</td></tr>`).join("")}
+     <tr><td class="desc">Cash on hand</td><td class="num">${fmt(p.cash)}</td></tr>
+     ${stocks.map(m=>`<tr><td class="desc">${m.name} <span class="muted">${p.holdings[m.id]} sh @ ${fmt(m.price)}</span></td><td class="num">${fmt((p.holdings[m.id]||0)*m.price)}</td></tr>`).join("")}
+     ${props.map(m=>`<tr><td class="desc">${m.name}${p.holdings[m.id]>1?" ×"+p.holdings[m.id]:""}</td><td class="num">${fmt((p.holdings[m.id]||0)*m.price)}</td></tr>`).join("")}
     </table>
 
     <div class="sheet-sec"><span class="num">4</span>Liabilities <span class="sec-total">${fmt(totalLiab)}</span></div>
@@ -1949,7 +1976,7 @@ function statementHTML(p,idx){
      ${liabRow("car","Car Loan",p.carBal,"car")}
      ${liabRow("cc","Credit Card Debt",p.ccBal,"cc")}
      ${liabRow("retail","Retail Debt",p.retailBal,"retail")}
-     ${props.map(m=>liabRow("re:"+m.id,"🏠 Mortgage — "+m.name,mortgageShare(p,m.id,p.holdings[m.id]))).join("")}
+     ${props.map(m=>liabRow("re:"+m.id,"Mortgage — "+m.name,mortgageShare(p,m.id,p.holdings[m.id]))).join("")}
      ${liabRow("bank","Bank Loan",p.bankLoanBal,"bank")}
     </table>
    </div>
@@ -1958,7 +1985,7 @@ function statementHTML(p,idx){
 
   <div class="bank-box">
    <div class="bank-col">
-     <div class="fo-title">🏦 Borrow</div>
+     <div class="fo-title">Borrow</div>
      <div class="row" style="flex-wrap:nowrap;gap:6px;">
        <input class="qty" style="width:84px;" type="number" step="1000" min="1000" value="${state.loanTakeAmt||1000}" onchange="setLoanTakeAmt(this.value)">
        <button class="gold" onclick="takeLoan(${idx})" ${lendMax>0?"":"disabled"}>Take Loan</button>
@@ -1966,13 +1993,13 @@ function statementHTML(p,idx){
      <small class="muted">${lendMax>0?`Up to ${fmt(lendMax)} · costs ${bankRate().toFixed(1)}% of the loan every month.`:"Not available — the bank needs your cash flow to cover the payment."}</small>
    </div>
    <div class="bank-col grow">
-     <div class="fo-title">💳 Pay off debt <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:normal;">— or click a liability row</span></div>
+     <div class="fo-title">Pay off debt <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:normal;">— or click a liability row</span></div>
      ${debt?`<div class="row" style="gap:6px;"><select onchange="selectDebt(this.value)">${debtList(p).map(d=>`<option value="${d.key}" ${d.key===debt.key?"selected":""}>${d.name} — ${fmt(d.bal)}${d.pmt?" ("+fmt(d.pmt)+"/mo)":""}</option>`).join("")}</select>
        <input class="qty" style="width:84px;" type="number" step="${debt.key==="bank"?1000:100}" min="1" value="${state.loanPayAmt||1000}" onchange="setLoanPay(this.value)">
        <button onclick="payDebt(${idx})" ${p.cash>0?"":"disabled"}>Pay</button>
        <button class="primary" onclick="payDebt(${idx},true)" ${p.cash>=debt.bal?"":"disabled"} title="${p.cash>=debt.bal?"":"Not enough cash to clear it"}">Pay off all ${fmt(debt.bal)}</button></div>
        <small class="muted">${debt.key.startsWith("re:")?`Property mortgage, fixed at ${lockedRate(p,debt.key.slice(3)).toFixed(1)}% — partial payments allowed.`:debt.pmt?`Paying it off in full cuts expenses by <b>${fmt(debt.pmt)}/mo</b>${debt.key==="bank"?" (partial payments in $1,000 steps)":"; partial payments lower it proportionally"}.`:`No monthly payment — paying it down means you keep more when you sell the property.`}</small>`
-     :`<span class="muted">You're debt-free! 🎉</span>`}
+     :`<span class="muted">No debts.</span>`}
    </div>
   </div>`;
 }
@@ -1982,11 +2009,11 @@ function pendingHTML(){
   let inner="";
   if(state.pending.kind==="charity"){
     const p=state.pending.p;
-    inner=myTurn?`<div class="card" style="margin:0;max-width:360px;width:100%;"><h3>❤ Charity — ${p.name}</h3>
+    inner=myTurn?`<div class="card" style="margin:0;max-width:360px;width:100%;"><h3>Charity — ${p.name}</h3>
      <p>Donate 10% of your total income (<b>${fmt(charityAmount(state.players[state.turn]))}</b>)?</p>
-     <p class="muted" style="margin-top:-4px;">❤ Benefit: for your next ${CHARITY_TURNS} turns you may roll <b>1 or 2 dice</b> — move faster to reach more Paydays and deals.</p>
+     <p class="muted" style="margin-top:-4px;">Benefit: for your next ${CHARITY_TURNS} turns you may roll <b>1 or 2 dice</b>. More Paydays and deals.</p>
      <div class="row"><button class="primary" onclick="charityPay()">Donate</button><button onclick="charitySkip()">Skip</button></div></div>`
-     :`<div class="card" style="margin:0;max-width:360px;width:100%;"><h3>❤ Charity — ${p.name}</h3><p class="muted">Waiting for ${p.name} to decide…</p></div>`;
+     :`<div class="card" style="margin:0;max-width:360px;width:100%;"><h3>Charity — ${p.name}</h3><p class="muted">Waiting for ${p.name} to decide…</p></div>`;
   }else if(state.pending.kind==="bill"){
     const b=state.pending, p=state.players[state.turn];
     inner=`<div class="evt bill-card" style="margin:0;max-width:360px;width:100%;"><h3>${b.title}</h3><p>${b.desc}</p>
@@ -1996,7 +2023,7 @@ function pendingHTML(){
       :`<p style="opacity:.85;">Waiting for ${p.name} to pay…</p>`}</div>`;
   }else if(state.pending.kind==="eventinfo"){
     const ev=state.pending.ev;
-    inner=`<div class="evt" style="margin:0;max-width:360px;width:100%;"><h3>🎲 ${ev.name}</h3><p>${ev.desc}</p>
+    inner=`<div class="evt" style="margin:0;max-width:360px;width:100%;"><h3>${ev.name}</h3><p>${ev.desc}</p>
      ${myTurn?`<button onclick="continueEvent()" style="background:#fff;color:#333;">Continue</button>`:`<p style="opacity:.85;">Waiting for the current player to continue…</p>`}</div>`;
   }else if(state.pending.kind==="flashdeal"){
     const pd=state.pending, m=MARKET.find(x=>x.id===pd.id), p=pd.p;
@@ -2033,7 +2060,7 @@ function playersOverviewHTML(){
       <div class="ptop">
         ${playerToken(pl,i,isTurn?" active":"")}
         <div style="min-width:0;">
-          <div class="pname">${pl.name}${isMe?` <span class="badge soft">You</span>`:""}${isTurn?` <span class="badge">▶ Turn</span>`:""}</div>
+          <div class="pname">${pl.name}${isMe?` <span class="badge soft">You</span>`:""}${isTurn?` <span class="badge">Turn</span>`:""}</div>
           <div class="pmeta">${pl.profession} · on ${sq.emoji} ${sq.label}</div>
         </div>
         <div class="ppct ${done?"up":""}">${rawPct}%</div>
@@ -2043,37 +2070,39 @@ function playersOverviewHTML(){
         <div style="position:absolute;left:${markerPct}%;top:0;bottom:0;width:2px;background:var(--ink);" title="100% — escape line"></div>
       </div>
       <div class="pchips">
-        ${pl.escaped?`<span class="chip good">${["🥇","🥈","🥉"][pl.place-1]||"🏁"} Escaped · #${pl.place}</span>`:""}
-        ${pl.bankrupt?`<span class="chip" style="color:var(--bad);border-color:var(--bad);">💀 Bankrupt · #${pl.place}</span>`:""}
-        ${pl.place&&!pl.escaped&&!pl.bankrupt?`<span class="chip">🏁 Finished · #${pl.place}</span>`:""}
-        ${pl.charityTurns>0?`<span class="chip" title="May roll 1 or 2 dice">❤ ${pl.charityTurns} charity turn${pl.charityTurns===1?"":"s"}</span>`:""}
-        ${pl.skipTurns>0?`<span class="chip" style="color:var(--bad);" title="Downsized">⚠️ sits out ${pl.skipTurns} turn${pl.skipTurns===1?"":"s"}</span>`:""}
-        ${pl.kids?`<span class="chip">👶 ×${pl.kids}</span>`:""}
+        ${pl.escaped?`<span class="chip good">Escaped · #${pl.place}</span>`:""}
+        ${pl.bankrupt?`<span class="chip" style="color:var(--bad);border-color:var(--bad);">Bankrupt · #${pl.place}</span>`:""}
+        ${pl.place&&!pl.escaped&&!pl.bankrupt?`<span class="chip">Finished · #${pl.place}</span>`:""}
+        ${pl.charityTurns>0?`<span class="chip" title="May roll 1 or 2 dice">${pl.charityTurns} charity turn${pl.charityTurns===1?"":"s"}</span>`:""}
+        ${pl.skipTurns>0?`<span class="chip" style="color:var(--bad);" title="Downsized">sits out ${pl.skipTurns} turn${pl.skipTurns===1?"":"s"}</span>`:""}
+        ${pl.kids?`<span class="chip">×${pl.kids}</span>`:""}
       </div>
     </div>`;
   }).join("");
   return `<div class="card players-overview">
-   <div class="between" style="margin-bottom:6px;"><h3 style="margin:0;">🎯 Rat Race Progress</h3><small class="muted">Passive income ÷ expenses · line = 100% escape</small></div>
+   <div class="between" style="margin-bottom:6px;"><h3 style="margin:0;">Rat Race Progress</h3><small class="muted">Passive income ÷ expenses · line = 100% escape</small></div>
    <div class="pgrid">${cards}</div></div>`;
 }
 // Final standings: places 1..n, how each player finished, and their numbers at the end.
 function standingsHTML(){
   if(state.players.length===1){
     const p=state.players[0], best=soloBest(state.speed||"medium");
-    return `<div class="card standings"><h3>🏁 Solo game over <small class="muted">(${speedCfg().label} game)</small></h3>
-      <p style="font-size:15px;margin:4px 0;">${p.escaped?`<b>${p.name}</b> escaped the Rat Race in <b>${p.finishWeek} weeks</b>${p.newRecord?" — 🎉 new best!":""}`:`💀 <b>${p.name}</b> went bankrupt in week ${p.finishWeek}.`}</p>
+    return `<div class="card standings"><h3>Solo game over <small class="muted">(${speedCfg().label} game)</small></h3>
+      <p style="font-size:15px;margin:4px 0;">${p.escaped?`<b>${p.name}</b> escaped the Rat Race in <b>${p.finishWeek} weeks</b>${p.newRecord?" (new best time)":""}`:`<b>${p.name}</b> went bankrupt in week ${p.finishWeek}.`}</p>
       <p class="muted" style="margin:0;">Best on this device (${speedCfg().label}): ${best==null?"—":best+" weeks"} · Passive income ${fmt(passiveIncome(p))}/mo as a ${p.profession}.
-      <a href="#" onclick="state.phase='setup';render();return false;">Play again</a></p></div>`;
+      </p>
+      <div class="row" style="margin-top:8px;"><button class="primary" onclick="backToMainLobby()">Play again</button></div></div>`;
   }
   const rows=state.players.slice().sort((a,b)=>(a.place||99)-(b.place||99)).map(p=>{
-    const medal=["🥇","🥈","🥉"][p.place-1]||"#"+p.place;
+    const medal="#"+p.place;
     const worth=p.cash+MARKET.reduce((s,m)=>s+(p.holdings[m.id]||0)*m.price,0)-(p.mortgageBal+p.carBal+p.ccBal+p.retailBal+p.bankLoanBal+reMortgageTotal(p));
     return `<tr><td style="font-size:18px;">${medal}</td><td><span style="color:${p.color}">●</span> <b>${p.name}</b><br><small class="muted">${p.profession}</small></td>
-      <td>${p.escaped?"Escaped in week "+p.finishWeek:p.bankrupt?"💀 Bankrupt in week "+p.finishWeek:"Last one left in the Rat Race"}</td>
+      <td>${p.escaped?"Escaped in week "+p.finishWeek:p.bankrupt?"Bankrupt in week "+p.finishWeek:"Last one left in the Rat Race"}</td>
       <td class="num">${fmt(passiveIncome(p))}/mo</td><td class="num">${p.bankrupt?"—":(worth<0?"−":"")+fmt(Math.abs(worth))}</td></tr>`;
   }).join("");
-  return `<div class="card standings"><h3>🏁 Game over — final standings <small class="muted">(${speedCfg().label} game)</small></h3>
-    <table><thead><tr><th></th><th>Player</th><th>Result</th><th class="num">Passive income</th><th class="num">Net worth</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `<div class="card standings"><h3>Game over — final standings <small class="muted">(${speedCfg().label} game)</small></h3>
+    <table><thead><tr><th></th><th>Player</th><th>Result</th><th class="num">Passive income</th><th class="num">Net worth</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="row" style="margin-top:8px;"><button class="primary" onclick="backToMainLobby()">Play again</button>${state.online?`<small class="muted">Takes you back to the main lobby${state.isHost?" and closes this room for everyone":""}.</small>`:""}</div></div>`;
 }
 function gameHTML(over){
   const p=state.players[state.turn];
@@ -2082,7 +2111,7 @@ function gameHTML(over){
   const myIdx=state.online?state.myIdx:state.viewTab;
   const financePanel=state.panel==="finance"?`<div class="panel-backdrop left" onclick="if(event.target===this)closePanel()">
       <div class="side-panel wide xwide">
-        <div class="panel-head"><h3 style="margin:0;">💰 ${state.online?"Your":""} Financial Statement</h3><button onclick="closePanel()">✕ Close</button></div>
+        <div class="panel-head"><h3 style="margin:0;">${state.online?"Your":""} Financial Statement</h3><button onclick="closePanel()">✕ Close</button></div>
         <div class="panel-body">
           ${state.online?`<p class="muted" style="margin-top:0;">Only you can see your full statement. Everyone sees the shared Rat Race Progress bars below the board.</p>`:`<div class="tabs">${tabs}</div>`}
           ${statementHTML(state.players[myIdx], myIdx)}
@@ -2091,30 +2120,30 @@ function gameHTML(over){
     </div>`:"";
   const marketPanel=state.panel==="market"&&!over?`<div class="panel-backdrop right" onclick="if(event.target===this)closePanel()">
       <div class="side-panel wide">
-        <div class="panel-head"><h3 style="margin:0;">📊 Market</h3><button onclick="closePanel()">✕ Close</button></div>
+        <div class="panel-head"><h3 style="margin:0;">Market</h3><button onclick="closePanel()">✕ Close</button></div>
         <div class="panel-body">
           ${marketHTML()}
         </div>
       </div>
     </div>`:"";
-  return `<h1>💰 Cashflow: Rat Race ${muteButtonHTML()}</h1>
+  return `<h1>Cashflow: Rat Race ${muteButtonHTML()}</h1>
   ${state.online?`<p class="muted" style="margin:-6px 0 8px;">Online room <b>${state.room}</b> — playing as <b>${state.myName}</b>.</p>`:""}
   ${over?standingsHTML():""}
-  <button class="side-toggle left gold" onclick="togglePanel('finance')">💰<br>Finance</button>
-  ${!over?`<button class="side-toggle right gold" onclick="togglePanel('market')">📊<br>Market</button>`:""}
+  <button class="side-toggle left gold" onclick="togglePanel('finance')">Finance</button>
+  ${!over?`<button class="side-toggle right gold" onclick="togglePanel('market')">Market</button>`:""}
   <div class="board-wrap">
     <div class="card">
       <div class="between turn-bar">
         <div class="turn-who"><b>Turn:</b> <span style="color:${p.color}">●</span> ${p.name}${state.online&&!myTurn?` <small class="muted">(waiting for ${p.name} to roll/end turn — you can still trade)</small>`:""}</div>
         ${!over&&!state.pending&&myTurn?(state.hasRolled
-          ?`<button class="primary" onclick="endTurn()">✅ End Turn</button>`
+          ?`<button class="primary" onclick="endTurn()">End Turn</button>`
           :(p.charityTurns>0
-            ?`<div class="row" style="flex-wrap:nowrap;gap:6px;"><small class="roll-note" style="color:var(--bad);">❤ ${p.charityTurns} charity turn${p.charityTurns===1?"":"s"}</small><button class="primary" onclick="rollDice(1)">🎲 Roll 1</button><button class="gold" onclick="rollDice(2)">🎲🎲 Roll 2</button></div>`
-            :`<button class="primary" onclick="rollDice(1)">🎲 Roll Dice</button>`)):""}
+            ?`<div class="row" style="flex-wrap:nowrap;gap:6px;"><small class="roll-note" style="color:var(--bad);">${p.charityTurns} charity turn${p.charityTurns===1?"":"s"}</small><button class="primary" onclick="rollDice(1)">Roll 1</button><button class="gold" onclick="rollDice(2)">Roll 2</button></div>`
+            :`<button class="primary" onclick="rollDice(1)">Roll Dice</button>`)):""}
       </div>
       <div class="board-area"><div class="board-row">
         ${boardHTML()}
-        <div class="log-panel">${diceBoxHTML()}<div class="log-head">📜 Game Log</div><div class="log">${state.log.map(l=>`<div>${l}</div>`).join("")}</div></div>
+        <div class="log-panel">${diceBoxHTML()}<div class="log-head">Game Log</div><div class="log">${state.log.map(l=>`<div>${l}</div>`).join("")}</div></div>
       </div></div>
     </div>
     ${!over?pendingHTML():""}

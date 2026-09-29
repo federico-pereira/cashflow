@@ -38,6 +38,8 @@ Everything is in one self-contained file: `cashflow.html` (HTML + CSS + vanilla 
 
 ## Game rules and design decisions (from Federico)
 
+- **Text style:** plain, factual wording in the UI and log — no catch phrases or hype, no exclamation marks. Emojis only for the board square icons (`SQUARES`) and the mute button; places are shown as #1, #2…
+
 - Lobby: type a name, join, host picks 2–4 players, everyone clicks **Ready up**, only the host sees **Start Game** (enabled when all seats are filled and ready). Rejoining with the same name reclaims your seat.
 - Professions are **random** at game start (no picker).
 - **Game speed** (host picks in the lobby, shared `state.speed`, default medium): `SPEEDS` sets property deal flow (offers per week, snap-up chance, max on board), the starting rent rate and extra starting cash. Fast = more deals + 12% rent + $800 per player; Medium = more deals, 10%; Slow = scarce deals, 10%. Measured 2-player winner: Fast ~19 weeks, Medium ~29, Slow ~45 (≈ minutes at 1 min/turn); professions within ~4 pts with 2 players, up to ~6 with 3. A bigger Fast cash bonus makes the Janitor too strong; more deals alone makes rich professions too strong.
@@ -47,7 +49,8 @@ Everything is in one self-contained file: `cashflow.html` (HTML + CSS + vanilla 
 - The **market is open to every player at all times**, not just on your turn. Trades apply to the acting player: `actingIdx()` = `myIdx` online, `turn` in local mode.
 - Only the current player can roll, end the turn, or answer charity/event/flash-deal prompts.
 - Each player sees **only their own financial statement** online. Progress bars are visible to everyone.
-- Finance sheet has two overview cards (monthly cash flow, escape progress); net worth was removed on request.
+- Finance sheet has two overview cards (monthly cash flow, escape progress); net worth was removed on request. Side panels have a fixed height (no re-centring when rows change), `render()` keeps the scroll position of the panel, market table and log, the Borrow/Pay-off box is pinned to the bottom of the finance panel, and each owned property is one compact income line with the rent/costs/mortgage breakdown in a tooltip.
+- First screen: Join Lobby (online) plus big **Play Solo** / **Pass-and-play** buttons. **Play again** on any finished game (`backToMainLobby`) returns to that first screen (online: disconnects from the room).
 - Financial statement mirrors the real game sheet: 1 Income, 2 Expenses (left column), 3 Assets, 4 Liabilities (right column); Cash on top; goal bar can go past 100%.
 - Stocks: always-open table with random starting prices each game, a simulated 15-week history (random walk), 52-week range from that history, first "Chg" = change from the last simulated week, click a row to expand a labelled sparkline.
 - Real estate: **only** through time-limited live offers (FOR SALE / WANTED) that expire and get replaced each turn. Full data on each listing (rent, cap rate, appreciation, vs-market %).
