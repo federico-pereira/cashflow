@@ -109,6 +109,22 @@ small,.muted{color:var(--muted);font-size:12.5px;}
 .bc-title{font-weight:bold;font-size:clamp(12px,2.6vmin,20px);letter-spacing:.06em;color:var(--accent);}
 .bc-title small{display:block;font-size:.55em;letter-spacing:.2em;text-transform:uppercase;color:var(--accent2);}
 .bc-turn{font-size:clamp(8px,1.5vmin,12px);padding:3px 10px;border-radius:999px;background:color-mix(in srgb,var(--pc) 14%,var(--bg));border:1px solid var(--pc);display:inline-flex;align-items:center;gap:5px;}
+.speed-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px;}
+@media (max-width:640px){.speed-cards{grid-template-columns:1fr;}}
+.speed-card{text-align:left;display:flex;flex-direction:column;gap:4px;padding:10px 12px;border:2px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);white-space:normal;}
+.speed-card.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--panel));box-shadow:0 0 0 1px var(--accent);}
+.speed-card:disabled{opacity:1;cursor:default;}
+.speed-card:disabled:not(.sel){opacity:.55;}
+.speed-card .sc-head{display:flex;justify-content:space-between;align-items:baseline;gap:6px;}
+.speed-card .sc-head b{font-size:15px;}
+.speed-card .sc-head span{font-size:12px;color:var(--accent2);font-weight:bold;}
+.speed-card p{margin:0;font-size:12px;color:var(--muted);line-height:1.35;}
+.speed-card ul{list-style:none;margin:2px 0 0;padding:0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:11.5px;}
+.speed-card li{display:flex;justify-content:space-between;gap:6px;padding:2px 4px;border-radius:5px;}
+.speed-card li span{color:var(--muted);}
+.speed-card li.diff{background:color-mix(in srgb,var(--accent2) 18%,transparent);}
+.speed-card li.diff b{color:var(--accent2);}
+.diff-key{background:color-mix(in srgb,var(--accent2) 18%,transparent);color:var(--accent2);padding:0 4px;border-radius:4px;font-weight:bold;}
 .econ{display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(3px,.8vmin,6px);width:100%;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;}
 .econ-item{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:clamp(2px,.7vmin,6px) clamp(2px,.6vmin,5px);display:flex;flex-direction:column;align-items:center;min-width:0;cursor:help;}
 .econ-item span{font-size:clamp(6px,1.05vmin,9.5px);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
@@ -119,6 +135,11 @@ small,.muted{color:var(--muted);font-size:12.5px;}
 .econ-item em.flat{color:var(--muted);}
 .econ-foot{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:clamp(6.5px,1.15vmin,10.5px);color:var(--muted);line-height:1.3;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .econ-foot b{color:var(--ink);}
+.econ-click{display:contents;}
+.econ-click .econ-item{cursor:pointer;}
+.rent-table{display:flex;flex-wrap:wrap;justify-content:center;gap:2px 10px;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:clamp(6.5px,1.15vmin,10.5px);color:var(--muted);}
+.rent-table b{color:var(--ink);font-weight:600;}
+.rent-table em{font-style:normal;margin-left:2px;}
 .legend-toggle{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:clamp(7px,1.2vmin,11px);padding:2px 10px;border-radius:999px;color:var(--muted);background:transparent;}
 .legend{display:grid;grid-template-columns:1fr 1fr;gap:clamp(2px,.6vmin,5px) clamp(6px,1.4vmin,12px);text-align:left;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:clamp(6.5px,1.25vmin,10.5px);line-height:1.25;width:100%;}
 .legend .lg{display:flex;gap:4px;align-items:flex-start;color:var(--muted);}
@@ -275,10 +296,10 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
 // Salary and savings are the original values.
 const PROFESSIONS=[
  {name:"Janitor",salary:1600,taxes:190,otherExp:190,mortgagePmt:170,mortgageBal:7500,carPmt:125,carBal:4800,ccPmt:50,ccBal:1000,retailPmt:25,retailBal:500,childExp:125,savings:600},
- {name:"Secretary",salary:2400,taxes:355,otherExp:310,mortgagePmt:265,mortgageBal:16600,carPmt:200,carBal:8800,ccPmt:75,ccBal:1700,retailPmt:45,retailBal:900,childExp:165,savings:1200},
- {name:"Teacher",salary:3200,taxes:525,otherExp:410,mortgagePmt:350,mortgageBal:29300,carPmt:260,carBal:11700,ccPmt:105,ccBal:2300,retailPmt:55,retailBal:1100,childExp:210,savings:2000},
- {name:"Engineer",salary:4800,taxes:905,otherExp:505,mortgagePmt:525,mortgageBal:60500,carPmt:325,carBal:15100,ccPmt:140,ccBal:3000,retailPmt:80,retailBal:1500,childExp:220,savings:4000},
- {name:"Doctor",salary:9000,taxes:1725,otherExp:705,mortgagePmt:940,mortgageBal:117600,carPmt:375,carBal:19600,ccPmt:205,ccBal:4700,retailPmt:115,retailBal:2300,childExp:235,savings:10000},
+ {name:"Secretary",salary:2400,taxes:355,otherExp:310,mortgagePmt:265,mortgageBal:16700,carPmt:200,carBal:8900,ccPmt:75,ccBal:1700,retailPmt:45,retailBal:900,childExp:165,savings:1200},
+ {name:"Teacher",salary:3200,taxes:535,otherExp:420,mortgagePmt:355,mortgageBal:29900,carPmt:265,carBal:11900,ccPmt:105,ccBal:2300,retailPmt:55,retailBal:1100,childExp:215,savings:2000},
+ {name:"Engineer",salary:4800,taxes:910,otherExp:510,mortgagePmt:530,mortgageBal:60800,carPmt:325,carBal:15200,ccPmt:140,ccBal:3000,retailPmt:80,retailBal:1500,childExp:220,savings:4000},
+ {name:"Doctor",salary:9000,taxes:1680,otherExp:685,mortgagePmt:915,mortgageBal:114700,carPmt:365,carBal:19100,ccPmt:200,ccBal:4600,retailPmt:110,retailBal:2200,childExp:230,savings:10000},
 ];
 const DOODADS=[
  {name:"New TV",cost:500},{name:"Family Vacation",cost:1200},{name:"Car Repair",cost:400},
@@ -294,24 +315,52 @@ const MARKET=[
  {id:"MED",name:"MedTech Solutions",type:"stock",sector:"Healthcare",price:65,vol:0.20,div:0,eps:1.5},
  {id:"RTL",name:"Retail Chain Co",type:"stock",sector:"Consumer",price:28,vol:0.22,div:0.5,eps:2},
  {id:"NRG",name:"Energy Partners",type:"stock",sector:"Energy",price:120,vol:0.19,div:4,eps:10},
- {id:"CND",name:"Downtown Condo",type:"realestate",price:40000,vol:0.10,div:0,rent:390},
- {id:"HSE",name:"Suburban House",type:"realestate",price:80000,vol:0.08,div:0,rent:725},
- {id:"PLX",name:"Fourplex",type:"realestate",price:150000,vol:0.12,div:0,rent:1570},
+ {id:"CND",name:"Downtown Condo",type:"realestate",price:40000,vol:0.10,div:0,rent:330},
+ {id:"HSE",name:"Suburban House",type:"realestate",price:80000,vol:0.08,div:0,rent:610},
+ {id:"PLX",name:"Fourplex",type:"realestate",price:150000,vol:0.12,div:0,rent:1320},
  {id:"LND",name:"Undeveloped Land",type:"realestate",price:20000,vol:0.20,div:0,rent:0},
- {id:"BCH",name:"Beachfront Villa",type:"realestate",price:220000,vol:0.15,div:0,rent:2020},
- {id:"IND",name:"Industrial Warehouse",type:"realestate",price:95000,vol:0.09,div:0,rent:1010},
- {id:"MXD",name:"Mixed-Use Building",type:"realestate",price:180000,vol:0.11,div:0,rent:1850},
- {id:"CBN",name:"Mountain Cabin",type:"realestate",price:60000,vol:0.13,div:0,rent:505},
+ {id:"BCH",name:"Beachfront Villa",type:"realestate",price:220000,vol:0.15,div:0,rent:1695},
+ {id:"IND",name:"Industrial Warehouse",type:"realestate",price:95000,vol:0.09,div:0,rent:850},
+ {id:"MXD",name:"Mixed-Use Building",type:"realestate",price:180000,vol:0.11,div:0,rent:1555},
+ {id:"CBN",name:"Mountain Cabin",type:"realestate",price:60000,vol:0.13,div:0,rent:425},
 ];
 MARKET.forEach(m=>{m.designPrice=m.price; m.designRent=m.rent||0; m.designDiv=m.div||0;});
 // Market events move both the price and its anchor (the level the weekly random walk drifts toward),
 // so a crash is a new normal, not a guaranteed rebound — buying the dip is a gamble, not free money.
-function shiftOne(m,f){ m.price=Math.max(1,Math.round(m.price*f)); m.anchor=(m.anchor||m.basePrice0)*f; }
+function shiftOne(m,f){ m.price=Math.max(1,Math.round(m.price*f)); m.anchor=(m.anchor||m.basePrice0)*f; if(m.type==="realestate") refreshRents(); }
 function shiftMarket(type,f){MARKET.forEach(m=>{if(m.type===type) shiftOne(m,f);});}
 // Market-specific events hit one instrument (or a few). Rent and dividend changes are persistent
 // and synced with the market snapshot.
 function shiftIds(ids,f){ids.forEach(id=>shiftOne(MARKET.find(m=>m.id===id),f));}
-function scaleRent(ids,f){MARKET.forEach(m=>{if(m.type==="realestate"&&(!ids||ids.includes(m.id))) m.rent=Math.max(0,Math.round(m.rent*f/5)*5);});}
+// ---- Rent ----
+// Market rent = the property's normal value (its anchor, which only events move — not the weekly
+// wobble) × its rent rate ÷ 12. Rent rate = global rate (starts at 10%/yr) × a per-type adjustment
+// (starts at ×1). Market-wide rent events move the global rate; single-property events move one
+// type's adjustment. Owners don't get the market rent directly: each purchase signs a lease at the
+// market rent of that moment, renewed to the current market rent every LEASE_WEEKS weeks.
+const RENT_RATE0=10, RENT_RATE_MIN=6, RENT_RATE_MAX=15, LEASE_WEEKS=5;
+function rentRate(){return state.rentRate||RENT_RATE0;}
+function typeRentRate(m){return m.designRent>0?rentRate()*((state.rentAdj||{})[m.id]||1):0;}
+function refreshRents(){MARKET.forEach(m=>{ if(m.type==="realestate") m.rent=m.designRent>0?Math.round((m.anchor||m.price)*typeRentRate(m)/100/12/5)*5:0; });}
+function scaleRent(ids,f){
+  if(!ids) state.rentRate=Math.round(Math.max(RENT_RATE_MIN,Math.min(RENT_RATE_MAX,rentRate()*f))*100)/100;
+  else { state.rentAdj=state.rentAdj||{}; ids.forEach(id=>{ state.rentAdj[id]=Math.max(0.6,Math.min(1.6,((state.rentAdj[id])||1)*f)); }); }
+  refreshRents();
+}
+// Leases: p.leases[id] = [{qty, rent (per unit, per month), until (week it renews)}], oldest first.
+function leaseList(p,id){return (p.leases||{})[id]||[];}
+function propRent(p,m){const ls=leaseList(p,m.id); return ls.length?ls.reduce((a,l)=>a+l.qty*l.rent,0):(p.holdings[m.id]||0)*(m.rent||0);}
+function addLease(p,m,qty,rent){p.leases=p.leases||{}; (p.leases[m.id]=p.leases[m.id]||[]).push({qty,rent:rent==null?m.rent:rent,until:(state.week||0)+LEASE_WEEKS});}
+// Rent of the first qty units (the ones that go first when selling).
+function leaseRentOf(p,m,qty){let r=0,left=qty; for(const l of leaseList(p,m.id)){const c=Math.min(left,l.qty); r+=c*l.rent; left-=c; if(!left) break;} return r+left*(m.rent||0);}
+function removeLeaseUnits(p,id,qty){const ls=(p.leases||{})[id]; if(!ls) return; while(qty>0&&ls.length){const c=Math.min(qty,ls[0].qty); ls[0].qty-=c; qty-=c; if(!ls[0].qty) ls.shift();} if(!ls.length) delete p.leases[id];}
+function nextLeaseRenewal(p,id){const ls=leaseList(p,id); return ls.length?Math.min(...ls.map(l=>l.until))-(state.week||0):null;}
+// Called once a week: expired leases renew at the current market rent.
+function renewLeases(){
+  (state.players||[]).forEach(p=>{ if(!isRacing(p)) return; Object.keys(p.leases||{}).forEach(id=>{ const m=MARKET.find(x=>x.id===id);
+    p.leases[id].forEach(l=>{ if(l.until<=(state.week||0)){ const old=l.rent; l.rent=m.rent; l.until=(state.week||0)+LEASE_WEEKS;
+      if(old!==l.rent) log("🏠 "+p.name+"'s "+m.name+" lease renewed: rent "+fmt(old)+" → "+fmt(l.rent)+"/mo"+(l.qty>1?" ×"+l.qty:"")+"."); } }); }); });
+}
 function addDiv(id,d){const m=MARKET.find(x=>x.id===id); m.div=Math.max(0,Math.round((m.div+d)*100)/100);}
 // Bank loan rate: % of the balance paid every month (starts at 10%, the real-game rule). It's shared
 // and moved by interest-rate events; every bank loan payment is always balance × this rate, so
@@ -333,7 +382,7 @@ function specific(ids,lo,hi,extra){
     const f=rnd(lo,hi); shiftIds(ids,f);
     const who=ids.map(nameOf).join(" and ");
     let txt=who+(ids.length>1?" values ":" ")+(f>=1?"rise ":"fall ")+pctOf(f);
-    if(extra&&extra.rent){const r=rnd(extra.rent[0],extra.rent[1]); scaleRent(ids,r); txt+=", rents "+(r>=1?"+":"−")+pctOf(r);}
+    if(extra&&extra.rent){const r=rnd(extra.rent[0],extra.rent[1]); scaleRent(ids,r); txt+=", rent rate "+(r>=1?"+":"−")+pctOf(r)+" (new leases & renewals)";}
     if(extra&&extra.div){const d=rndStep(extra.div[0],extra.div[1],0.25); addDiv(ids[0],d); txt+=", dividend "+(d>=0?"+":"−")+"$"+Math.abs(d).toFixed(2)+"/share";}
     return txt+".";
   };
@@ -343,7 +392,7 @@ function rateEvent(dLo,dHi,bankF){
     const d=rndStep(dLo,dHi,0.1); moveMortgageRate(d);
     let txt="";
     if(bankF){const before=bankRate(); setBankRate(before*rnd(bankF[0],bankF[1])); const bd=Math.round((bankRate()-before)*10)/10; txt="Bank loan rate "+(bd>=0?"up ":"down ")+Math.abs(bd).toFixed(1)+" points (now "+bankRate().toFixed(1)+"%/month); ";}
-    return txt+"mortgage rates "+(d>=0?"up ":"down ")+Math.abs(d).toFixed(1)+" points (now "+mortgageRate().toFixed(1)+"%).";
+    return txt+"mortgage rates for new purchases "+(d>=0?"up ":"down ")+Math.abs(d).toFixed(1)+" points (now "+mortgageRate().toFixed(1)+"%).";
   };
 }
 const EVENTS=[
@@ -381,8 +430,8 @@ const EVENTS=[
  {name:"Condo Oversupply",type:"market",run:specific(["CND"],0.75,0.9,{rent:[0.85,0.95]})},
  {name:"Land Rezoned",type:"market",run:specific(["LND"],1.3,1.8)},
  {name:"New Highway",type:"market",run:specific(["HSE","CBN"],1.05,1.2)},
- {name:"Rental Demand Surge",type:"market",run:()=>{const f=rnd(1.05,1.15); scaleRent(null,f); return "More people are renting — all property rents rise "+pctOf(f)+".";}},
- {name:"Rent Control Law",type:"market",run:()=>{const f=rnd(0.85,0.95); scaleRent(null,f); return "A new law caps rents — all property rents fall "+pctOf(f)+".";}},
+ {name:"Rental Demand Surge",type:"market",run:()=>{const f=rnd(1.05,1.15); scaleRent(null,f); return "More people are renting — rent rates rise "+pctOf(f)+" (now "+rentRate().toFixed(1)+"%/yr). New leases and renewals pay more.";}},
+ {name:"Rent Control Law",type:"market",run:()=>{const f=rnd(0.85,0.95); scaleRent(null,f); return "A new law caps rents — rent rates fall "+pctOf(f)+" (now "+rentRate().toFixed(1)+"%/yr). New leases and renewals pay less.";}},
 ];
 // Event draws: a third personal, a third market-wide, a third instrument-specific, so the many
 // specific events don't crowd out the rest.
@@ -407,21 +456,22 @@ try{ const sr=localStorage.getItem("cf_room"), sn=localStorage.getItem("cf_name"
 // ---- Online sync (peer-to-peer via PeerJS/WebRTC — no account needed) ----
 let peer=null, hostConns={}, hostConn=null, connectTimer=null;
 function snapshotMarket(){
-  return MARKET.map(m=>({id:m.id,price:m.price,prevPrice:m.prevPrice,history:m.history,high52:m.high52,low52:m.low52,basePrice0:m.basePrice0,prevRent:m.prevRent,anchor:m.anchor,rent:m.rent,div:m.div}));
+  return MARKET.map(m=>({id:m.id,price:m.price,prevPrice:m.prevPrice,history:m.history,high52:m.high52,low52:m.low52,basePrice0:m.basePrice0,anchor:m.anchor,rent:m.rent,div:m.div}));
 }
 function applyMarketSnapshot(arr){
   if(!arr) return;
-  arr.forEach(s=>{const m=MARKET.find(x=>x.id===s.id); if(m){m.price=s.price;m.prevPrice=s.prevPrice;m.history=s.history;m.high52=s.high52;m.low52=s.low52;m.basePrice0=s.basePrice0;if(s.prevRent!=null)m.prevRent=s.prevRent;m.anchor=s.anchor;if(s.rent!=null)m.rent=s.rent;if(s.div!=null)m.div=s.div;}});
+  arr.forEach(s=>{const m=MARKET.find(x=>x.id===s.id); if(m){m.price=s.price;m.prevPrice=s.prevPrice;m.history=s.history;m.high52=s.high52;m.low52=s.low52;m.basePrice0=s.basePrice0;m.anchor=s.anchor;if(s.rent!=null)m.rent=s.rent;if(s.div!=null)m.div=s.div;}});
 }
 function sharedSnapshot(){
-  return {phase:state.phase==="join"?"setup":state.phase,numPlayers:state.numPlayers,names:state.names,profs:state.profs,ready:state.ready,
-    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,prevMortgageRate:state.prevMortgageRate||null,bankRate:state.bankRate||BANK_RATE0,prevBankRate:state.prevBankRate||null,lastMarketEvent:state.lastMarketEvent||null,alert:state.alert||null,lastRoll:state.lastRoll||null,
+  return {phase:state.phase==="join"?"setup":state.phase,speed:state.speed||"medium",numPlayers:state.numPlayers,names:state.names,profs:state.profs,ready:state.ready,
+    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,prevMortgageRate:state.prevMortgageRate||null,bankRate:state.bankRate||BANK_RATE0,prevBankRate:state.prevBankRate||null,rentRate:state.rentRate||RENT_RATE0,prevRentRate:state.prevRentRate||null,rentAdj:state.rentAdj||{},lastMarketEvent:state.lastMarketEvent||null,alert:state.alert||null,lastRoll:state.lastRoll||null,
     market:snapshotMarket(),updatedAt:Date.now()};
 }
 function applyShared(data){
   if(!data) return;
   if(data.phase) state.phase=data.phase;
   if(data.numPlayers) state.numPlayers=data.numPlayers;
+  if(data.speed) state.speed=data.speed;
   if(data.names) state.names=data.names;
   if(data.profs) state.profs=data.profs;
   if(data.ready) state.ready=data.ready;
@@ -437,6 +487,9 @@ function applyShared(data){
   state.prevMortgageRate=data.prevMortgageRate||null;
   if(typeof data.bankRate==="number") state.bankRate=data.bankRate;
   state.prevBankRate=data.prevBankRate||null;
+  if(typeof data.rentRate==="number") state.rentRate=data.rentRate;
+  state.prevRentRate=data.prevRentRate||null;
+  state.rentAdj=data.rentAdj||{};
   state.lastMarketEvent=data.lastMarketEvent||null;
   state.alert=data.alert||null;
   state.lastRoll=data.lastRoll||null;
@@ -469,8 +522,19 @@ function setJoinField(k,v){state[k]=v;}
 function chooseLocalMode(){
   if(peer){try{peer.destroy();}catch(e){}}
   peer=null; hostConns={}; hostConn=null;
-  state.mode="local";state.online=false;state.myIdx=null;state.phase="setup";render();
+  state.mode="local";state.online=false;state.myIdx=null;state.phase="setup";
+  if(state.solo||state.numPlayers<2){ state.solo=false; state.numPlayers=2; state.names=[state.names[0]||"",""]; state.ready=[false,false]; }
+  render();
 }
+// Solo: one player on this device, racing the clock. The game ends when you escape (or go bankrupt);
+// best times per game speed are kept on this device (localStorage cf_best_<speed>).
+function chooseSoloMode(){
+  chooseLocalMode();
+  state.solo=true; state.numPlayers=1; state.names=[(state.joinName||"").trim()||"You"]; state.ready=[true];
+  render();
+}
+function soloBest(speed){try{const v=parseInt(localStorage.getItem("cf_best_"+speed)); return isNaN(v)?null:v;}catch(e){return null;}}
+function saveSoloBest(speed,weeks){const b=soloBest(speed); if(b==null||weeks<b){try{localStorage.setItem("cf_best_"+speed,String(weeks));}catch(e){} return true;} return false;}
 function loadPeerJS(){
   return new Promise((resolve,reject)=>{
     if(window.Peer) return resolve(window.Peer);
@@ -591,8 +655,8 @@ function totalExpenses(p){return p.taxes+p.otherExp+p.mortgagePmt+p.carPmt+p.ccP
 // month, and a property's cash flow is its rent minus that payment. Paying a mortgage down therefore
 // lowers its payment — the game shows the numbers but never spells that out.
 const MORTGAGE_RATE0=7, MORTGAGE_RATE_MIN=2, MORTGAGE_RATE_MAX=12;
-// Each game starts at a random mortgage rate between 5.5% and 7.5%.
-function startMortgageRate(){return Math.round(rnd(5.5,7.5)*10)/10;}
+// Each game starts at a random mortgage rate between 4.5% and 5.5%.
+function startMortgageRate(){return Math.round(rnd(4.5,5.5)*10)/10;}
 // Every property offer comes with its own terms, like the real game's deal cards:
 //  - down payment: bell curve around 10% (0–30%). Low or zero down = bigger mortgage, so the cash flow
 //    is small or negative from day one.
@@ -603,21 +667,27 @@ function pickCostPct(){return Math.round(Math.max(10,Math.min(42,26+8*randn())))
 function costsFor(m,qty,costPct){return Math.round((m.rent||0)*qty*(costPct==null?25:costPct)/100);}
 // Running costs on what a player owns: p.reCostPct[id] is the unit-weighted average of the costs
 // they bought into; it follows the current rent, so rent events move costs too.
-function propCosts(p,m){return costsFor(m,p.holdings[m.id]||0,(p.reCostPct||{})[m.id]);}
+function propCosts(p,m){const pct=(p.reCostPct||{})[m.id]; return Math.round(propRent(p,m)*(pct==null?25:pct)/100);}
 function mortgageRate(){return state.mortgageRate||MORTGAGE_RATE0;}
-function mortgagePmtFor(bal){return Math.round(bal*mortgageRate()/100/12);}
-function propMortgagePmt(p,id){return mortgagePmtFor(((p.reMortgage||{})[id])||0);}
-function propNet(p,m){const q=p.holdings[m.id]||0; return q*(m.rent||0)-propCosts(p,m)-propMortgagePmt(p,m.id);}
+// Mortgages are fixed-rate: each property's mortgage keeps the rate from when it was bought
+// (p.reRate[id], balance-weighted if bought in several goes). Rate events only change the rate for
+// new purchases. mortgagePmtFor(bal) prices a new mortgage at today's rate.
+function mortgagePmtFor(bal,rate){return Math.round(bal*(rate==null?mortgageRate():rate)/100/12);}
+function lockedRate(p,id){const r=(p.reRate||{})[id]; return r==null?mortgageRate():r;}
+function propMortgagePmt(p,id){return mortgagePmtFor(((p.reMortgage||{})[id])||0,lockedRate(p,id));}
+function propNet(p,m){return propRent(p,m)-propCosts(p,m)-propMortgagePmt(p,m.id);}
 // Passive income: dividends from stocks + each property's rent minus its mortgage payment.
 function passiveIncome(p){return MARKET.reduce((s,m)=>s+(m.type==="realestate"?propNet(p,m):(p.holdings[m.id]||0)*(m.div||0)),0);}
 // Change in monthly passive income from buying qty units at `price` (for the bank's lending check).
-function incomeDeltaBuy(m,qty,price,downPct,costPct){
+function incomeDeltaBuy(m,qty,price,downPct,costPct,rent){
   if(m.type!=="realestate") return qty*(m.div||0);
-  const cost=price*qty; return qty*(m.rent||0)-costsFor(m,qty,costPct)-mortgagePmtFor(cost-reDown(cost,downPct));
+  const r=(rent==null?(m.rent||0):rent)*qty, cost=price*qty;
+  return r-Math.round(r*(costPct==null?25:costPct)/100)-mortgagePmtFor(cost-reDown(cost,downPct));
 }
 function incomeDeltaSell(p,m,qty){
   if(m.type!=="realestate") return -qty*(m.div||0);
-  return -(qty*(m.rent||0)-costsFor(m,qty,(p.reCostPct||{})[m.id])-mortgagePmtFor(mortgageShare(p,m.id,qty)));
+  const r=leaseRentOf(p,m,qty), pct=(p.reCostPct||{})[m.id];
+  return -(r-Math.round(r*(pct==null?25:pct)/100)-mortgagePmtFor(mortgageShare(p,m.id,qty),lockedRate(p,m.id)));
 }
 function payCash(p,amt){
   p.cash-=amt;
@@ -795,9 +865,10 @@ function removeUnits(p,m,qty){
   if(p.costBasis&&p.costBasis[m.id]) p.costBasis[m.id]-=Math.round(p.costBasis[m.id]*qty/held);
   if(payoff) p.reMortgage[m.id]-=payoff;
   p.holdings[m.id]=held-qty;
+  if(m.type==="realestate") removeLeaseUnits(p,m.id,qty);
   let over=lockedQty(p,m.id)-p.holdings[m.id];
-  if(over>0&&p.locks&&p.locks[m.id]) p.locks[m.id]=p.locks[m.id].map(l=>{const cut=Math.min(l.qty,over); over-=cut; return {...l,qty:l.qty-cut};}).filter(l=>l.qty>0);
-  if(!p.holdings[m.id]){ ['reMortgage','costBasis','buyMarks','reCostPct','locks'].forEach(k=>{ if(p[k]) delete p[k][m.id]; }); }
+  if(over>0&&p.locks&&p.locks[m.id]) p.locks[m.id]=activeLocks(p,m.id).map(l=>{const cut=Math.min(l.qty,over); over-=cut; return {...l,qty:l.qty-cut};}).filter(l=>l.qty>0);
+  if(!p.holdings[m.id]){ ['reMortgage','reRate','costBasis','buyMarks','reCostPct','locks'].forEach(k=>{ if(p[k]) delete p[k][m.id]; }); }
   return payoff;
 }
 function fireSale(p,need){
@@ -860,6 +931,13 @@ function checkWin(p){
   if(isRacing(p) && passiveIncome(p)>=totalExpenses(p)){
     p.escaped=true;
     p.place=state.players.filter(x=>x.escaped).length; p.finishWeek=state.week||0;
+    if(state.players.length===1){
+      const wk=state.week||0, record=saveSoloBest(state.speed||"medium",wk), best=soloBest(state.speed||"medium");
+      p.newRecord=record;
+      log("🏁 "+p.name+" escaped the Rat Race in "+wk+" weeks"+(record?" — new best!":"")+".");
+      raiseAlert("🏁 You escaped the Rat Race!",["Escaped in "+wk+" weeks ("+speedCfg().label+" game).",record?"🎉 New best time on this device!":"Your best: "+best+" weeks."]);
+      checkGameOver(); return;
+    }
     const medal=["🥇","🥈","🥉"][p.place-1]||"🏁";
     log(medal+" "+p.name+" escaped the Rat Race"+(p.place===1?" and WINS!":" — finishes #"+p.place+".")+" Passive income now covers all expenses.");
     raiseAlert(medal+" "+p.name+(p.place===1?" wins!":" finishes #"+p.place),[p.name+" escaped the Rat Race: passive income "+fmt(passiveIncome(p))+"/mo now covers expenses of "+fmt(totalExpenses(p))+"/mo.",p.place===1?"Everyone else keeps playing for the other places.":""].filter(Boolean));
@@ -871,7 +949,8 @@ function checkWin(p){
 function checkAllWins(){state.players.forEach(checkWin);}
 function checkGameOver(){
   const racing=state.players.filter(isRacing);
-  if(state.phase!=="playing"||racing.length>1) return;
+  // Solo games end when the one player escapes or goes bankrupt; otherwise when at most one is left.
+  if(state.phase!=="playing"||racing.length>(state.players.length===1?0:1)) return;
   racing.forEach(p=>{
     const taken=new Set(state.players.map(x=>x.place).filter(Boolean));
     let pl=1; while(taken.has(pl)) pl++;
@@ -897,6 +976,58 @@ function alertHTML(){
 }
 
 
+// Game speed (host picks it in the lobby): how many property offers appear each week (up to three
+// chances, p), how many other buyers snap up (snap), how many can be on the board at once (max), the
+// starting rent rate (rent, %/yr) and extra starting cash per player (bonus). Tuned with the bot
+// simulation for a 2-player winner at ~20 / ~30 / ~45 weeks (≈ minutes at 1 min per turn) with
+// professions within ~5 points. Fast needs the rent + small cash bonus: more deals alone let rich
+// professions run away, and a bigger bonus favours the Janitor.
+const SPEEDS={
+  fast:  {label:"Fast",  p:[1,0.8,0.3],  snap:0.25, max:12, rent:12, bonus:800, time:"~20 min", note:"lots of deals, higher rents"},
+  medium:{label:"Medium",p:[1,0.8,0.3],  snap:0.25, max:12, rent:10, bonus:0,   time:"~30 min", note:"balanced",
+          prof:{2:{Janitor:0.9643,Secretary:1.0211,Teacher:1.0231,Engineer:1.008,Doctor:0.9831}}},
+  slow:  {label:"Slow",  p:[0.8,0.35,0], snap:0.35, max:9,  rent:10, bonus:0,   time:"~45 min", note:"deals are scarce"},
+};
+function speedCfg(){return SPEEDS[state.speed]||SPEEDS.medium;}
+// Per-speed, per-player-count profession fine-tuning: each mode scales a profession's monthly expenses
+// and debts a little (SPEEDS[k].prof = {2:{Doctor:0.98,…},3:{…},4:{…}}), tuned by bot simulation so
+// every profession wins within about ±1 point of a fair share. Solo uses the 2-player values.
+const EXPENSE_KEYS=["taxes","otherExp","mortgagePmt","carPmt","ccPmt","retailPmt","childExp","mortgageBal","carBal","ccBal","retailBal"];
+function professionSheet(pr){
+  const n=Math.max(2,(state.names||[]).length), sc=(((speedCfg().prof)||{})[n]||{})[pr.name]||1, out={...pr};
+  if(sc!==1) EXPENSE_KEYS.forEach(k=>{ out[k]=k.endsWith("Bal")?Math.round(pr[k]*sc/100)*100:Math.round(pr[k]*sc/5)*5; });
+  return out;
+}
+// Lobby picker: one card per speed with its description, expected length and the values that
+// define it; values that differ from Medium are highlighted so the trade-offs are easy to see.
+const SPEED_INFO={
+  fast:"Lots of property deals, higher rents and a little extra cash at the start. Quick games with plenty of action.",
+  medium:"The standard game: a steady flow of deals and normal rents.",
+  slow:"Deals are scarce and more get snapped up by others. A longer, more strategic game where every purchase counts.",
+};
+function speedPickerHTML(){
+  const locked=state.online&&!state.isHost, base=SPEEDS.medium, cur=state.speed||"medium";
+  const offers=v=>v.p.reduce((a,b)=>a+b,0).toFixed(1);
+  const row=(label,val,diff)=>`<li${diff?' class="diff"':''}><span>${label}</span><b>${val}</b></li>`;
+  return `<div class="speed-cards">${Object.entries(SPEEDS).map(([k,v])=>`
+    <button class="speed-card${cur===k?" sel":""}" onclick="setSpeed('${k}')" ${locked?"disabled":""} aria-pressed="${cur===k}">
+      <div class="sc-head"><b>${v.label}</b><span>${v.time}</span></div>
+      <p>${SPEED_INFO[k]||v.note}</p>
+      <ul>
+        ${row("New offers / week",offers(v),offers(v)!==offers(base))}
+        ${row("Snapped up by others",Math.round(v.snap*100)+"% / wk",v.snap!==base.snap)}
+        ${row("Max offers on board",v.max,v.max!==base.max)}
+        ${row("Rent rate at start",(v.rent||RENT_RATE0)+"% / yr",(v.rent||RENT_RATE0)!==(base.rent||RENT_RATE0))}
+        ${row("Extra starting cash",v.bonus?"+"+fmt(v.bonus):"—",(v.bonus||0)!==(base.bonus||0))}
+      </ul>
+    </button>`).join("")}</div>
+    <p class="muted" style="margin:6px 0 0;font-size:11.5px;">Times are for the winner with 2 players at about 1 minute per turn. Everything else (mortgage rate 4.5–5.5%, bank loans 10%/month, events, professions) is the same in every speed. <span class="diff-key">Highlighted</span> = different from Medium.</p>`;
+}
+function setSpeed(k){
+  if(state.online&&!state.isHost) return;
+  if(!SPEEDS[k]) return;
+  state.speed=k; if(state.online) pushState(); render();
+}
 function setPlayers(n){
   if(state.online&&!state.isHost) return;
   const oldNames=state.names||[], oldProfs=state.profs||[], oldReady=state.ready||[];
@@ -936,9 +1067,9 @@ function genHistory(endPrice,vol,points){
 function updateMarket(){
   state.week=(state.week||0)+1;
   // Last week's values, for the week-over-week changes in the board centre.
-  state.prevMortgageRate=mortgageRate(); state.prevBankRate=bankRate();
+  state.prevMortgageRate=mortgageRate(); state.prevBankRate=bankRate(); state.prevRentRate=rentRate();
   MARKET.forEach(m=>{
-    m.prevPrice=m.price; m.prevRent=m.rent;
+    m.prevPrice=m.price;
     m.price=Math.max(Math.round(priceStep(m.price,m.vol,m.anchor||m.basePrice0)),Math.round(m.basePrice0*0.15),1);
     m.high52=Math.max(m.high52||m.price,m.price);
     m.low52=Math.min(m.low52||m.price,m.price);
@@ -965,11 +1096,11 @@ function tickListings(){
   // someone else (30%), and about 1.5 new offers appear.
   state.listings.forEach(l=>{
     l.turnsLeft--;
-    if(Math.random()<0.3) l.qty=0;
+    if(Math.random()<speedCfg().snap) l.qty=0;
   });
   state.listings=state.listings.filter(l=>l.qty>0&&l.turnsLeft>0);
-  const maxListings=10;
-  let tries=(Math.random()<0.9?1:0)+(Math.random()<0.6?1:0);
+  const cfg=speedCfg(), maxListings=cfg.max;
+  let tries=cfg.p.reduce((n,pr)=>n+(Math.random()<pr?1:0),0);
   for(let i=0;i<tries&&state.listings.length<maxListings;i++) spawnListing();
 }
 function startGame(){
@@ -977,7 +1108,7 @@ function startGame(){
   MARKET.forEach(m=>{
     // Reset every instrument (real estate too), so a new game never inherits the last game's prices.
     m.price=m.type==="stock"?Math.max(1,Math.round(m.designPrice*Math.exp(0.18*randn()))):m.designPrice;
-    m.basePrice0=m.price; m.anchor=m.price; m.rent=m.designRent; m.div=m.designDiv; m.prevRent=m.rent;
+    m.basePrice0=m.price; m.anchor=m.price; m.div=m.designDiv;
     m.history=genHistory(m.price,m.vol,15);
     m.prevPrice=m.history[m.history.length-2];
     m.high52=Math.max(...m.history);
@@ -988,9 +1119,9 @@ function startGame(){
   for(let i=0;i<4;i++) spawnListing();
   state.players=state.names.map((nm,i)=>{
     const pr=PROFESSIONS[Math.floor(Math.random()*PROFESSIONS.length)];
-    return {...pr,profession:pr.name,name:nm.trim()||("Player "+(i+1)),cash:pr.savings,kids:0,holdings:{},bankLoanBal:0,bankLoanPmt:0,pos:0,escaped:false,bankrupt:false,place:null,color:COLORS[i]};
+    return {...professionSheet(pr),profession:pr.name,name:nm.trim()||("Player "+(i+1)),cash:pr.savings+(speedCfg().bonus||0),kids:0,holdings:{},bankLoanBal:0,bankLoanPmt:0,pos:0,escaped:false,bankrupt:false,place:null,color:COLORS[i]};
   });
-  state.phase="playing"; state.alert=null; state.lastRoll=null; state.week=0; state.mortgageRate=startMortgageRate(); state.prevMortgageRate=state.mortgageRate; state.bankRate=BANK_RATE0; state.prevBankRate=BANK_RATE0; state.lastMarketEvent=null; state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
+  state.phase="playing"; state.alert=null; state.lastRoll=null; state.week=0; state.mortgageRate=startMortgageRate(); state.prevMortgageRate=state.mortgageRate; state.bankRate=BANK_RATE0; state.prevBankRate=BANK_RATE0; state.rentRate=speedCfg().rent||RENT_RATE0; state.prevRentRate=state.rentRate; state.rentAdj={}; refreshRents(); state.lastMarketEvent=null; state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
   log("Game started. "+state.players[0].name+" goes first. Market is open.");
   if(state.online) pushState();
   render();
@@ -1009,6 +1140,7 @@ function sellableQty(p,id){return Math.max(0,(p.holdings[id]||0)-lockedQty(p,id)
 function addLock(p,id,qty){p.locks=p.locks||{}; p.locks[id]=[...activeLocks(p,id),{qty,until:(p.turnsTaken||0)+FLASH_LOCK_TURNS}];}
 function nextTurn(){
   updateMarket();
+  renewLeases();
   tickListings();
   state.hasRolled=false;
   checkAllWins(); checkGameOver();
@@ -1020,6 +1152,8 @@ function nextTurn(){
     np.turnsTaken=(np.turnsTaken||0)+1;
     if(!(np.skipTurns>0)) break;
     np.skipTurns--;
+    // Alone, a skipped turn still costs a week: the market moves on without you.
+    if(state.players.length===1){ updateMarket(); renewLeases(); }
     log("⚠️ "+np.name+" is downsized and sits out this turn"+(np.skipTurns?" ("+np.skipTurns+" more to go).":" — back next round."));
   }
   state.pending=null; syncRender();
@@ -1092,7 +1226,8 @@ function resolveSpace(p,sp){
     const qtyMax=m.type==="stock"?null:1;
     state.flashQty=1;
     sfx("deal");
-    state.pending={kind:"flashdeal",p,id:m.id,dealPrice,qtyMax,downPct:m.type==="realestate"?pickDownPct():null,costPct:m.type==="realestate"?pickCostPct():null};
+    state.pending={kind:"flashdeal",p,id:m.id,dealPrice,qtyMax,// Property flash deals come with their own lease rent: market rent ±5%.
+      rent:m.type==="realestate"?Math.round(m.rent*rnd(0.95,1.05)/5)*5:null,downPct:m.type==="realestate"?pickDownPct():null,costPct:m.type==="realestate"?pickCostPct():null};
   }else if(sp==="event"){
     const ev=pickEvent();
     state.nextBill=null;
@@ -1140,10 +1275,10 @@ function flashMaxCash(){
 // runs short, pressing Buy opens the loan popup (askLoanConfirm) instead.
 function flashPreviewHTML(){
   const pd=state.pending, p=state.players[state.turn], m=MARKET.find(x=>x.id===pd.id), qty=state.flashQty||1;
-  const cost=pd.dealPrice*qty, due=cashDue(m,cost,pd.downPct), mort=cost-due, cfl=incomeDeltaBuy(m,qty,pd.dealPrice,pd.downPct,pd.costPct);
+  const cost=pd.dealPrice*qty, due=cashDue(m,cost,pd.downPct), mort=cost-due, cfl=incomeDeltaBuy(m,qty,pd.dealPrice,pd.downPct,pd.costPct,pd.rent);
   const row=(a,b,c)=>`<div class="fp-row${c?" "+c:""}"><span>${a}</span><b>${b}</b></div>`;
   return row(qty+" × "+fmt(pd.dealPrice),fmt(cost),"fp-total")
-    +(m.type==="realestate"?row("Cash down ("+pd.downPct+"%)",fmt(due))+row("Mortgage ("+(100-pd.downPct)+"%)",fmt(mort))+row("Rent",fmt(qty*m.rent)+"/mo")+row("Running costs ("+pd.costPct+"% of rent)","−"+fmt(costsFor(m,qty,pd.costPct))+"/mo")+row("Mortgage payment ("+mortgageRate().toFixed(1)+"%)","−"+fmt(mortgagePmtFor(mort))+"/mo")+row("Cash flow",sgn(cfl)+"/mo",cfl<0?"fp-bad":""):"")
+    +(m.type==="realestate"?row("Cash down ("+pd.downPct+"%)",fmt(due))+row("Mortgage ("+(100-pd.downPct)+"%)",fmt(mort))+row("Rent ("+((pd.rent==null?m.rent:pd.rent)*12/Math.max(1,m.anchor||m.price)*100).toFixed(1)+"%/yr, "+LEASE_WEEKS+"-week lease)",fmt(qty*(pd.rent==null?m.rent:pd.rent))+"/mo")+row("Running costs ("+pd.costPct+"% of rent)","−"+fmt(costsFor(m,qty,pd.costPct))+"/mo")+row("Mortgage payment ("+mortgageRate().toFixed(1)+"%)","−"+fmt(mortgagePmtFor(mort))+"/mo")+row("Cash flow",sgn(cfl)+"/mo",cfl<0?"fp-bad":""):"")
 ;
 }
 function buyFlashDeal(ok){
@@ -1151,8 +1286,8 @@ function buyFlashDeal(ok){
   if(!state.pending||state.pending.kind!=="flashdeal") return;
   const pd=state.pending, p=state.players[state.turn], m=MARKET.find(x=>x.id===pd.id), qty=state.flashQty||1;
   const due=cashDue(m,pd.dealPrice*qty,pd.downPct);
-  if(!ok&&askLoanConfirm(state.turn,{title:"Flash deal: "+qty+"x "+m.name,due,incomeDelta:incomeDeltaBuy(m,qty,pd.dealPrice,pd.downPct,pd.costPct),confirmLabel:"Take {loan} loan and buy",run:()=>buyFlashDeal(true)})) return;
-  const note=buyAsset(p,m,qty,pd.dealPrice,pd.downPct,pd.costPct);
+  if(!ok&&askLoanConfirm(state.turn,{title:"Flash deal: "+qty+"x "+m.name,due,incomeDelta:incomeDeltaBuy(m,qty,pd.dealPrice,pd.downPct,pd.costPct,pd.rent),confirmLabel:"Take {loan} loan and buy",run:()=>buyFlashDeal(true)})) return;
+  const note=buyAsset(p,m,qty,pd.dealPrice,pd.downPct,pd.costPct,pd.rent);
   // Only stocks are locked: they could otherwise be flipped straight back into the always-open stock
   // market. Property can only be sold into a WANTED listing, so it isn't locked.
   if(m.type==="stock") addLock(p,m.id,qty);
@@ -1183,17 +1318,20 @@ function recordBuy(p,id,qty,price){
   p.costBasis[id]=(p.costBasis[id]||0)+price*qty;
   p.buyMarks[id]=[...(p.buyMarks[id]||[]),{w:state.week||0,price}].slice(-10);
 }
-function buyAsset(p,m,qty,price,downPct,costPct){
+function buyAsset(p,m,qty,price,downPct,costPct,rent){
   sfx("buy");
   const cost=price*qty;
   recordBuy(p,m.id,qty,price);
   if(m.type!=="realestate"){ payCash(p,cost); p.holdings[m.id]=(p.holdings[m.id]||0)+qty; return " ("+fmt(cost)+")."; }
   const down=reDown(cost,downPct), mort=cost-down;
   payCash(p,down);
-  p.reMortgage=p.reMortgage||{}; p.reMortgage[m.id]=(p.reMortgage[m.id]||0)+mort;
+  const oldBal=(p.reMortgage||{})[m.id]||0;
+  p.reRate=p.reRate||{}; p.reRate[m.id]=oldBal+mort>0?(oldBal*lockedRate(p,m.id)+mort*mortgageRate())/(oldBal+mort):mortgageRate();
+  p.reMortgage=p.reMortgage||{}; p.reMortgage[m.id]=oldBal+mort;
   const held=p.holdings[m.id]||0, cp=costPct==null?25:costPct;
   p.reCostPct=p.reCostPct||{}; p.reCostPct[m.id]=held?((p.reCostPct[m.id]==null?25:p.reCostPct[m.id])*held+cp*qty)/(held+qty):cp;
   p.holdings[m.id]=(p.holdings[m.id]||0)+qty;
+  addLease(p,m,qty,rent);
   return " — "+fmt(down)+" down ("+(downPct==null?10:downPct)+"%), "+fmt(mort)+" mortgage.";
 }
 // If a property sells for less than its mortgage, the shortfall comes out of cash (auto-loan if needed).
@@ -1202,10 +1340,12 @@ function sellAsset(p,m,qty,price){
   const sale=price*qty, payoff=mortgageShare(p,m.id,qty);
   if(p.costBasis&&p.costBasis[m.id]) p.costBasis[m.id]-=Math.round(p.costBasis[m.id]*qty/p.holdings[m.id]);
   p.cash+=sale; p.holdings[m.id]-=qty;
+  if(m.type==="realestate") removeLeaseUnits(p,m.id,qty);
   if(!p.holdings[m.id]){ if(p.costBasis) delete p.costBasis[m.id]; if(p.buyMarks) delete p.buyMarks[m.id]; }
   if(payoff){ p.reMortgage[m.id]-=payoff; payCash(p,payoff); }
   if(!p.holdings[m.id]&&p.reMortgage) delete p.reMortgage[m.id];
   if(!p.holdings[m.id]&&p.reCostPct) delete p.reCostPct[m.id];
+  if(!p.holdings[m.id]&&p.reRate) delete p.reRate[m.id];
   return payoff?" — "+fmt(sale)+" sale, "+fmt(payoff)+" mortgage paid off, "+(sale>=payoff?fmt(sale-payoff)+" to you.":"you cover the "+fmt(payoff-sale)+" shortfall."):" ("+fmt(sale)+").";
 }
 function buyListing(id,ok){
@@ -1287,7 +1427,7 @@ const PERSONAL_DEBTS={mortgage:["Home Mortgage","mortgageBal","mortgagePmt"],car
 function debtList(p){
   const list=Object.entries(PERSONAL_DEBTS).map(([key,[name,b,m]])=>({key,name,bal:p[b],pmt:p[m]}));
   list.push({key:"bank",name:"Bank Loan",bal:p.bankLoanBal,pmt:p.bankLoanPmt});
-  Object.entries(p.reMortgage||{}).forEach(([id,bal])=>list.push({key:"re:"+id,name:"Mortgage — "+MARKET.find(m=>m.id===id).name,bal,pmt:mortgagePmtFor(bal)}));
+  Object.entries(p.reMortgage||{}).forEach(([id,bal])=>list.push({key:"re:"+id,name:"Mortgage — "+MARKET.find(m=>m.id===id).name,bal,pmt:mortgagePmtFor(bal,lockedRate(p,id))}));
   return list.filter(d=>d.bal>0);
 }
 function selectedDebt(p){const list=debtList(p); return list.find(d=>d.key===state.debtSel)||list[0]||null;}
@@ -1518,8 +1658,19 @@ function setupHTML(){
         <button class="primary" onclick="joinRoomFlow()">Join Lobby</button>
       </div>
       ${state.joinError?`<p style="${state.joinError.startsWith('Connecting')?'':'color:var(--danger);'}font-size:13px;">${state.joinError}</p>`:""}
-      <p class="muted" style="font-size:11.5px;">Or skip online play entirely: <a href="#" onclick="chooseLocalMode();return false;">play pass-and-play on this device</a>.</p>
+      <p class="muted" style="font-size:11.5px;">Or skip online play: <a href="#" onclick="chooseSoloMode();return false;">play solo</a> · <a href="#" onclick="chooseLocalMode();return false;">pass-and-play on this device</a>.</p>
     </div>`;
+  }
+  if(state.solo){
+    const bests=Object.entries(SPEEDS).map(([k,v])=>{const b=soloBest(k); return `${v.label} <b>${b==null?"—":b+" wk"}</b>`;}).join(" · ");
+    return `<h1>💰 Cashflow: Rat Race ${muteButtonHTML()}</h1>
+    <p class="muted">Solo game — escape the Rat Race in as few weeks as you can. Your profession is dealt at random; a week is one of your turns.</p>
+    <div class="card">
+      <div class="row"><b>Your name:</b> <input value="${state.names[0]}" oninput="state.names[0]=this.value" style="flex:1;min-width:140px;"></div>
+      <div style="margin-top:10px;"><b>Game speed</b>${speedPickerHTML()}</div>
+      <p class="muted" style="margin:6px 0 0;font-size:12px;">Your best times on this device: ${bests}</p>
+    </div>
+    <div class="row"><button class="primary" onclick="startGame()">Start Solo Game</button> <a href="#" style="font-size:12.5px;" onclick="chooseLocalMode();return false;">or play pass-and-play</a></div>`;
   }
   let rows="";
   const seatsFilled=state.names.slice(0,state.numPlayers).every(n=>n&&n.trim());
@@ -1541,6 +1692,7 @@ function setupHTML(){
     :`<p class="muted">Pass-and-play, 2–4 players. Professions are dealt at random when the game starts. A shared stock & real-estate market fluctuates every turn, random events shake things up, and you can take or pay off bank loans anytime on your turn. Escape the Rat Race when passive income covers your expenses.</p>`}
   <div class="card">
     <div class="row"><b>Players:</b> ${[2,3,4].map(n=>`<button class="${state.numPlayers===n?'primary':''}" onclick="setPlayers(${n})" ${state.online&&!state.isHost?"disabled":""}>${n}</button>`).join("")}</div>
+    <div style="margin-top:10px;"><b>Game speed</b>${speedPickerHTML()}</div>
   </div>
   ${rows}
   ${!state.online?`<button class="primary" onclick="startGame()">Start Game</button>`
@@ -1568,7 +1720,8 @@ function economyHTML(){
   const stocks=MARKET.filter(m=>m.type==="stock"), props=MARKET.filter(m=>m.type==="realestate");
   // Everything is compared with last week (prevPrice/prevRent/prevMortgageRate, snapshotted in updateMarket),
   // so it includes both the weekly random move and any event since then.
-  const st=avgChange(stocks,m=>m.price,m=>m.prevPrice||m.price), pr=avgChange(props,m=>m.price,m=>m.prevPrice||m.price), rn=avgChange(props,m=>m.rent,m=>m.prevRent||m.rent);
+  const st=avgChange(stocks,m=>m.price,m=>m.prevPrice||m.price), pr=avgChange(props,m=>m.price,m=>m.prevPrice||m.price);
+  const rr=rentRate(), rrd=Math.round((rr-(state.prevRentRate||rr))*10)/10;
   const pct=v=>Math.abs(v)<0.005?"0%":(v>0?"▲ ":"▼ ")+Math.abs(Math.round(v*100))+"%";
   const cls=(v,goodUp)=>Math.abs(v)<0.005?"flat":((v>0)===goodUp?"up":"down");
   const d=Math.round((mortgageRate()-(state.prevMortgageRate||mortgageRate()))*10)/10;
@@ -1576,15 +1729,17 @@ function economyHTML(){
   const item=(label,value,sub,subCls,tip)=>{const [lf,ls]=label.split("|"); return `<div class="econ-item" title="${tip}"><span><i class="lf">${lf}</i><i class="ls">${ls||lf}</i></span><b>${value}</b>${sub?`<em class="${subCls}">${sub}</em>`:""}</div>`;};
   const ev=state.lastMarketEvent;
   return `<div class="econ">
-    ${item("Mortgage|Mtg",mortgageRate().toFixed(1)+"%",d?(d>0?"▲ ":"▼ ")+Math.abs(d).toFixed(1)+" pts":"same as last wk",d>0?"down":d<0?"up":"flat","Mortgage rate and its change since last week. Property mortgage payment = balance × rate ÷ 12, every month.")}
+    ${item("Mortgage|Mtg",mortgageRate().toFixed(1)+"%",d?(d>0?"▲ ":"▼ ")+Math.abs(d).toFixed(1)+" pts":"same as last wk",d>0?"down":d<0?"up":"flat","Mortgage rate for NEW purchases, and its change since last week. Mortgages are fixed-rate: what you already own keeps the rate you bought at. Payment = balance × rate ÷ 12, every month.")}
     ${item("Bank loan|Loan",bankRate().toFixed(1)+"%",bd?(bd>0?"▲ ":"▼ ")+Math.abs(bd).toFixed(1)+" pts":"same as last wk",bd>0?"down":bd<0?"up":"flat","Bank loan rate: every month you pay this % of your bank loan balance. Starts at 10%; moved by interest-rate events.")}
     ${item("Stocks",pct(st),"vs last week",cls(st,true),"Average stock price change since last week.")}
     ${item("Property|Prop.",pct(pr),"vs last week",cls(pr,true),"Average property value change since last week.")}
-    ${item("Rents",pct(rn),"vs last week",cls(rn,true),"Average rent change since last week (rent events).")}
+    <div onclick="toggleRentTable()" class="econ-click">${item("Rent rate|Rent",rr.toFixed(1)+"%",rrd?(rrd>0?"▲ ":"▼ ")+Math.abs(rrd).toFixed(1)+" pts":"same as last wk",rrd>0?"up":rrd<0?"down":"flat","Rent rate: properties rent for this % of their value per year (before running costs and mortgage). New leases and renewals (every "+LEASE_WEEKS+" weeks) use it. Click for each property type.")}</div>
   </div>
-  <div class="econ-foot">Week ${state.week||0}${ev?` · <b>Last:</b> ${ev.name} — ${ev.desc}`:""}</div>`;
+  ${state.showRentTable?`<div class="rent-table">${props.filter(m=>m.designRent>0).map(m=>{const r=typeRentRate(m), dr=r-rr; return `<span><b>${m.name.split(" ").slice(-1)[0]}</b> ${r.toFixed(1)}%${Math.abs(dr)>=0.05?`<em class="${dr>0?"up":"down"}">${dr>0?"▲":"▼"}</em>`:""}</span>`;}).join("")}</div>`:""}
+  <div class="econ-foot">${speedCfg().label} game · Week ${state.week||0}${ev?` · <b>Last:</b> ${ev.name} — ${ev.desc}`:""}</div>`;
 }
 try{ state.showLegend=localStorage.getItem("cf_legend")==="1"; }catch(e){ state.showLegend=false; }
+function toggleRentTable(){ state.showRentTable=!state.showRentTable; render(); }
 function toggleLegend(){ state.showLegend=!state.showLegend; try{localStorage.setItem("cf_legend",state.showLegend?"1":"0");}catch(e){} render(); }
 function boardHTML(){
   const cur=state.players[state.turn];
@@ -1631,7 +1786,7 @@ function realEstateListingsHTML(){
       <div class="mstats">
         <span><b>Price ${fmt(l.price)}</b></span>
         <span>Market value ${fmt(m.price)}</span>
-        <span>Rent ${fmt(m.rent)}/mo</span>
+        <span>Rent ${fmt(m.rent)}/mo (${typeRentRate(m).toFixed(1)}%/yr · ${LEASE_WEEKS}-wk lease)</span>
         <span>Cap Rate ${capRate}</span>
         <span class="${apprCls}">Apprec. ${appr}%</span>
       </div>
@@ -1765,7 +1920,7 @@ function statementHTML(p,idx){
      ${expRow("salary","Salary",p.salary)}
      ${expRow("div","Interest / Dividends",dividends)}
      ${expRow("rent","Real Estate (net rent)",reIncome)}
-     ${props.map(m=>`<tr class="sub"><td class="desc">🏠 ${m.name}: rent ${fmt(p.holdings[m.id]*m.rent)} − costs ${fmt(propCosts(p,m))} − mortgage ${fmt(propMortgagePmt(p,m.id))}</td><td class="num ${propNet(p,m)<0?"down":""}">${sgn(propNet(p,m))}</td></tr>`).join("")}
+     ${props.map(m=>`<tr class="sub"><td class="desc">🏠 ${m.name}: rent ${fmt(propRent(p,m))} (renews in ${nextLeaseRenewal(p,m.id)} wk) − costs ${fmt(propCosts(p,m))} − mortgage ${fmt(propMortgagePmt(p,m.id))} (${lockedRate(p,m.id).toFixed(1)}% fixed)</td><td class="num ${propNet(p,m)<0?"down":""}">${sgn(propNet(p,m))}</td></tr>`).join("")}
     </table>
 
     <div class="sheet-sec"><span class="num">2</span>Expenses <span class="sec-total">${fmt(totalExp)}</span></div>
@@ -1816,7 +1971,7 @@ function statementHTML(p,idx){
        <input class="qty" style="width:84px;" type="number" step="${debt.key==="bank"?1000:100}" min="1" value="${state.loanPayAmt||1000}" onchange="setLoanPay(this.value)">
        <button onclick="payDebt(${idx})" ${p.cash>0?"":"disabled"}>Pay</button>
        <button class="primary" onclick="payDebt(${idx},true)" ${p.cash>=debt.bal?"":"disabled"} title="${p.cash>=debt.bal?"":"Not enough cash to clear it"}">Pay off all ${fmt(debt.bal)}</button></div>
-       <small class="muted">${debt.key.startsWith("re:")?`Property mortgage at ${mortgageRate().toFixed(1)}% — partial payments allowed.`:debt.pmt?`Paying it off in full cuts expenses by <b>${fmt(debt.pmt)}/mo</b>${debt.key==="bank"?" (partial payments in $1,000 steps)":"; partial payments lower it proportionally"}.`:`No monthly payment — paying it down means you keep more when you sell the property.`}</small>`
+       <small class="muted">${debt.key.startsWith("re:")?`Property mortgage, fixed at ${lockedRate(p,debt.key.slice(3)).toFixed(1)}% — partial payments allowed.`:debt.pmt?`Paying it off in full cuts expenses by <b>${fmt(debt.pmt)}/mo</b>${debt.key==="bank"?" (partial payments in $1,000 steps)":"; partial payments lower it proportionally"}.`:`No monthly payment — paying it down means you keep more when you sell the property.`}</small>`
      :`<span class="muted">You're debt-free! 🎉</span>`}
    </div>
   </div>`;
@@ -1903,6 +2058,13 @@ function playersOverviewHTML(){
 }
 // Final standings: places 1..n, how each player finished, and their numbers at the end.
 function standingsHTML(){
+  if(state.players.length===1){
+    const p=state.players[0], best=soloBest(state.speed||"medium");
+    return `<div class="card standings"><h3>🏁 Solo game over <small class="muted">(${speedCfg().label} game)</small></h3>
+      <p style="font-size:15px;margin:4px 0;">${p.escaped?`<b>${p.name}</b> escaped the Rat Race in <b>${p.finishWeek} weeks</b>${p.newRecord?" — 🎉 new best!":""}`:`💀 <b>${p.name}</b> went bankrupt in week ${p.finishWeek}.`}</p>
+      <p class="muted" style="margin:0;">Best on this device (${speedCfg().label}): ${best==null?"—":best+" weeks"} · Passive income ${fmt(passiveIncome(p))}/mo as a ${p.profession}.
+      <a href="#" onclick="state.phase='setup';render();return false;">Play again</a></p></div>`;
+  }
   const rows=state.players.slice().sort((a,b)=>(a.place||99)-(b.place||99)).map(p=>{
     const medal=["🥇","🥈","🥉"][p.place-1]||"#"+p.place;
     const worth=p.cash+MARKET.reduce((s,m)=>s+(p.holdings[m.id]||0)*m.price,0)-(p.mortgageBal+p.carBal+p.ccBal+p.retailBal+p.bankLoanBal+reMortgageTotal(p));
@@ -1910,7 +2072,7 @@ function standingsHTML(){
       <td>${p.escaped?"Escaped in week "+p.finishWeek:p.bankrupt?"💀 Bankrupt in week "+p.finishWeek:"Last one left in the Rat Race"}</td>
       <td class="num">${fmt(passiveIncome(p))}/mo</td><td class="num">${p.bankrupt?"—":(worth<0?"−":"")+fmt(Math.abs(worth))}</td></tr>`;
   }).join("");
-  return `<div class="card standings"><h3>🏁 Game over — final standings</h3>
+  return `<div class="card standings"><h3>🏁 Game over — final standings <small class="muted">(${speedCfg().label} game)</small></h3>
     <table><thead><tr><th></th><th>Player</th><th>Result</th><th class="num">Passive income</th><th class="num">Net worth</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function gameHTML(over){
