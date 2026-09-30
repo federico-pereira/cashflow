@@ -725,12 +725,27 @@ body.tb-page .standings button.primary{background:#1f4a35;border-color:#0f2a1c;b
 .confirm-card .confirm-actions button:not(.gold):not(.sell):not(.primary){background:#fffdf5;color:#1d2433;border:1.5px solid #1d2433;}
 .confirm-card .confirm-actions{margin-top:auto;padding-top:12px;}
 /* Real estate cards: same height in every row, same header lines whatever the name length */
-.mgrid{grid-auto-rows:1fr;}
+.mgrid{grid-template-columns:repeat(auto-fill,minmax(max(230px,calc((100% - 20px) / 3)),1fr));grid-auto-rows:minmax(525px,auto);align-content:start;}   /* max 3 per row, fixed size; the panel scrolls */
 .mgrid .mcard{display:flex;flex-direction:column;min-width:0;}
 .mhead{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;}
 .mhead .mtitle{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mhead .tag{margin-top:2px;}
 .mcard .mfoot{margin-top:auto;padding-top:6px;}
+.letter-foot{flex:none;background:#fffdf5;padding:0 14px 12px;}
+.letter-foot .letter-actions{margin-top:0;padding-top:8px;border-top:1px dashed #b9b09a;}
+/* forced sale sheet */
+.fs-sum{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:'Courier Prime','Courier New',monospace;font-size:13px;margin-bottom:6px;}
+.fs-list{flex:1;min-height:0;overflow:auto;border-top:1.5px solid #1d2433;border-bottom:1.5px solid #1d2433;}
+.fs-list table{width:100%;border-collapse:collapse;}
+.fs-card .fs-list td{padding:4px;font-size:12.5px;}
+.fs-card .fs-h td{font:500 10.5px/1.2 'Oswald','Arial Narrow',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#5d6472;}
+.fs-card .fs-sec td{font:500 11px/1.2 'Oswald','Arial Narrow',sans-serif;letter-spacing:.14em;text-transform:uppercase;background:#f1ead8;}
+.fs-card tr.on td{background:rgba(179,38,30,.07);}
+.fs-pick{display:flex;align-items:center;gap:6px;cursor:pointer;}
+.fs-qty{width:64px;}
+.fs-card td small{display:block;color:#5d6472;font-size:10px;line-height:1.1;}
+.confirm-card.fs-card{width:min(860px,96vw);height:min(600px,90vh);}
+.fs-note{margin:6px 0 0;font-size:12px;color:#5d6472;}
 </style>
 </head>
 <body>
@@ -840,6 +855,9 @@ function rateEvent(dLo,dHi,bankF){
     return txt+"mortgage rates for new purchases "+(d>=0?"up ":"down ")+Math.abs(d).toFixed(1)+" points (now "+mortgageRate().toFixed(1)+"%).";
   };
 }
+// Luck dials, tuned with the skill-vs-luck bot simulation (scratch skill.js): disaster = size of the
+// medical / lawsuit / property-damage bills.
+var LUCK={disaster:3,freq:0.5};   // freq: extra chance that a personal event is one of the three disasters
 const EVENTS=[
  // ---- Market-wide ----
  {name:"Stock Market Crash",type:"global",run:()=>{const f=rnd(0.5,0.8); shiftMarket("stock",f); return "All stocks drop "+pctOf(f)+".";}},
@@ -856,6 +874,16 @@ const EVENTS=[
  {name:"Inheritance",type:"personal",run:(pl,p)=>{const a=rndStep(1000,5000,250); p.cash+=a; return "A distant relative leaves you "+fmt(a)+".";}},
  {name:"Lawsuit",type:"personal",run:(pl,p)=>{const a=rndStep(500,2500,100); state.nextBill={amt:a,what:"a lawsuit"}; return "You're sued and must pay "+fmt(a)+" in damages.";}},
  {name:"Identity Theft",type:"personal",run:(pl,p)=>{const a=rndStep(200,1200,50); state.nextBill={amt:a,what:"identity theft"}; return fmt(a)+" is stolen from your account.";}},
+ // Bad luck sized to the player's own finances (months of total expenses, or a share of a property's
+ // value), so it hurts every profession alike. A careful player can borrow to cover it; the loan
+ // payment can still push cash flow below $0. LUCK.disaster scales the medical and lawsuit bills;
+// property damage is 15–40% of one property's value (tuned with the bot sim).
+ {name:"Medical Emergency",type:"personal",run:(pl,p)=>{const a=Math.max(500,rndStep(2*LUCK.disaster,5*LUCK.disaster,0.1)*totalExpenses(p)); state.nextBill={amt:Math.round(a/100)*100,what:"a medical emergency"}; return "An emergency operation that insurance doesn't cover: you owe "+fmt(Math.round(a/100)*100)+".";}},
+ {name:"Major Lawsuit",type:"personal",run:(pl,p)=>{const a=Math.max(500,rndStep(3*LUCK.disaster,6*LUCK.disaster,0.1)*totalExpenses(p)); state.nextBill={amt:Math.round(a/100)*100,what:"a major lawsuit"}; return "You lose a lawsuit and must pay "+fmt(Math.round(a/100)*100)+" in damages.";}},
+ {name:"Property Damage",type:"personal",run:(pl,p)=>{const own=MARKET.filter(m=>m.type==="realestate"&&(p.holdings[m.id]||0)>0);
+   if(!own.length){ const a=rndStep(300,1000,50); state.nextBill={amt:a,what:"home repairs"}; return "A burst pipe at home: repairs cost "+fmt(a)+"."; }
+   const m=own[Math.floor(Math.random()*own.length)], f=rnd(0.15,0.4), a=Math.round(m.price*f/100)*100;
+   state.nextBill={amt:a,what:"repairs on your "+m.name}; return "A storm damages your "+m.name+". Uninsured repairs cost "+fmt(a)+" ("+Math.round(f*100)+"% of its value).";}},
  // ---- Stock-specific ----
  {name:"Tech Breakthrough",type:"market",run:specific(["TEC"],1.2,1.5)},
  {name:"Chip Shortage",type:"market",run:specific(["TEC"],0.65,0.85)},
@@ -882,6 +910,7 @@ const EVENTS=[
 // specific events don't crowd out the rest.
 function pickEvent(){
   const r=Math.random(), type=r<1/3?"personal":r<2/3?"global":"market";
+  if(type==="personal"&&Math.random()<LUCK.freq){ const dis=EVENTS.filter(e=>["Medical Emergency","Major Lawsuit","Property Damage"].includes(e.name)); return dis[Math.floor(Math.random()*dis.length)]; }
   const pool=EVENTS.filter(e=>e.type===type);
   return pool[Math.floor(Math.random()*pool.length)];
 }
@@ -910,7 +939,7 @@ function applyMarketSnapshot(arr){
 }
 function sharedSnapshot(){
   return {phase:state.phase==="join"?"setup":state.phase,speed:state.speed||"medium",numPlayers:state.numPlayers,names:state.names,profs:state.profs,ready:state.ready,tokens:state.tokens||null,
-    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,prevMortgageRate:state.prevMortgageRate||null,bankRate:state.bankRate||BANK_RATE0,prevBankRate:state.prevBankRate||null,rentRate:state.rentRate||RENT_RATE0,prevRentRate:state.prevRentRate||null,rentAdj:state.rentAdj||{},lastMarketEvent:state.lastMarketEvent||null,alert:state.alert||null,lastRoll:state.lastRoll||null,
+    players:state.players,turn:state.turn,pending:state.pending,hasRolled:state.hasRolled,log:state.log,listings:state.listings,listingSeq:state.listingSeq,week:state.week,mortgageRate:state.mortgageRate,prevMortgageRate:state.prevMortgageRate||null,bankRate:state.bankRate||BANK_RATE0,prevBankRate:state.prevBankRate||null,rentRate:state.rentRate||RENT_RATE0,prevRentRate:state.prevRentRate||null,rentAdj:state.rentAdj||{},lastMarketEvent:state.lastMarketEvent||null,alert:state.alert||null,lastRoll:state.lastRoll||null,billQueue:state.billQueue||[],
     market:snapshotMarket(),updatedAt:Date.now()};
 }
 function applyShared(data){
@@ -940,6 +969,7 @@ function applyShared(data){
   state.lastMarketEvent=data.lastMarketEvent||null;
   state.alert=data.alert||null;
   state.lastRoll=data.lastRoll||null;
+  state.billQueue=data.billQueue||[];
   applyMarketSnapshot(data.market);
 }
 function toggleReady(){
@@ -1105,7 +1135,12 @@ async function joinRoomFlow(){
 }
 
 // Total monthly expenses as on the real game sheet (taxes included) — used for payday, Downsized and the escape check.
-function totalExpenses(p){return p.taxes+p.otherExp+p.mortgagePmt+p.carPmt+p.ccPmt+p.retailPmt+p.kids*p.childExp+p.bankLoanPmt;}
+function totalExpenses(p){return p.taxes+p.otherExp+p.mortgagePmt+p.carPmt+p.ccPmt+p.retailPmt+p.kids*p.childExp+p.bankLoanPmt+leftPmt(p);}
+// Leftover mortgage: when property is sold in a forced sale the player gets half its value in cash and
+// its mortgage stays with them (p.leftMortgage = {bal, rate}, rate balance-weighted, fixed), paid monthly
+// as an expense until paid off from the Finance panel.
+function leftPmt(p){const l=p.leftMortgage; return l&&l.bal>0?mortgagePmtFor(l.bal,l.rate):0;}
+function addLeftover(p,amt,rate){ if(!(amt>0)) return; const l=p.leftMortgage||{bal:0,rate}; l.rate=(l.bal*l.rate+amt*rate)/(l.bal+amt); l.bal+=amt; p.leftMortgage=l; }
 // ---- Property cash flow ----
 // A property mortgage costs balance × the shared mortgage rate (annual %, moved by events) ÷ 12 each
 // month, and a property's cash flow is its rent minus that payment. Paying a mortgage down therefore
@@ -1326,7 +1361,7 @@ function syncSounds(){
 // ---- Bills you can't refuse, fire sale and bankruptcy ----
 // payBill() is for mandatory costs (doodads, Downsized, negative paydays, lawsuits, theft). In order:
 //  1. pay from cash;
-//  2. borrow what the bank will lend (only while monthly cash flow stays >= $0);
+//  2. borrow from the bank (it lends while monthly cash flow is >= $0, even if the loan takes it below);
 //  3. fire sale: stocks at market price, then properties at 50% of market value (worst cash flow
 //     first; the bank takes the mortgage out of the proceeds and forgives any shortfall);
 //  4. if still short with nothing left to sell: negative cash flow = bankrupt (out of the game);
@@ -1380,9 +1415,9 @@ function fireSale(p,need){
   // Then properties at half value, worst cash flow per unit first.
   const props=()=>MARKET.filter(m=>m.type==="realestate"&&(p.holdings[m.id]||0)>0).sort((a,b)=>propNet(p,a)/p.holdings[a.id]-propNet(p,b)/p.holdings[b.id]);
   while(need>0&&props().length){
-    const m=props()[0], sale=Math.round(m.price*FIRE_SALE_RE), payoff=removeUnits(p,m,1), got=Math.max(0,sale-payoff);
-    p.cash+=got; need-=got;
-    lines.push("Sold "+m.name+" at half value "+fmt(sale)+" − mortgage "+fmt(payoff)+" = "+fmt(got)+(sale<payoff?" (bank forgave the rest)":""));
+    const m=props()[0], sale=Math.round(m.price*FIRE_SALE_RE), rate=lockedRate(p,m.id), payoff=removeUnits(p,m,1);
+    addLeftover(p,payoff,rate); p.cash+=sale; need-=sale;
+    lines.push("Sold "+m.name+" at half value "+fmt(sale)+(payoff?"; its "+fmt(payoff)+" mortgage stays as a debt":""));
   }
   lines.forEach(l=>log(""+p.name+": "+l.replace(/^\S+ /,"")));
   return lines;
@@ -1407,7 +1442,7 @@ function payPendingBill(mode){
   const p=state.players[state.turn];
   if(!mode&&p.cash<pd.amt){
     const L=Math.ceil((pd.amt-p.cash)/1000)*1000, ok=loanCheck(p,L,0).ok;
-    if(!ok) sfx("denied");
+    if(!ok){ sfx("denied"); state.forceSell={sel:{}}; render(); return; }
     state.confirm={idx:state.turn,title:"Pay "+pd.what,due:pd.amt,auto:L,loan:L,cashDelta:L-pd.amt,incomeDelta:0,bill:true,
       confirmLabel:ok?"Take "+fmt(L)+" loan and pay":"Sell assets and pay",run:()=>payPendingBill(ok?"loan":"force")};
     render(); return;
@@ -1618,13 +1653,16 @@ function startGame(){
     const pr=PROFESSIONS[Math.floor(Math.random()*PROFESSIONS.length)];
     return {...professionSheet(pr),model:ensureTokens()[i]||TOKEN_ORDER[i%4],facing:"down",profession:pr.name,name:nm.trim()||("Player "+(i+1)),cash:pr.savings+(speedCfg().bonus||0),kids:0,holdings:{},bankLoanBal:0,bankLoanPmt:0,pos:0,escaped:false,bankrupt:false,place:null,color:COLORS[i]};
   });
-  state.phase="playing"; state.alert=null; state.lastRoll=null; state.week=0; state.mortgageRate=startMortgageRate(); state.prevMortgageRate=state.mortgageRate; state.bankRate=BANK_RATE0; state.prevBankRate=BANK_RATE0; state.rentRate=speedCfg().rent||RENT_RATE0; state.prevRentRate=state.rentRate; state.rentAdj={}; refreshRents(); state.lastMarketEvent=null; state.turn=0; state.pending=null; state.hasRolled=false; state.log=[]; state.viewTab=0;
+  state.phase="playing"; state.alert=null; state.lastRoll=null; state.week=0; state.mortgageRate=startMortgageRate(); state.prevMortgageRate=state.mortgageRate; state.bankRate=BANK_RATE0; state.prevBankRate=BANK_RATE0; state.rentRate=speedCfg().rent||RENT_RATE0; state.prevRentRate=state.rentRate; state.rentAdj={}; refreshRents(); state.lastMarketEvent=null; state.turn=0; state.pending=null; state.billQueue=[]; state.hasRolled=false; state.log=[]; state.viewTab=0;
   log("Game started. "+state.players[0].name+" goes first. Market is open.");
   if(state.online) pushState();
   render();
 }
 function activePlayers(){return state.players.filter(isRacing);}
-function syncRender(){ if(state.online) pushState(); render(); }
+// A bill that arrived while another prompt was open (a negative payday passed on the way to a square
+// that also asks something) waits in state.billQueue and becomes the prompt once that one is resolved.
+function promoteBill(){ if(!state.pending&&state.billQueue&&state.billQueue.length) state.pending=state.billQueue.shift(); }
+function syncRender(){ promoteBill(); if(state.online) pushState(); render(); }
 const DOWNSIZED_SKIPS=2;
 // Flash-deal lock-up (stocks only): shares bought at a flash-deal discount can't be sold for the buyer's next 3 turns, so
 // the discount is a bet on where the price goes, not an instant flip. p.turnsTaken counts the player's turns
@@ -1653,11 +1691,11 @@ function nextTurn(){
     if(state.players.length===1){ updateMarket(); renewLeases(); }
     log(""+np.name+" is downsized and sits out this turn"+(np.skipTurns?" ("+np.skipTurns+" more to go).":" — back next round."));
   }
-  state.pending=null; syncRender();
+  state.pending=null; state.billQueue=[]; syncRender();
 }
 function endTurn(){
   if(state.online&&state.myIdx!==state.turn) return;
-  if(state.pending||!state.hasRolled) return;
+  if(state.pending||!state.hasRolled||(state.billQueue&&state.billQueue.length)) return;
   nextTurn();
 }
 // n = number of dice. Two dice are only allowed while the player has charity turns left; every
@@ -1683,14 +1721,24 @@ function rollDice(n){
   resolveSpace(p,sp);
   syncRender();
 }
-// A negative cash flow is a bill you can't refuse: it comes out of cash, and can trigger a fire sale.
+// A negative cash flow is a bill you can't refuse. With enough cash it is paid at once. Otherwise it
+// becomes a bill the player has to pay before ending the turn: nothing is sold automatically, the
+// player decides what to sell (or picks "Sell assets and pay" in the bill popup).
 function collectPayday(p,passing){
   if(!isRacing(p)) return;
   const inc=Math.round(monthlyCashflow(p));
-  if(inc>=0) sfx("payday");
-  log(p.name+(passing?" passes":" lands on")+" Payday: "+(inc>=0?"collects "+fmt(inc)+" net cash flow.":"negative cash flow, pays "+fmt(-inc)+"."));
-  if(inc>=0) p.cash+=inc; else payBill(p,-inc,"a negative payday");
-  checkWin(p);
+  if(inc>=0){ sfx("payday"); p.cash+=inc; log(p.name+(passing?" passes":" lands on")+" Payday: collects "+fmt(inc)+" net cash flow."); checkWin(p); return; }
+  const owe=-inc;
+  if(p.cash>=owe){ sfx("cost"); p.cash-=owe; log(p.name+(passing?" passes":" lands on")+" Payday: negative cash flow, pays "+fmt(owe)+"."); return; }
+  sfx("cost");
+  log(p.name+(passing?" passes":" lands on")+" Payday: negative cash flow, owes "+fmt(owe)+" but has only "+fmt(p.cash)+" in cash.");
+  state.billQueue=state.billQueue||[];
+  const prev=state.billQueue.find(b=>b.payday);
+  if(prev){ prev.amt+=owe; prev.desc=paydayBillDesc(prev.amt); return; }
+  state.billQueue.push({kind:"bill",payday:true,amt:owe,what:"a negative payday",title:"Negative payday",desc:paydayBillDesc(owe)});
+}
+function paydayBillDesc(amt){
+  return "Your expenses are larger than your income this month. The bank won't lend while your cash flow is negative, so sell assets to raise the cash, then pay.";
 }
 // Landing on a space resolves its effect but no longer auto-advances the turn — the market
 // stays open to everyone at all times, and the current player ends their own turn explicitly
@@ -1755,8 +1803,8 @@ function charityPay(ok){
   log(p.name+" donated "+fmt(amt)+" to charity — may roll 1 or 2 dice for the next "+CHARITY_TURNS+" turns.");
   state.pending=null; checkWin(p); syncRender();
 }
-function charitySkip(){if(state.online&&state.myIdx!==state.turn)return;log(state.pending.p.name+" skipped charity.");state.pending=null;syncRender();}
-function continueEvent(){if(state.online&&state.myIdx!==state.turn)return;state.pending=null; syncRender();}
+function charitySkip(){if(state.online&&state.myIdx!==state.turn)return;if(!state.pending||state.pending.kind!=="charity")return;log(state.pending.p.name+" skipped charity.");state.pending=null;syncRender();}
+function continueEvent(){if(state.online&&state.myIdx!==state.turn)return;if(!state.pending||state.pending.kind!=="eventinfo")return;state.pending=null; syncRender();}
 function setFlashQty(v,rerender){
   if(!state.pending||state.pending.kind!=="flashdeal") return;
   state.flashQty=Math.max(1,Math.min(state.pending.qtyMax||Infinity,parseInt(v)||1));
@@ -1793,7 +1841,7 @@ function buyFlashDeal(ok){
   checkWin(p);
   state.pending=null; syncRender();
 }
-function passFlash(){if(state.online&&state.myIdx!==state.turn)return;log(state.pending.p.name+" passed on the flash deal.");state.pending=null;syncRender();}
+function passFlash(){if(state.online&&state.myIdx!==state.turn)return;if(!state.pending||state.pending.kind!=="flashdeal")return;log(state.pending.p.name+" passed on the flash deal.");state.pending=null;syncRender();}
 function actingIdx(){ return state.online?state.myIdx:state.turn; }
 
 // ---- Buying & selling assets ----
@@ -1925,8 +1973,17 @@ const PERSONAL_DEBTS={mortgage:["Home Mortgage","mortgageBal","mortgagePmt"],car
 function debtList(p){
   const list=Object.entries(PERSONAL_DEBTS).map(([key,[name,b,m]])=>({key,name,bal:p[b],pmt:p[m]}));
   list.push({key:"bank",name:"Bank Loan",bal:p.bankLoanBal,pmt:p.bankLoanPmt});
+  if(p.leftMortgage&&p.leftMortgage.bal>0) list.push({key:"left",name:"Leftover Mortgage",bal:p.leftMortgage.bal,pmt:leftPmt(p)});
   Object.entries(p.reMortgage||{}).forEach(([id,bal])=>list.push({key:"re:"+id,name:"Mortgage — "+MARKET.find(m=>m.id===id).name,bal,pmt:mortgagePmtFor(bal,lockedRate(p,id))}));
   return list.filter(d=>d.bal>0);
+}
+// Pays amt of cash toward one debt (key as in debtList). Used by the Finance panel and forced sales.
+function applyDebtPayment(p,key,amt){
+  p.cash-=amt;
+  if(key==="bank"){ p.bankLoanBal-=amt; p.bankLoanPmt=bankPmtFor(p.bankLoanBal); }
+  else if(key==="left"){ p.leftMortgage.bal-=amt; if(p.leftMortgage.bal<=0) delete p.leftMortgage; }
+  else if(key.startsWith("re:")){ const id=key.slice(3); p.reMortgage[id]-=amt; if(p.reMortgage[id]<=0) delete p.reMortgage[id]; }
+  else{ const [,b,m]=PERSONAL_DEBTS[key]; p[m]=Math.round(p[m]*(p[b]-amt)/p[b]); p[b]-=amt; }
 }
 function selectedDebt(p){const list=debtList(p); return list.find(d=>d.key===state.debtSel)||list[0]||null;}
 function selectDebt(key){state.debtSel=key; render();}
@@ -1936,11 +1993,8 @@ function payDebt(idx,all){
   let amt=all?d.bal:Math.min(state.loanPayAmt||1000,d.bal);
   if(d.key==="bank"&&amt<d.bal) amt=Math.floor(amt/1000)*1000;
   if(amt<=0||amt>p.cash){log(p.name+" doesn't have "+fmt(Math.max(amt,1000))+" cash to pay toward "+d.name+".");render();return;}
-  p.cash-=amt;
+  applyDebtPayment(p,d.key,amt);
   sfx("paid");
-  if(d.key==="bank"){ p.bankLoanBal-=amt; p.bankLoanPmt=bankPmtFor(p.bankLoanBal); }
-  else if(d.key.startsWith("re:")){ const id=d.key.slice(3); p.reMortgage[id]-=amt; if(p.reMortgage[id]<=0) delete p.reMortgage[id]; }
-  else{ const [,b,m]=PERSONAL_DEBTS[d.key]; p[m]=Math.round(p[m]*(p[b]-amt)/p[b]); p[b]-=amt; }
   const saved=d.pmt-(debtList(p).find(x=>x.key===d.key)||{pmt:0}).pmt;
   log(p.name+(amt===d.bal?" paid off their "+d.name+" ("+fmt(amt)+")":" paid "+fmt(amt)+" toward their "+d.name)+(saved>0&&!d.key.startsWith("re:")?" — expenses down "+fmt(saved)+"/mo.":"."));
   checkWin(p); if(state.online) pushState(); render();
@@ -1951,16 +2005,15 @@ function payDebt(idx,all){
 // (auto-loan, rounded up to $1,000), show the impact and wait for
 // Confirm. state.confirm is local to this browser (never synced); `run` re-runs the action with ok=true.
 function monthlyCashflow(p){return p.salary+passiveIncome(p)-totalExpenses(p);}
-// Bank lending limit (real-game rule): the bank only lends while your monthly cash flow, after the new
-// loan payment (balance × bank rate, 10% to start), stays at or above $0. incomeDelta = extra monthly income the purchase
-// brings (rent/dividends), which counts toward what you can afford. Mandatory costs (doodads,
-// Downsized, lawsuits) still borrow automatically via payCash — the limit only applies to choices.
+// Bank lending rule: while your monthly cash flow is $0 or more the bank lends any amount, even if the
+// new payment (balance × bank rate) takes your cash flow below $0. Once it is negative the bank lends
+// nothing, whatever the loan is for. Bills you can't pay then force a sale (forceSellHTML), and if that
+// can't bring cash flow back to $0 you are bankrupt. max = Infinity means no cap.
 function loanCheck(p,loan,incomeDelta){
-  const cf=monthlyCashflow(p)+(incomeDelta||0);
+  const now=monthlyCashflow(p), cf=now+(incomeDelta||0);
   const cfAfter=L=>cf-(bankPmtFor(p.bankLoanBal+L)-p.bankLoanPmt);
-  let max=Math.floor(((cf+p.bankLoanPmt)*100/bankRate()-p.bankLoanBal)/1000)*1000;
-  while(max>0&&cfAfter(max)<0) max-=1000;
-  return {ok:cfAfter(loan)>=0,max:Math.max(0,max),newCf:cfAfter(loan)};
+  if(now>=0) return {ok:true,max:Infinity,newCf:cfAfter(loan),negative:cfAfter(loan)<0};
+  return {ok:false,max:0,newCf:cfAfter(loan),negative:false};   // negative cash flow: no loans at all
 }
 function askLoanConfirm(idx,o){
   const p=state.players[idx]; if(!p) return false;
@@ -1973,6 +2026,122 @@ function askLoanConfirm(idx,o){
 function confirmYes(){const c=state.confirm; state.confirm=null; if(c&&c.run) c.run(); else render();}
 function confirmNo(){state.confirm=null; render();}
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&state.confirm) confirmNo(); });
+// ---- Forced sale (the player picks what to sell) ----
+// When a bill can't be paid and the bank won't lend, the player chooses which assets to sell, stocks
+// and/or property, any quantity of each (state.forceSell.sel = {id: qty}, local to this browser).
+// Stocks go at the market price; property at half value, paid in full, its mortgage kept as a leftover
+// debt. Real Cashflow bankruptcy rule: after the bill is paid, the remaining cash pays down the most
+// expensive debts (highest payment per dollar owed, so the bank loan first), only as far as needed to get
+// monthly cash flow back to $0. If cash flow is still negative after that, the player is bankrupt. The
+// sheet previews the outcome by running the same code on a copy of the player (forceOutcome).
+function forceUnitNet(p,m,q){
+  if(m.type==="stock") return q*m.price;
+  return Math.min(q,p.holdings[m.id]||0)*Math.round(m.price*FIRE_SALE_RE);   // mortgage is kept, not deducted
+}
+function forceAssets(p){ return MARKET.filter(m=>(p.holdings[m.id]||0)>0); }
+function forceSelTotal(p){ const sel=(state.forceSell&&state.forceSell.sel)||{}; return forceAssets(p).reduce((t,m)=>t+forceUnitNet(p,m,Math.min(sel[m.id]||0,p.holdings[m.id])),0); }
+function forceSetQty(id,v){ if(!state.forceSell) return; const p=state.players[state.turn], held=(p&&p.holdings[id])||0;
+  state.forceSell.sel[id]=Math.max(0,Math.min(held,parseInt(v)||0)); render(); }
+function forceToggle(id,on){ const p=state.players[state.turn]; forceSetQty(id,on?(p.holdings[id]||0):0); }
+function forceCancel(){ state.forceSell=null; render(); }
+// Sells sel ({id: qty}) for player p, pays the bill if the cash covers it, then pays down debts until
+// cash flow is back to $0 (or the cash runs out). Works on any player object, so the sheet can run it on
+// a copy. Returns {lines, paid, cf}.
+function applyForcedSale(p,sel,amt){
+  const lines=[];
+  forceAssets(p).forEach(m=>{
+    const q=Math.min(sel[m.id]||0,p.holdings[m.id]||0); if(!q) return;
+    if(m.type==="stock"){ removeUnits(p,m,q); p.cash+=q*m.price; lines.push("Sold "+q+"x "+m.name+" at "+fmt(m.price)+" = "+fmt(q*m.price)); }
+    else{ const sale=Math.round(m.price*FIRE_SALE_RE), rate=lockedRate(p,m.id), kept=removeUnits(p,m,q);
+      addLeftover(p,kept,rate); p.cash+=q*sale;
+      lines.push("Sold "+q+"x "+m.name+" at half value = "+fmt(q*sale)+(kept?"; its "+fmt(kept)+" mortgage stays as a debt":"")); }
+  });
+  if(p.cash<amt) return {lines,paid:false,cf:monthlyCashflow(p)};
+  p.cash-=amt;
+  for(let guard=0;guard<20&&monthlyCashflow(p)<0&&p.cash>0;guard++){
+    const d=debtList(p).filter(d=>d.pmt>0).sort((a,b)=>b.pmt/b.bal-a.pmt/a.bal).find(d=>d.key!=="bank"||p.cash>=Math.min(1000,d.bal));
+    if(!d) break;
+    let pay=Math.min(d.bal,p.cash,Math.ceil(-monthlyCashflow(p)/(d.pmt/d.bal))+1);
+    if(d.key==="bank"&&pay<d.bal){ pay=Math.min(d.bal,Math.ceil(pay/1000)*1000); if(pay>p.cash) pay=Math.floor(p.cash/1000)*1000; }   // bank loan: $1,000 steps
+    if(pay<=0) break;
+    applyDebtPayment(p,d.key,pay); lines.push("Paid "+fmt(pay)+" toward "+d.name);
+  }
+  return {lines,paid:true,cf:monthlyCashflow(p)};
+}
+// Outcome of a selection, computed on a copy of the player.
+function forceOutcome(p,sel,amt){ const copy=JSON.parse(JSON.stringify(p)); const r=applyForcedSale(copy,sel,amt); return {...r,cash:copy.cash}; }
+function forceAllSel(p){ const o={}; forceAssets(p).forEach(m=>o[m.id]=p.holdings[m.id]); return o; }
+function forceBankrupt(){
+  if(state.online&&state.myIdx!==state.turn) return;
+  const pd=state.pending, p=state.players[state.turn]; if(!pd||pd.kind!=="bill") return;
+  state.forceSell=null; state.pending=null;
+  const r=applyForcedSale(p,forceAllSel(p),pd.amt);
+  r.lines.forEach(l=>log(p.name+" "+l.charAt(0).toLowerCase()+l.slice(1)+"."));
+  goBankrupt(p,pd.what,pd.amt,r.lines);
+  checkAllWins(); checkGameOver(); syncRender();
+}
+function forceSellPay(){
+  if(state.online&&state.myIdx!==state.turn) return;
+  const pd=state.pending, p=state.players[state.turn]; if(!pd||pd.kind!=="bill"||!state.forceSell) return;
+  const sel=state.forceSell.sel, pre=forceOutcome(p,sel,pd.amt);
+  if(!pre.paid||pre.cf<0) return;
+  const r=applyForcedSale(p,sel,pd.amt);
+  r.lines.forEach(l=>log(p.name+" "+l.charAt(0).toLowerCase()+l.slice(1)+"."));
+  state.forceSell=null; state.pending=null;
+  sfx("cost");
+  log(p.name+" paid "+fmt(pd.amt)+" for "+pd.what+". Cash flow is back to "+fmt(r.cf)+"/mo.");
+  raiseAlert("Forced sale — "+p.name,[p.name+" couldn't cover "+pd.what+" ("+fmt(pd.amt)+") and the bank wouldn't lend, so they sold assets and paid down debt:",...r.lines]);
+  checkAllWins(); checkGameOver(); syncRender();
+}
+function forceSellHTML(){
+  const fsl=state.forceSell; if(!fsl) return "";
+  const pd=state.pending, p=state.players[state.turn];
+  if(!pd||pd.kind!=="bill"||!p||(state.online&&state.myIdx!==state.turn)){ state.forceSell=null; return ""; }
+  const short=pd.amt-p.cash, total=forceSelTotal(p);
+  const out=forceOutcome(p,fsl.sel,pd.amt), best=forceOutcome(p,forceAllSel(p),pd.amt);
+  const enough=best.paid&&best.cf>=0, ok=out.paid&&out.cf>=0;
+  const money=v=>(v<0?"−":"")+fmt(Math.abs(v)), cf0=monthlyCashflow(p);
+  let cfDelta=0;
+  // Each row: what the sale brings, the mortgage paid off from it, the cash you keep, and how your
+  // monthly cash flow changes (a property losing money each month raises it even when you get $0).
+  const row=m=>{const held=p.holdings[m.id], q=Math.min(fsl.sel[m.id]||0,held), re=m.type==="realestate";
+    const unit=re?Math.round(m.price*FIRE_SALE_RE):m.price, get=q?forceUnitNet(p,m,q):0;
+    const ms=q&&re?mortgageShare(p,m.id,q):0;
+    // the mortgage payment continues as a leftover debt, so only rent and running costs go away
+    const dcf=q?incomeDeltaSell(p,m,q)-(re?mortgagePmtFor(ms,lockedRate(p,m.id)):0):0; cfDelta+=dcf;
+    return `<tr class="${q?"on":""}"><td><label class="fs-pick"><input type="checkbox" ${q?"checked":""} onchange="forceToggle('${m.id}',this.checked)"> ${m.name}</label></td>
+      <td class="num">${held}</td>
+      <td class="num">${fmt(unit)}${re?`<small>half of ${fmt(m.price)}</small>`:""}</td>
+      <td class="num"><input class="qty fs-qty" type="number" min="0" max="${held}" value="${q}" onchange="forceSetQty('${m.id}',this.value)"></td>
+      <td class="num">${q?fmt(q*unit):"—"}</td>
+      <td class="num">${q&&re?(ms?fmt(ms)+`<small>stays as a debt, ${fmt(mortgagePmtFor(ms,lockedRate(p,m.id)))}/mo</small>`:"none"):"—"}</td>
+      <td class="num"><b>${q?fmt(get):"—"}</b></td>
+      <td class="num">${q?`<span class="${dcf>0?"up":dcf<0?"down":""}">${dcf>0?"+":""}${money(Math.round(dcf))}</span>`:"—"}</td></tr>`;};
+  const stocks=forceAssets(p).filter(m=>m.type==="stock"), props=forceAssets(p).filter(m=>m.type==="realestate");
+  const rows=(stocks.length?`<tr class="fs-sec"><td colspan="8">Stocks — sold at the market price</td></tr>`+stocks.map(row).join(""):"")
+    +(props.length?`<tr class="fs-sec"><td colspan="8">Real estate — sold at half value, paid to you in full; you keep owing its mortgage</td></tr>`+props.map(row).join(""):"");
+  return `<div class="confirm-backdrop">
+    <div class="confirm-card denied fs-card" role="dialog" aria-modal="true">
+      <div class="confirm-head">The bank won't lend — choose what to sell</div>
+      <h3 style="margin-bottom:6px;">Pay ${pd.what}</h3>
+      <div class="fs-sum"><span>Due <b>${fmt(pd.amt)}</b></span><span>Cash <b>${fmt(p.cash)}</b></span><span>Short by <b class="down">${fmt(short)}</b></span><span>Selected <b class="${ok?"up":""}">${fmt(total)}</b></span><span>Cash flow <b>${money(Math.round(cf0))}</b> → <b class="${out.cf>=0?"up":"down"}">${money(Math.round(out.cf))}</b>/mo after paying down debt</span></div>
+      <div class="fs-list">
+      ${forceAssets(p).length?`<table>
+        <tr class="fs-h"><td>Asset</td><td class="num">Held</td><td class="num">Price each</td><td class="num">Sell</td><td class="num">Sale</td><td class="num">Mortgage kept</td><td class="num">You get</td><td class="num">Cash flow</td></tr>
+        ${rows}
+      </table>`:`<p class="muted">You have nothing to sell.</p>`}
+      </div>
+      ${props.length?`<p class="fs-note">A property sold here brings half its value in cash. Its mortgage is not paid off: it stays as a leftover debt at the same fixed rate and you keep paying it each month (you can pay it off from the Finance panel). You lose the rent and the running costs.</p>`:""}
+      <p class="fs-note">Bankruptcy rule: after the bill, the rest of your cash pays down your most expensive debts (the bank loan first) until your monthly cash flow is back to $0. If it is still negative after that, you are bankrupt.${out.lines.some(l=>l.startsWith("Paid"))?" With this selection: "+out.lines.filter(l=>l.startsWith("Paid")).join("; ")+".":""}</p>
+      ${enough?"":`<div class="confirm-warn">Even selling everything leaves ${best.paid?"your cash flow at "+money(Math.round(best.cf))+"/mo":"you short of the "+fmt(pd.amt)+" bill"}, so you are bankrupt.</div>`}
+      <div class="confirm-actions">
+        <button onclick="forceCancel()">Cancel</button>
+        ${enough?`<button class="sell" onclick="forceSellPay()" ${ok?"":"disabled"}>${ok?"Sell selected and pay":!out.paid?"Select at least "+fmt(short):"Sell more: cash flow still negative"}</button>`
+          :`<button class="sell" onclick="forceBankrupt()">Go bankrupt</button>`}
+      </div>
+    </div>
+  </div>`;
+}
 function confirmHTML(){
   const c=state.confirm; if(!c) return "";
   const p=state.players[c.idx]; if(!p){state.confirm=null; return "";}
@@ -2007,8 +2176,9 @@ function confirmHTML(){
         <tr><td>Cash on hand</td><td class="num">${arrow(p.cash,p.cash+c.cashDelta,true)}</td></tr>
         <tr><td>Monthly cash flow</td><td class="num">${arrow(cf,newCf,true)}</td></tr>
       </table>`}
-      ${!fire?"":`<div class="confirm-warn">The bank won't lend you this (your cash flow can't cover the loan payment). To pay, your assets will be sold in a <b>fire sale</b>: stocks at market price, property at half value. If that isn't enough and your cash flow is negative, you go <b>bankrupt</b>. Cancel to sell things yourself first.</div>${doomed?`<div class="confirm-warn" style="font-weight:bold;">That isn't enough to cover it, so paying now means going bankrupt.</div>`:""}`}
-      ${chk.ok||c.bill?"":`<div class="confirm-warn">The bank only lends while your monthly cash flow stays at $0 or more after the loan payment. This would leave you at <b>${money(newCf)}/mo</b>.<br>${chk.max>0?`Right now you can borrow up to <b>${fmt(chk.max)}</b>${c.incomeDelta?" for this purchase":""}.`:"Right now the bank won't lend you anything — raise your cash flow first (pay off debts or buy income assets)."}</div>`}
+      ${!fire?"":`<div class="confirm-warn">The bank won't lend you this (your monthly cash flow is already negative). To pay, your assets will be sold in a <b>fire sale</b>: stocks at market price, property at half value. If that isn't enough and your cash flow is negative, you go <b>bankrupt</b>. Cancel to sell things yourself first.</div>${doomed?`<div class="confirm-warn" style="font-weight:bold;">That isn't enough to cover it, so paying now means going bankrupt.</div>`:""}`}
+      ${chk.ok||c.bill?"":`<div class="confirm-warn">Your monthly cash flow is negative, so the bank won't lend you anything. Raise it to $0 or more first (pay off debts, or sell assets that lose money each month).</div>`}
+      ${chk.ok&&newCf<0?`<div class="confirm-warn">This takes your monthly cash flow below $0 (<b>${money(newCf)}/mo</b>). While it is negative the bank won't lend you more: bills you can't pay will force a fire sale of your assets, and if that isn't enough you go bankrupt.</div>`:""}
       <div class="confirm-actions">
         ${chk.ok||c.bill?`<button onclick="confirmNo()">Cancel</button>
         <button class="${chk.ok?"gold":"sell"}" onclick="confirmYes()">${doomed?"Sell everything and go bankrupt":c.confirmLabel}</button>`:`<button class="primary" onclick="confirmNo()">OK</button>`}
@@ -2221,7 +2391,7 @@ const SQUARES={
   baby:{emoji:"👶",label:"Baby",color:"#2f93b8",desc:"New child: expenses go up (max 3)"},
 };
 function playerToken(pl,i){
-  return tbTokenHTML(pl,i,{size:"card"});
+  return tbTokenHTML(pl,i,{size:"card",dir:"down"});   // cards always show the front view
 }
 // Public economy overview in the board centre: market-wide numbers only (no single-offer values, so
 // judging an individual deal stays the player's job).
@@ -2847,7 +3017,7 @@ function marketHTML(){
 }
 // Colour per income/expense line — shared by the overview bars and the dots in the detailed tables,
 // so each coloured segment can be traced back to its row.
-const FIN_COLORS={salary:"#1f7a5c",div:"#3cb883",rent:"#8fd6b1",taxes:"#8e9aa6",mortgage:"#c0392b",car:"#e67e22",cc:"#e0b000",retail:"#d6457a",other:"#9b59b6",kids:"#2f93b8",bank:"#b8860b"};
+const FIN_COLORS={left:"#7f4f24",salary:"#1f7a5c",div:"#3cb883",rent:"#8fd6b1",taxes:"#8e9aa6",mortgage:"#c0392b",car:"#e67e22",cc:"#e0b000",retail:"#d6457a",other:"#9b59b6",kids:"#2f93b8",bank:"#b8860b"};
 function finDot(k){return `<i class="fdot" style="background:${FIN_COLORS[k]}"></i>`;}
 // A horizontal bar of coloured segments on a shared scale; each segment has a hover title.
 function stackBar(parts,scale){
@@ -2868,12 +3038,12 @@ function statementHTML(p,idx){
   const stockVal=stocks.reduce((s,m)=>s+(p.holdings[m.id]||0)*m.price,0);
   const propVal=props.reduce((s,m)=>s+(p.holdings[m.id]||0)*m.price,0);
   const totalAssets=p.cash+stockVal+propVal;
-  const totalLiab=p.mortgageBal+p.carBal+p.ccBal+p.retailBal+p.bankLoanBal+reMortgageTotal(p);
+  const totalLiab=p.mortgageBal+p.carBal+p.ccBal+p.retailBal+p.bankLoanBal+reMortgageTotal(p)+((p.leftMortgage&&p.leftMortgage.bal)||0);
 
   const lendMax=loanCheck(p,0,0).max;
   const debt=selectedDebt(p);
   const incomeParts=[{k:"salary",label:"Salary",v:p.salary},{k:"div",label:"Dividends",v:dividends},{k:"rent",label:"Rent",v:reIncome}];
-  const expParts=[{k:"taxes",label:"Taxes",v:p.taxes},{k:"mortgage",label:"Home mortgage",v:p.mortgagePmt},{k:"car",label:"Car loan",v:p.carPmt},{k:"cc",label:"Credit card",v:p.ccPmt},{k:"retail",label:"Retail debt",v:p.retailPmt},{k:"other",label:"Other",v:p.otherExp},{k:"kids",label:"Children",v:childTotal},{k:"bank",label:"Bank loan",v:p.bankLoanPmt}];
+  const expParts=[{k:"taxes",label:"Taxes",v:p.taxes},{k:"mortgage",label:"Home mortgage",v:p.mortgagePmt},{k:"car",label:"Car loan",v:p.carPmt},{k:"cc",label:"Credit card",v:p.ccPmt},{k:"retail",label:"Retail debt",v:p.retailPmt},{k:"other",label:"Other",v:p.otherExp},{k:"kids",label:"Children",v:childTotal},{k:"bank",label:"Bank loan",v:p.bankLoanPmt},{k:"left",label:"Leftover mortgage",v:leftPmt(p)}];
   const flowScale=Math.max(totalIncome,totalExp,1);
 
   const cls=v=>v>0?"up":v<0?"down":"flat";
@@ -2925,6 +3095,7 @@ function statementHTML(p,idx){
      ${expRow("other","Other Expenses",p.otherExp)}
      ${expRow("kids","Children ("+p.kids+" × "+fmt(p.childExp)+")",childTotal)}
      ${expRow("bank","Bank Loan Payment",p.bankLoanPmt)}
+     ${leftPmt(p)?expRow("left","Leftover Mortgage Payment ("+p.leftMortgage.rate.toFixed(1)+"%)",leftPmt(p)):""}
     </table>
    </div>
    <div>
@@ -2943,6 +3114,7 @@ function statementHTML(p,idx){
      ${liabRow("retail","Retail Debt",p.retailBal,"retail")}
      ${props.map(m=>liabRow("re:"+m.id,"Mortgage — "+m.name,mortgageShare(p,m.id,p.holdings[m.id]))).join("")}
      ${liabRow("bank","Bank Loan",p.bankLoanBal,"bank")}
+     ${p.leftMortgage&&p.leftMortgage.bal>0?liabRow("left","Leftover Mortgage (sold property)",p.leftMortgage.bal,"left"):""}
     </table>
    </div>
    ${holdingsTrendsHTML(p)}
@@ -2955,7 +3127,7 @@ function statementHTML(p,idx){
        <input class="qty" style="width:84px;" type="number" step="1000" min="1000" value="${state.loanTakeAmt||1000}" onchange="setLoanTakeAmt(this.value)">
        <button class="gold" onclick="takeLoan(${idx})" ${lendMax>0?"":"disabled"}>Take Loan</button>
      </div>
-     <small class="muted">${lendMax>0?`Up to ${fmt(lendMax)} · costs ${bankRate().toFixed(1)}% of the loan every month.`:"Not available — the bank needs your cash flow to cover the payment."}</small>
+     <small class="muted">${lendMax>0?`${lendMax===Infinity?"Any amount":"Up to "+fmt(lendMax)} · costs ${bankRate().toFixed(1)}% of the loan every month.${lendMax===Infinity?" Once your cash flow is negative the bank stops lending.":""}`:"Not available — your cash flow is negative. Raise it first."}</small>
    </div>
    <div class="bank-col grow">
      <div class="fo-title">Pay off debt <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:normal;">— or click a liability row</span></div>
@@ -2963,7 +3135,7 @@ function statementHTML(p,idx){
        <input class="qty" style="width:84px;" type="number" step="${debt.key==="bank"?1000:100}" min="1" value="${state.loanPayAmt||1000}" onchange="setLoanPay(this.value)">
        <button onclick="payDebt(${idx})" ${p.cash>0?"":"disabled"}>Pay</button>
        <button class="primary" onclick="payDebt(${idx},true)" ${p.cash>=debt.bal?"":"disabled"} title="${p.cash>=debt.bal?"":"Not enough cash to clear it"}">Pay off all ${fmt(debt.bal)}</button></div>
-       <small class="muted">${debt.key.startsWith("re:")?`Property mortgage, fixed at ${lockedRate(p,debt.key.slice(3)).toFixed(1)}% — partial payments allowed.`:debt.pmt?`Paying it off in full cuts expenses by <b>${fmt(debt.pmt)}/mo</b>${debt.key==="bank"?" (partial payments in $1,000 steps)":"; partial payments lower it proportionally"}.`:`No monthly payment — paying it down means you keep more when you sell the property.`}</small>`
+       <small class="muted">${debt.key==="left"?`Mortgage kept from property sold in a forced sale, fixed at ${p.leftMortgage.rate.toFixed(1)}% — partial payments lower the payment proportionally.`:debt.key.startsWith("re:")?`Property mortgage, fixed at ${lockedRate(p,debt.key.slice(3)).toFixed(1)}% — partial payments allowed.`:debt.pmt?`Paying it off in full cuts expenses by <b>${fmt(debt.pmt)}/mo</b>${debt.key==="bank"?" (partial payments in $1,000 steps)":"; partial payments lower it proportionally"}.`:`No monthly payment — paying it down means you keep more when you sell the property.`}</small>`
      :`<span class="muted">No debts.</span>`}
    </div>
   </div>`;
@@ -2971,6 +3143,9 @@ function statementHTML(p,idx){
 // Events and bills arrive as a letter: airmail border, stamp, postmark with the week, addressed to the
 // player whose turn it is. It simply appears (no opening animation).
 function letterHTML(p,subject,kind,body){
+  // The buttons sit below the text (always visible); only the text scrolls when it is long.
+  const ai=body.lastIndexOf('<div class="letter-actions">'), actions=ai>=0?body.slice(ai):"";
+  if(ai>=0) body=body.slice(0,ai);
   const sq=SQUARES[BOARD[(p&&p.pos)||0]]?BOARD[(p&&p.pos)||0]:"event";
   return `<div class="letter" role="dialog" aria-label="${kind}: ${subject}">
     <div class="letter-head">
@@ -2978,6 +3153,7 @@ function letterHTML(p,subject,kind,body){
       <div class="letter-post"><div class="letter-mark">WEEK<br><b>${state.week||0}</b></div><div class="letter-stamp" style="--sq:${tbColor(sq)}">${tbIcon(sq)}</div></div>
     </div>
     <div class="letter-body">${body}</div>
+    ${actions?`<div class="letter-foot">${actions}</div>`:""}
   </div>`;
 }
 function pendingHTML(){
@@ -2995,7 +3171,7 @@ function pendingHTML(){
     const b=state.pending, p=state.players[state.turn];
     inner=letterHTML(p,b.title,"Invoice",`<p>${b.desc}</p>
       <div class="letter-due"><span>Amount due</span><b>${fmt(b.amt)}</b></div>
-      ${myTurn?`<p class="letter-note">Cash on hand: ${fmt(p.cash)}${p.cash<b.amt?" — not enough, you'll need a loan":""}</p>
+      ${myTurn?`<p class="letter-note">Cash on hand: ${fmt(p.cash)}${p.cash<b.amt?(loanCheck(p,Math.ceil((b.amt-p.cash)/1000)*1000,0).ok?" — not enough, you'll need a loan":" — not enough, sell assets first"):""}</p>
       <div class="letter-actions"><button class="primary" onclick="payPendingBill()">Pay ${fmt(b.amt)}</button></div>`
       :`<p class="letter-note">Waiting for ${p.name} to pay…</p>`}`);
   }else if(state.pending.kind==="eventinfo"){
@@ -3145,6 +3321,7 @@ function gameHTML(over){
   ${financePanel}
   ${marketPanel}
   ${confirmHTML()}
+  ${forceSellHTML()}
   ${alertHTML()}`;
 }
 render();
